@@ -432,17 +432,17 @@ const getArchivedTripRows = async (
 ): Promise<readonly Trip[]> =>
 	database.getAllAsync<Trip>(`
 		SELECT
-			id,
-			name,
-			trip_type_id AS tripTypeId,
+			trips.id,
+			trips.name,
+			trips.trip_type_id AS tripTypeId,
 			trip_type.name AS tripTypeName,
-			created_at AS createdAt,
-			updated_at AS updatedAt,
-			COALESCE(archived, 0) AS archived
+			trips.created_at AS createdAt,
+			trips.updated_at AS updatedAt,
+			COALESCE(trips.archived, 0) AS archived
 		FROM trips
 		LEFT JOIN trip_types trip_type ON trip_type.id = trips.trip_type_id
-		WHERE COALESCE(archived, 0) = 1
-		ORDER BY lower(name) ASC;
+		WHERE COALESCE(trips.archived, 0) = 1
+		ORDER BY lower(trips.name) ASC;
 	`);
 
 const getTripRow = async (

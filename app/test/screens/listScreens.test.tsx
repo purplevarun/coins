@@ -384,6 +384,60 @@ const mockStateValues = (
 };
 
 describe("list screens", () => {
+	it.each([
+		{
+			tab: "TRIPS",
+			emptyTitle: "No trips yet",
+			emptyMessage: "Add your first trip to get started.",
+			searchTitle: "No matching trips",
+		},
+		{
+			tab: "TYPES",
+			emptyTitle: "No Trip Types yet",
+			emptyMessage: "Add your first trip type to get started.",
+			searchTitle: "No matching trip types",
+		},
+	])(
+		"distinguishes an empty $tab list from a search with no matches",
+		({ tab, emptyTitle, emptyMessage, searchTitle }) => {
+			for (const search of ["", "   ", "missing"]) {
+				const isFiltered = !!search.trim();
+				const records = isFiltered
+					? [
+							{
+								id: "00000000-0000-4000-8000-000000000001",
+								name: "Holiday",
+								createdAt: 1,
+								updatedAt: 1,
+							},
+						]
+					: [];
+				mockStateValues({ 1: records, 8: search, 9: tab, 10: records });
+				const tree = TripsScreen({
+					navigation: { setOptions: vi.fn() },
+				} as unknown as ComponentProps<typeof TripsScreen>);
+				expect(
+					findElement<FinanceListProps<Trip>>(tree, (props) =>
+						Array.isArray(props.data),
+					).props.data,
+				).toEqual([]);
+				const title = isFiltered ? searchTitle : emptyTitle;
+				expect(
+					findElement<EmptyStateProps>(
+						tree,
+						(props) => props.title === title,
+					).props,
+				).toMatchObject({
+					title,
+					message: isFiltered
+						? "No results match your search."
+						: emptyMessage,
+					icon: isFiltered ? "search-outline" : "add-circle-outline",
+				});
+			}
+		},
+	);
+
 	it("changes the Trips tab through the segmented control", () => {
 		const setters = mockStateValues({});
 		const tree = TripsScreen({

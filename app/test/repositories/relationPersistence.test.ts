@@ -235,3 +235,58 @@ it("preserves the selected trip type when creating and editing a trip", async ()
 		},
 	]);
 });
+
+it("lists archived trips with optional types and restores their visibility", async () => {
+	const { database } = createTestDatabase();
+	await database.execAsync(SCHEMA_SQL);
+	for (const migration of SCHEMA_MIGRATIONS)
+		await database.execAsync(migration);
+	const tripTypeId = randomUUID();
+	await database.runAsync(
+		"INSERT INTO trip_types (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)",
+		tripTypeId,
+		"Holiday",
+		10,
+		20,
+	);
+	const typedTrip = {
+		id: randomUUID(),
+		name: "alpine",
+		tripTypeId,
+		createdAt: 1,
+		updatedAt: 2,
+	};
+	const untypedTrip = {
+		...typedTrip,
+		id: randomUUID(),
+		name: "Beach",
+		tripTypeId: null,
+	};
+	const activeTrip = { ...typedTrip, id: randomUUID(), name: "Active" };
+	for (const trip of [untypedTrip, typedTrip, activeTrip]) {
+		await financeRepository.upsertSimpleEntityRow(database, "trips", trip);
+	}
+	await database.runAsync(
+		"UPDATE trips SET archived = 1 WHERE id IN (?, ?)",
+		typedTrip.id,
+		untypedTrip.id,
+	);
+	expect(await financeRepository.getArchivedTripRows(database)).toEqual([
+		{ ...typedTrip, tripTypeName: "Holiday", archived: 1 },
+		{ ...untypedTrip, tripTypeName: null, archived: 1 },
+	]);
+	expect(await financeRepository.getTripRows(database)).toEqual([
+		{ ...activeTrip, tripTypeName: "Holiday", archived: 0 },
+	]);
+	await database.runAsync(
+		"UPDATE trips SET archived = 0 WHERE id = ?",
+		typedTrip.id,
+	);
+	expect(await financeRepository.getArchivedTripRows(database)).toEqual([
+		{ ...untypedTrip, tripTypeName: null, archived: 1 },
+	]);
+	expect(await financeRepository.getTripRows(database)).toEqual([
+		{ ...activeTrip, tripTypeName: "Holiday", archived: 0 },
+		{ ...typedTrip, tripTypeName: "Holiday", archived: 0 },
+	]);
+});

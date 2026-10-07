@@ -361,20 +361,30 @@ const TripsScreen = ({ navigation }: TripsScreenProps): React.JSX.Element => {
 		[error, searchQuery, searchVisible, tab],
 	);
 
-	const listEmpty = useMemo(
-		() => (
+	const listEmpty = useMemo(() => {
+		const isFiltered = !!searchDebounced.trim();
+		return (
 			<EmptyState
-				icon="add-circle-outline"
+				icon={isFiltered ? "search-outline" : "add-circle-outline"}
 				message={
-					tab === "TYPES"
-						? "Add your first trip type to get started."
-						: "Add your first trip to get started."
+					isFiltered
+						? "No results match your search."
+						: tab === "TYPES"
+							? "Add your first trip type to get started."
+							: "Add your first trip to get started."
 				}
-				title={tab === "TYPES" ? "No Trip Types yet" : "No trips yet"}
+				title={
+					isFiltered
+						? tab === "TYPES"
+							? "No matching trip types"
+							: "No matching trips"
+						: tab === "TYPES"
+							? "No Trip Types yet"
+							: "No trips yet"
+				}
 			/>
-		),
-		[tab],
-	);
+		);
+	}, [searchDebounced, tab]);
 
 	return (
 		<View style={styles.screen}>
