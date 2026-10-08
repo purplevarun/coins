@@ -3,10 +3,31 @@ import type { SQLiteDatabase } from "expo-sqlite";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { onTestFinished } from "vitest";
 
-const createTestDatabase = (): SqliteTestDatabase => {
-	const sqlite = new DatabaseSync(":memory:");
-	onTestFinished(() => sqlite.close());
+const createTestDatabase = (databasePath = ":memory:"): SqliteTestDatabase => {
+	const sqlite = new DatabaseSync(databasePath);
+	let closed = false;
+	const close = (): void => {
+		if (!closed) {
+			sqlite.close();
+			closed = true;
+		}
+	};
+	onTestFinished(close);
 	const adapter = {
+		closeAsync: (): Promise<void> => {
+			close();
+			return Promise.resolve();
+		},
+		prepareAsync: (sql: string): Promise<unknown> => {
+			const statement = sqlite.prepare(sql);
+			return Promise.resolve({
+				getColumnNamesAsync: (): Promise<string[]> =>
+					Promise.resolve(
+						statement.columns().map((column) => column.name),
+					),
+				finalizeAsync: (): Promise<void> => Promise.resolve(),
+			});
+		},
 		execAsync: (sql: string): Promise<void> => {
 			sqlite.exec(sql);
 			return Promise.resolve();

@@ -95,6 +95,7 @@ import backupService from "@/services/backupService";
 const database = {
 	getFirstAsync: vi.fn(async () => ({ integrity: "ok" })),
 	getAllAsync: vi.fn<TestAsyncFunction>(),
+	prepareAsync: vi.fn<TestAsyncFunction>(),
 	serializeAsync: vi.fn(async () => new Uint8Array([5, 6])),
 	execAsync: vi.fn<TestAsyncFunction>().mockResolvedValue(undefined),
 	withTransactionAsync: vi.fn(async (callback: () => Promise<void>) =>
@@ -104,6 +105,12 @@ const database = {
 
 const validTempDatabase = (): any => ({
 	closeAsync: vi.fn<TestAsyncFunction>().mockResolvedValue(undefined),
+	prepareAsync: vi.fn(async (sql: string) => ({
+		getColumnNamesAsync: vi.fn(async () =>
+			sql.includes('"categories"') ? ["id"] : ["id", "amount", "label"],
+		),
+		finalizeAsync: vi.fn(async () => undefined),
+	})),
 	getAllAsync: vi
 		.fn<TestAsyncFunction>()
 		.mockResolvedValue([
@@ -169,19 +176,17 @@ describe("backupService", () => {
 		database.execAsync.mockReset();
 		database.execAsync.mockResolvedValue(undefined);
 		database.getAllAsync.mockReset();
-		database.getAllAsync.mockImplementation(async (sql: string) => {
-			if (sql.includes("sqlite_master")) {
-				return [{ name: "transactions" }, { name: "categories" }];
-			}
-			if (sql.includes("'categories'")) {
-				return sql.includes("'restore_source'")
-					? [{ name: "legacy_id" }]
-					: [{ name: "id" }];
-			}
-			return sql.includes("'restore_source'")
-				? [{ name: "id" }, { name: "amount" }, { name: "label" }]
-				: [{ name: "id" }, { name: "amount" }];
-		});
+		database.getAllAsync.mockResolvedValue([
+			{ name: "transactions" },
+			{ name: "categories" },
+		]);
+		database.prepareAsync.mockReset();
+		database.prepareAsync.mockImplementation(async (sql: string) => ({
+			getColumnNamesAsync: vi.fn(async () =>
+				sql.includes('"categories"') ? ["id"] : ["id", "amount"],
+			),
+			finalizeAsync: vi.fn(async () => undefined),
+		}));
 		database.withTransactionAsync.mockClear();
 		mocks.tempFileStartsExisting = true;
 		mocks.tempFileExistsAfterCreate = true;
@@ -288,14 +293,11 @@ describe("backupService", () => {
 		expect(database.execAsync).not.toHaveBeenCalledWith(
 			expect.stringContaining('"restore_only"'),
 		);
-		expect(database.execAsync).not.toHaveBeenCalledWith(
+		expect(database.execAsync).toHaveBeenCalledWith(
 			expect.stringContaining('"categories"'),
 		);
 		expect(database.execAsync).toHaveBeenCalledWith(
 			"DETACH DATABASE restore_source;",
-		);
-		expect(database.execAsync).toHaveBeenCalledWith(
-			"PRAGMA wal_checkpoint(TRUNCATE);",
 		);
 		expect(tempDatabase.closeAsync).toHaveBeenCalledOnce();
 		expect(mocks.fileDelete).toHaveBeenCalled();
@@ -313,6 +315,47 @@ describe("backupService", () => {
 		);
 		expect(database.execAsync).not.toHaveBeenCalled();
 		expect(tempDatabase.closeAsync).toHaveBeenCalledOnce();
+	});
+
+	it.each(["table", "column"])(
+		"rejects a missing %s before changing live data",
+		async (missing) => {
+			const temp = validTempDatabase();
+			if (missing === "table")
+				temp.getAllAsync.mockResolvedValueOnce([
+					{ name: "transactions" },
+				]);
+			else
+				temp.prepareAsync.mockResolvedValueOnce({
+					getColumnNamesAsync: vi.fn(async () => ["id"]),
+					finalizeAsync: vi.fn(async () => undefined),
+				});
+			mocks.openDatabaseAsync.mockResolvedValueOnce(temp);
+			selectBackup();
+			await expect(
+				backupService.restoreBackup(database),
+			).rejects.toMatchObject({ code: "INVALID_BACKUP_DATABASE" });
+			expect(database.execAsync).not.toHaveBeenCalled();
+			expect(database.withTransactionAsync).not.toHaveBeenCalled();
+			expect(temp.closeAsync).toHaveBeenCalledOnce();
+		},
+	);
+
+	it("finalizes metadata statements when column inspection fails", async () => {
+		const finalizeAsync = vi.fn(async () => undefined);
+		database.prepareAsync.mockResolvedValueOnce({
+			getColumnNamesAsync: vi.fn(async () => {
+				throw new Error("metadata failed");
+			}),
+			finalizeAsync,
+		});
+		mocks.openDatabaseAsync.mockResolvedValueOnce(validTempDatabase());
+		selectBackup();
+		await expect(backupService.restoreBackup(database)).rejects.toThrow(
+			"metadata failed",
+		);
+		expect(finalizeAsync).toHaveBeenCalledOnce();
+		expect(database.execAsync).not.toHaveBeenCalled();
 	});
 
 	it("detaches the restore source when the table copy fails", async () => {

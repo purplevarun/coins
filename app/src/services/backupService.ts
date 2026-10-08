@@ -52,6 +52,20 @@ const exportBackup = async (database: SQLiteDatabase): Promise<void> => {
 
 const TEMP_RESTORE_DB_NAME = "restore-temp.db";
 
+const getTableColumns = async (
+	database: SQLiteDatabase,
+	quotedTable: string,
+): Promise<readonly string[]> => {
+	const statement = await database.prepareAsync(
+		`SELECT * FROM ${quotedTable} LIMIT 0;`,
+	);
+	try {
+		return await statement.getColumnNamesAsync();
+	} finally {
+		await statement.finalizeAsync();
+	}
+};
+
 const restoreBackup = async (database: SQLiteDatabase): Promise<boolean> => {
 	const result = await DocumentPicker.getDocumentAsync({
 		type: "*/*",
@@ -100,6 +114,13 @@ const restoreBackup = async (database: SQLiteDatabase): Promise<boolean> => {
 				"This file is not a Purplecoins database.",
 			);
 		}
+		const backupTables = new Set(
+			(
+				await tempDatabase.getAllAsync<SqliteTableRow>(
+					`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';`,
+				)
+			).map((table) => table.name),
+		);
 		await tempDatabase.execAsync(SCHEMA_SQL);
 		for (const migration of SCHEMA_MIGRATIONS) {
 			try {
@@ -110,16 +131,35 @@ const restoreBackup = async (database: SQLiteDatabase): Promise<boolean> => {
 				}
 			}
 		}
-		const tempTables = await tempDatabase.getAllAsync<SqliteTableRow>(
+		const mainTables = await database.getAllAsync<SqliteTableRow>(
 			`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';`,
 		);
-		const mainTables = new Set(
-			(
-				await database.getAllAsync<SqliteTableRow>(
-					`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';`,
-				)
-			).map((row) => row.name),
-		);
+		const copyStatements: string[] = [];
+		for (const { name } of mainTables) {
+			if (!backupTables.has(name)) {
+				throw new AppError(
+					"INVALID_BACKUP_DATABASE",
+					`Backup is missing the ${name} table. Local data was not changed.`,
+				);
+			}
+			const quotedTable = `"${name.replace(/"/g, '""')}"`;
+			const mainColumns = await getTableColumns(database, quotedTable);
+			const backupColumns = new Set(
+				await getTableColumns(tempDatabase, quotedTable),
+			);
+			if (mainColumns.some((column) => !backupColumns.has(column))) {
+				throw new AppError(
+					"INVALID_BACKUP_DATABASE",
+					`Backup has an incomplete ${name} table. Local data was not changed.`,
+				);
+			}
+			const columnList = mainColumns
+				.map((column) => `"${column.replace(/"/g, '""')}"`)
+				.join(", ");
+			copyStatements.push(
+				`DELETE FROM main.${quotedTable}; INSERT INTO main.${quotedTable} (${columnList}) SELECT ${columnList} FROM restore_source.${quotedTable};`,
+			);
+		}
 		const tempPath = tempFile.uri
 			.replace(/^file:\/\//, "")
 			.replace(/'/g, "''");
@@ -128,40 +168,13 @@ const restoreBackup = async (database: SQLiteDatabase): Promise<boolean> => {
 		);
 		try {
 			await database.withTransactionAsync(async () => {
-				for (const { name } of tempTables) {
-					if (!mainTables.has(name)) continue;
-					const escaped = name
-						.replace(/"/g, '""')
-						.replace(/'/g, "''");
-					const mainColumns = new Set(
-						(
-							await database.getAllAsync<SqliteTableRow>(
-								`SELECT name FROM pragma_table_info('${escaped}', 'main');`,
-							)
-						).map((column) => column.name),
-					);
-					const sharedColumns = (
-						await database.getAllAsync<SqliteTableRow>(
-							`SELECT name FROM pragma_table_info('${escaped}', 'restore_source');`,
-						)
-					)
-						.map((column) => column.name)
-						.filter((column) => mainColumns.has(column));
-					if (sharedColumns.length === 0) continue;
-					const quotedTable = `"${escaped}"`;
-					const columnList = sharedColumns
-						.map((column) => `"${column.replace(/"/g, '""')}"`)
-						.join(", ");
-					await database.execAsync(
-						`DELETE FROM main.${quotedTable}; INSERT INTO main.${quotedTable} (${columnList}) SELECT ${columnList} FROM restore_source.${quotedTable};`,
-					);
+				for (const statement of copyStatements) {
+					await database.execAsync(statement);
 				}
 			});
 		} finally {
 			await database.execAsync("DETACH DATABASE restore_source;");
 		}
-
-		await database.execAsync("PRAGMA wal_checkpoint(TRUNCATE);");
 
 		return true;
 	} finally {
