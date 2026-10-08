@@ -484,16 +484,20 @@ const VaultScreen = ({
 		[error, message, search],
 	);
 
-	const listEmpty = useMemo(
-		() => (
+	const listEmpty = useMemo(() => {
+		const isFiltered = !!search.trim();
+		return (
 			<EmptyState
-				icon="lock-closed-outline"
-				message="Add your first local vault entry."
-				title="Nothing here yet"
+				icon={isFiltered ? "search-outline" : "lock-closed-outline"}
+				message={
+					isFiltered
+						? "No results match your search."
+						: "Add your first local vault entry."
+				}
+				title={isFiltered ? "No matching entries" : "Nothing here yet"}
 			/>
-		),
-		[],
-	);
+		);
+	}, [search]);
 
 	return (
 		<View style={styles.screen}>

@@ -362,16 +362,22 @@ const CategoriesScreen = ({
 		[analysis, categoryFilter, error, searchQuery, searchVisible],
 	);
 
-	const listEmpty = useMemo(
-		() => (
+	const listEmpty = useMemo(() => {
+		const isFiltered = !!searchDebounced.trim();
+		return (
 			<EmptyState
-				icon="add-circle-outline"
-				message="Add your first category to get started."
-				title="No categories yet"
+				icon={isFiltered ? "search-outline" : "add-circle-outline"}
+				message={
+					isFiltered
+						? "No results match your search."
+						: "Add your first category to get started."
+				}
+				title={
+					isFiltered ? "No matching categories" : "No categories yet"
+				}
 			/>
-		),
-		[],
-	);
+		);
+	}, [searchDebounced]);
 
 	return (
 		<View style={styles.screen}>

@@ -370,16 +370,24 @@ const TransactionsScreen = ({
 		viewMode,
 	]);
 
-	const listEmpty = useMemo(
-		() => (
+	const listEmpty = useMemo(() => {
+		const isFiltered = !!searchDebounced.trim();
+		return (
 			<EmptyState
-				icon="swap-horizontal-outline"
-				message="Add a general or investment transaction."
-				title="No transactions found"
+				icon={isFiltered ? "search-outline" : "swap-horizontal-outline"}
+				message={
+					isFiltered
+						? "No results match your search."
+						: "Add a general or investment transaction."
+				}
+				title={
+					isFiltered
+						? "No matching transactions"
+						: "No transactions found"
+				}
 			/>
-		),
-		[],
-	);
+		);
+	}, [searchDebounced]);
 
 	return (
 		<View style={styles.screen}>

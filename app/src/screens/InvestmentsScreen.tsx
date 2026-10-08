@@ -448,28 +448,36 @@ const InvestmentsScreen = ({
 		[analysis, error, groupBy, searchQuery, searchVisible],
 	);
 
-	const listEmpty = useMemo(
-		() => (
+	const listEmpty = useMemo(() => {
+		const isFiltered = !!searchDebounced.trim();
+		return (
 			<EmptyState
-				icon="add-circle-outline"
+				icon={isFiltered ? "search-outline" : "add-circle-outline"}
 				message={
-					groupBy === "PLATFORMS"
-						? "Add your first platform to get started."
-						: groupBy === "TYPES"
-							? "Add your first investment type to get started."
-							: "Add your first investment to get started."
+					isFiltered
+						? "No results match your search."
+						: groupBy === "PLATFORMS"
+							? "Add your first platform to get started."
+							: groupBy === "TYPES"
+								? "Add your first investment type to get started."
+								: "Add your first investment to get started."
 				}
 				title={
-					groupBy === "PLATFORMS"
-						? "No Investment Platforms yet"
-						: groupBy === "TYPES"
-							? "No Investment Types yet"
-							: "No investments yet"
+					isFiltered
+						? groupBy === "PLATFORMS"
+							? "No matching platforms"
+							: groupBy === "TYPES"
+								? "No matching investment types"
+								: "No matching investments"
+						: groupBy === "PLATFORMS"
+							? "No Investment Platforms yet"
+							: groupBy === "TYPES"
+								? "No Investment Types yet"
+								: "No investments yet"
 				}
 			/>
-		),
-		[groupBy],
-	);
+		);
+	}, [groupBy, searchDebounced]);
 
 	return (
 		<View style={styles.screen}>

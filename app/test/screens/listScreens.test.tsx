@@ -481,6 +481,51 @@ describe("list screens", () => {
 			).props.data,
 		).toEqual([]);
 	});
+	it.each([
+		{
+			groupBy: "INVESTMENTS",
+			emptyTitle: "No investments yet",
+			emptyMessage: "Add your first investment to get started.",
+			searchTitle: "No matching investments",
+		},
+		{
+			groupBy: "PLATFORMS",
+			emptyTitle: "No Investment Platforms yet",
+			emptyMessage: "Add your first platform to get started.",
+			searchTitle: "No matching platforms",
+		},
+		{
+			groupBy: "TYPES",
+			emptyTitle: "No Investment Types yet",
+			emptyMessage: "Add your first investment type to get started.",
+			searchTitle: "No matching investment types",
+		},
+	])(
+		"distinguishes an empty $groupBy list from a search with no matches",
+		({ groupBy, emptyTitle, emptyMessage, searchTitle }) => {
+			for (const search of ["", "   ", "missing"]) {
+				const isFiltered = !!search.trim();
+				mockStateValues({ 1: [], 8: search, 9: groupBy });
+				const tree = InvestmentsScreen({
+					navigation: { setOptions: vi.fn() },
+				} as unknown as ComponentProps<typeof InvestmentsScreen>);
+				const title = isFiltered ? searchTitle : emptyTitle;
+				expect(
+					findElement<EmptyStateProps>(
+						tree,
+						(props) => props.title === title,
+					).props,
+				).toMatchObject({
+					title,
+					message: isFiltered
+						? "No results match your search."
+						: emptyMessage,
+					icon: isFiltered ? "search-outline" : "add-circle-outline",
+				});
+			}
+		},
+	);
+
 	it.each([true, false])(
 		"ignores completed relation loads after blur, failure=%s",
 		async (failure) => {
