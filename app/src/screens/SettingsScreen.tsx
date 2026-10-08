@@ -146,27 +146,6 @@ const SettingsScreen = ({
 		try {
 			const wasRestored = await restoreBackup(database);
 			if (wasRestored) {
-				const [
-					native,
-					fy,
-					tripId,
-					loadedTrips,
-					sourceId,
-					loadedSources,
-				] = await Promise.all([
-					getNativeCurrencyDisplay(database),
-					getFyStartMonth(database),
-					getDefaultTripId(database),
-					getTrips(database),
-					getDefaultSourceId(database),
-					getSources(database),
-				]);
-				setIsNativeCurrency(native);
-				setFyStartMonth(fy);
-				setDefaultTripId(tripId ?? "");
-				setTrips(loadedTrips);
-				setDefaultSourceId(sourceId ?? "");
-				setSources(loadedSources);
 				refreshData();
 				setMessage("Backup restored successfully.");
 			}
@@ -367,8 +346,9 @@ const SettingsScreen = ({
 						Backup and restore
 					</CustomText>
 					<CustomText style={styles.description}>
-						A .pc file is a compressed SQLite snapshot, including
-						attachments. Keep it somewhere private.
+						Exports use .pc. Restore accepts raw .pc and
+						.purplecoins SQLite snapshots, including attachments.
+						Keep them private.
 					</CustomText>
 					<AppButton
 						icon="share-outline"

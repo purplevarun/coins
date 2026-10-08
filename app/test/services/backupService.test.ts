@@ -1,6 +1,5 @@
 import type TestAsyncFunction from "@test/types/TestAsyncFunction";
 import type TestCallback from "@test/types/TestCallback";
-import { gzipSync } from "fflate";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -20,8 +19,9 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/constants/appConstants", () => ({
 	default: {
+		APP_NAME: "Purplecoins",
 		BACKUP_EXTENSION: ".pc",
-		BACKUP_MIME_TYPE: "application/gzip",
+		BACKUP_MIME_TYPE: "application/x-sqlite3",
 		LEGACY_BACKUP_EXTENSION: ".purplecoins",
 	},
 }));
@@ -95,7 +95,6 @@ import backupService from "@/services/backupService";
 const database = {
 	getFirstAsync: vi.fn(async () => ({ integrity: "ok" })),
 	getAllAsync: vi.fn<TestAsyncFunction>(),
-	prepareAsync: vi.fn<TestAsyncFunction>(),
 	serializeAsync: vi.fn(async () => new Uint8Array([5, 6])),
 	execAsync: vi.fn<TestAsyncFunction>().mockResolvedValue(undefined),
 	withTransactionAsync: vi.fn(async (callback: () => Promise<void>) =>
@@ -105,12 +104,6 @@ const database = {
 
 const validTempDatabase = (): any => ({
 	closeAsync: vi.fn<TestAsyncFunction>().mockResolvedValue(undefined),
-	prepareAsync: vi.fn(async (sql: string) => ({
-		getColumnNamesAsync: vi.fn(async () =>
-			sql.includes('"categories"') ? ["id"] : ["id", "amount", "label"],
-		),
-		finalizeAsync: vi.fn(async () => undefined),
-	})),
 	getAllAsync: vi
 		.fn<TestAsyncFunction>()
 		.mockResolvedValue([
@@ -176,17 +169,19 @@ describe("backupService", () => {
 		database.execAsync.mockReset();
 		database.execAsync.mockResolvedValue(undefined);
 		database.getAllAsync.mockReset();
-		database.getAllAsync.mockResolvedValue([
-			{ name: "transactions" },
-			{ name: "categories" },
-		]);
-		database.prepareAsync.mockReset();
-		database.prepareAsync.mockImplementation(async (sql: string) => ({
-			getColumnNamesAsync: vi.fn(async () =>
-				sql.includes('"categories"') ? ["id"] : ["id", "amount"],
-			),
-			finalizeAsync: vi.fn(async () => undefined),
-		}));
+		database.getAllAsync.mockImplementation(async (sql: string) => {
+			if (sql.includes("sqlite_master")) {
+				return [{ name: "transactions" }, { name: "categories" }];
+			}
+			if (sql.includes("'categories'")) {
+				return sql.includes("'restore_source'")
+					? [{ name: "legacy_id" }]
+					: [{ name: "id" }];
+			}
+			return sql.includes("'restore_source'")
+				? [{ name: "id" }, { name: "amount" }, { name: "label" }]
+				: [{ name: "id" }, { name: "amount" }];
+		});
 		database.withTransactionAsync.mockClear();
 		mocks.tempFileStartsExisting = true;
 		mocks.tempFileExistsAfterCreate = true;
@@ -194,17 +189,15 @@ describe("backupService", () => {
 		vi.setSystemTime(new Date("2026-08-25T10:00:00.000Z"));
 	});
 
-	it("exports a compressed backup", async () => {
+	it("exports a raw SQLite backup", async () => {
 		await backupService.exportBackup(database);
 		expect(database.serializeAsync).toHaveBeenCalledOnce();
-		expect(mocks.fileWrite).toHaveBeenCalledWith(
-			gzipSync(new Uint8Array([5, 6])),
-		);
+		expect(mocks.fileWrite).toHaveBeenCalledWith(new Uint8Array([5, 6]));
 		expect(mocks.shareAsync).toHaveBeenCalledWith(
-			"cache-dir/20260825.pc",
+			"cache-dir/purplecoins-2026-08-25.pc",
 			expect.objectContaining({
 				dialogTitle: "Export Purplecoins backup",
-				mimeType: "application/gzip",
+				mimeType: "application/x-sqlite3",
 			}),
 		);
 	});
@@ -256,22 +249,15 @@ describe("backupService", () => {
 		expect(database.execAsync).not.toHaveBeenCalled();
 	});
 
-	it("accepts a backup extension with different casing", async () => {
-		const tempDatabase = validTempDatabase();
-		mocks.openDatabaseAsync.mockResolvedValueOnce(tempDatabase);
-		selectBackup("OK.PURPLECOINS");
-		expect(await backupService.restoreBackup(database)).toBe(true);
-	});
-
-	it("decompresses a gzipped backup before restoring", async () => {
-		const rawBytes = new Uint8Array([1, 2, 3]);
-		mocks.fileBytes.mockResolvedValueOnce(gzipSync(rawBytes));
-		const tempDatabase = validTempDatabase();
-		mocks.openDatabaseAsync.mockResolvedValueOnce(tempDatabase);
-		selectBackup();
-		expect(await backupService.restoreBackup(database)).toBe(true);
-		expect(mocks.fileWrite).toHaveBeenCalledWith(rawBytes);
-	});
+	it.each(["ok.pc", "OK.PURPLECOINS"])(
+		"accepts raw SQLite backup %s",
+		async (name) => {
+			const tempDatabase = validTempDatabase();
+			mocks.openDatabaseAsync.mockResolvedValueOnce(tempDatabase);
+			selectBackup(name);
+			expect(await backupService.restoreBackup(database)).toBe(true);
+		},
+	);
 
 	it("runs schema and future migrations before restoring a valid backup", async () => {
 		const tempDatabase = validTempDatabase();
@@ -293,11 +279,14 @@ describe("backupService", () => {
 		expect(database.execAsync).not.toHaveBeenCalledWith(
 			expect.stringContaining('"restore_only"'),
 		);
-		expect(database.execAsync).toHaveBeenCalledWith(
+		expect(database.execAsync).not.toHaveBeenCalledWith(
 			expect.stringContaining('"categories"'),
 		);
 		expect(database.execAsync).toHaveBeenCalledWith(
 			"DETACH DATABASE restore_source;",
+		);
+		expect(database.execAsync).toHaveBeenCalledWith(
+			"PRAGMA wal_checkpoint(TRUNCATE);",
 		);
 		expect(tempDatabase.closeAsync).toHaveBeenCalledOnce();
 		expect(mocks.fileDelete).toHaveBeenCalled();
@@ -315,47 +304,6 @@ describe("backupService", () => {
 		);
 		expect(database.execAsync).not.toHaveBeenCalled();
 		expect(tempDatabase.closeAsync).toHaveBeenCalledOnce();
-	});
-
-	it.each(["table", "column"])(
-		"rejects a missing %s before changing live data",
-		async (missing) => {
-			const temp = validTempDatabase();
-			if (missing === "table")
-				temp.getAllAsync.mockResolvedValueOnce([
-					{ name: "transactions" },
-				]);
-			else
-				temp.prepareAsync.mockResolvedValueOnce({
-					getColumnNamesAsync: vi.fn(async () => ["id"]),
-					finalizeAsync: vi.fn(async () => undefined),
-				});
-			mocks.openDatabaseAsync.mockResolvedValueOnce(temp);
-			selectBackup();
-			await expect(
-				backupService.restoreBackup(database),
-			).rejects.toMatchObject({ code: "INVALID_BACKUP_DATABASE" });
-			expect(database.execAsync).not.toHaveBeenCalled();
-			expect(database.withTransactionAsync).not.toHaveBeenCalled();
-			expect(temp.closeAsync).toHaveBeenCalledOnce();
-		},
-	);
-
-	it("finalizes metadata statements when column inspection fails", async () => {
-		const finalizeAsync = vi.fn(async () => undefined);
-		database.prepareAsync.mockResolvedValueOnce({
-			getColumnNamesAsync: vi.fn(async () => {
-				throw new Error("metadata failed");
-			}),
-			finalizeAsync,
-		});
-		mocks.openDatabaseAsync.mockResolvedValueOnce(validTempDatabase());
-		selectBackup();
-		await expect(backupService.restoreBackup(database)).rejects.toThrow(
-			"metadata failed",
-		);
-		expect(finalizeAsync).toHaveBeenCalledOnce();
-		expect(database.execAsync).not.toHaveBeenCalled();
 	});
 
 	it("detaches the restore source when the table copy fails", async () => {

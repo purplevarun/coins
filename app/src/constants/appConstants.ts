@@ -1,7 +1,7 @@
 const APP_NAME = "Purplecoins";
 const DATABASE_NAME = "purplecoins.db";
 const BACKUP_EXTENSION = ".pc";
-const BACKUP_MIME_TYPE = "application/gzip";
+const BACKUP_MIME_TYPE = "application/x-sqlite3";
 const ATTACHMENT_MAX_BYTES = 2 * 1024 * 1024;
 const DEFAULT_CURRENCY_CODE = "INR";
 const DEFAULT_PAGE_SIZE = 100;

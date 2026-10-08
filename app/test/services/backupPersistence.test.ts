@@ -1,6 +1,5 @@
 import type SqliteTableRow from "@/types/SqliteTableRow";
 import createTestDatabase from "@test/helpers/sqliteTestDatabase";
-import { gunzipSync, gzipSync } from "fflate";
 import { createHash, randomUUID } from "node:crypto";
 import {
 	existsSync,
@@ -184,7 +183,7 @@ describe("real SQLite backup restore", () => {
 			updatedAt: 1,
 		});
 		await fixture.database.closeAsync();
-		const validBytes = gzipSync(readFileSync(path));
+		const validBytes = readFileSync(path);
 		const pickedPath = join(directory, "fixture.pc");
 		writeFileSync(pickedPath, validBytes);
 		const live = await initializeFixture();
@@ -212,19 +211,14 @@ describe("real SQLite backup restore", () => {
 			);
 			writeFileSync(
 				join(outputDirectory, "regression-invalid.pc"),
-				gzipSync(readFileSync(path)),
+				readFileSync(path),
 			);
 		}
 	});
 
-	it.each([
-		{ populated: false, compressed: false },
-		{ populated: true, compressed: false },
-		{ populated: false, compressed: true },
-		{ populated: true, compressed: true },
-	])(
-		"restores populated=$populated compressed=$compressed databases atomically",
-		async ({ populated, compressed }) => {
+	it.each([false, true])(
+		"restores populated=%s raw databases atomically",
+		async (populated) => {
 			const directory = setupRestore();
 			const path = join(directory, "fixture.db");
 			const backup = await initializeFixture(path);
@@ -232,7 +226,7 @@ describe("real SQLite backup restore", () => {
 			await backup.database.closeAsync();
 			const pickedPath = join(directory, "fixture.pc");
 			const bytes = readFileSync(path);
-			writeFileSync(pickedPath, compressed ? gzipSync(bytes) : bytes);
+			writeFileSync(pickedPath, bytes);
 			const live = await initializeFixture();
 			await addExpense(live, "50");
 			selectBackup(pickedPath);
@@ -264,7 +258,7 @@ describe("real SQLite backup restore", () => {
 	);
 
 	it.each(["amount", "notes"])(
-		"rejects a missing %s without changing live rows",
+		"restores a backup with a missing %s through schema migration",
 		async (missing) => {
 			const directory = setupRestore();
 			const path = join(directory, "fixture.pc");
@@ -278,22 +272,13 @@ describe("real SQLite backup restore", () => {
 			await backup.database.closeAsync();
 			const live = await initializeFixture();
 			await addExpense(live, "50");
-			const original = live.sqlite
-				.prepare("SELECT * FROM transactions;")
-				.all();
-			const attachments = live.sqlite
-				.prepare("SELECT * FROM attachments;")
-				.all();
 			selectBackup(path);
-			await expect(
-				backupService.restoreBackup(live.database),
-			).rejects.toMatchObject({ code: "INVALID_BACKUP_DATABASE" });
+			expect(await backupService.restoreBackup(live.database)).toBe(true);
 			expect(
-				live.sqlite.prepare("SELECT * FROM transactions;").all(),
-			).toEqual(original);
-			expect(
-				live.sqlite.prepare("SELECT * FROM attachments;").all(),
-			).toEqual(attachments);
+				live.sqlite
+					.prepare("SELECT COUNT(*) AS count FROM transactions;")
+					.get(),
+			).toEqual({ count: 1 });
 		},
 	);
 
@@ -339,12 +324,7 @@ describe("real SQLite backup restore", () => {
 			const pickedPath = join(directory, "fixture.pc");
 			writeFileSync(pickedPath, originalBytes);
 			const referencePath = join(directory, "reference.db");
-			writeFileSync(
-				referencePath,
-				originalBytes[0] === 0x1f && originalBytes[1] === 0x8b
-					? gunzipSync(originalBytes)
-					: originalBytes,
-			);
+			writeFileSync(referencePath, originalBytes);
 			const reference = await initializeFixture(referencePath);
 			const live = await initializeFixture();
 			selectBackup(pickedPath);
