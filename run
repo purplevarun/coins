@@ -231,6 +231,172 @@ run_install() {
   exit 1
 }
 
+run_avd_backups() {
+  require_cmd adb
+
+  if ! adb devices | grep -q "device$"; then
+    echo "No AVD/device running. Start one and rerun."
+    exit 1
+  fi
+
+  echo "Backup files in AVD Downloads:"
+  adb shell find /sdcard/Download -maxdepth 1 -type f -print |
+    grep -Ei '\.(pc|purplecoins)$' || true
+}
+
+get_ui_label_center() {
+  LABEL="$1"
+  adb shell uiautomator dump /sdcard/purplecoins-window.xml >/dev/null 2>&1 || return 1
+  adb exec-out cat /sdcard/purplecoins-window.xml |
+    node -e '
+const label = process.argv[1];
+let xml = "";
+process.stdin.on("data", (chunk) => { xml += chunk; });
+process.stdin.on("end", () => {
+  const decode = (value) => value
+    .replaceAll("&quot;", "\"")
+    .replaceAll("&amp;", "&")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">");
+  for (const match of xml.matchAll(/<node\b[^>]*\/>/g)) {
+    const node = match[0];
+    const attribute = (name) => decode(node.match(new RegExp(`${name}="([^"]*)"`))?.[1] ?? "");
+    if (attribute("text") !== label && attribute("content-desc") !== label) continue;
+    const bounds = node.match(/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);
+    if (!bounds) continue;
+    process.stdout.write(`${Math.floor((Number(bounds[1]) + Number(bounds[3])) / 2)} ${Math.floor((Number(bounds[2]) + Number(bounds[4])) / 2)}`);
+    return;
+  }
+});
+' "$LABEL"
+}
+
+run_avd_ui() {
+  require_cmd adb
+  adb shell uiautomator dump /sdcard/purplecoins-window.xml >/dev/null 2>&1
+  adb exec-out cat /sdcard/purplecoins-window.xml |
+    node -e '
+let xml = "";
+process.stdin.on("data", (chunk) => { xml += chunk; });
+process.stdin.on("end", () => {
+  for (const match of xml.matchAll(/<node\b[^>]*\/>/g)) {
+    const node = match[0];
+    const attribute = (name) => node.match(new RegExp(`${name}="([^"]*)"`))?.[1] ?? "";
+    const text = attribute("text");
+    const description = attribute("content-desc");
+    if (!text && !description) continue;
+    console.log([attribute("package"), text, description, attribute("bounds")].join(" | "));
+  }
+});
+'
+}
+
+tap_ui_label() {
+  LABEL="$1"
+  ATTEMPTS="${2:-10}"
+  ATTEMPT=0
+  while [ "$ATTEMPT" -lt "$ATTEMPTS" ]; do
+    CENTER=$(get_ui_label_center "$LABEL" || true)
+    if [ -n "$CENTER" ]; then
+      set -- $CENTER
+      adb shell input tap "$1" "$2"
+      return 0
+    fi
+    ATTEMPT=$((ATTEMPT + 1))
+  done
+  return 1
+}
+
+scroll_to_ui_label() {
+  LABEL="$1"
+  ATTEMPT=0
+  SIZE=$(adb shell wm size | sed -n 's/.*Physical size: \([0-9][0-9]*\)x\([0-9][0-9]*\).*/\1 \2/p')
+  set -- $SIZE
+  WIDTH="$1"
+  HEIGHT="$2"
+  X=$((WIDTH / 2))
+  START_Y=$((HEIGHT * 3 / 4))
+  END_Y=$((HEIGHT / 4))
+  while [ "$ATTEMPT" -lt 8 ]; do
+    if tap_ui_label "$LABEL" 1; then
+      return 0
+    fi
+    adb shell input swipe "$X" "$START_Y" "$X" "$END_Y" 300
+    ATTEMPT=$((ATTEMPT + 1))
+  done
+  return 1
+}
+
+run_avd_restore_test() {
+  require_cmd adb
+  validate_state
+
+  if ! adb devices | grep -q "device$"; then
+    echo "No AVD/device running. Start one and rerun."
+    exit 1
+  fi
+
+  ARTIFACT_DIR="$ROOT_DIR/app/logs/avd-backup-validation"
+  rm -rf "$ARTIFACT_DIR"
+  mkdir -p "$ARTIFACT_DIR"
+  echo "Generating raw SQLite backup fixture..."
+  if command -v bun >/dev/null 2>&1; then
+    PURPLECOINS_TEST_ARTIFACTS="$ARTIFACT_DIR" bun run test test/services/backupPersistence.test.ts
+  else
+    PURPLECOINS_TEST_ARTIFACTS="$ARTIFACT_DIR" npm run test -- test/services/backupPersistence.test.ts
+  fi
+
+  BACKUP_PATH="$ARTIFACT_DIR/validation.purplecoins"
+  cp "$ARTIFACT_DIR/regression-valid.pc" "$BACKUP_PATH"
+
+  run_install
+
+  echo "Copying validation.purplecoins to AVD Downloads..."
+  adb push "$BACKUP_PATH" /sdcard/Download/validation.purplecoins >/dev/null
+  adb shell am broadcast \
+    -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
+    -d file:///sdcard/Download/validation.purplecoins >/dev/null
+
+  APP_ID=$(get_app_id)
+  adb shell am force-stop "$APP_ID"
+  adb shell monkey -p "$APP_ID" -c android.intent.category.LAUNCHER 1 >/dev/null
+
+  echo "Opening Settings and restoring validation.purplecoins..."
+  if ! tap_ui_label "Settings" 15; then
+    SIZE=$(adb shell wm size | sed -n 's/.*Physical size: \([0-9][0-9]*\)x\([0-9][0-9]*\).*/\1 \2/p')
+    set -- $SIZE
+    adb shell input tap $(($1 * 91 / 100)) $(($2 * 7 / 100))
+  fi
+  if ! scroll_to_ui_label "Restore .pc"; then
+    echo "Could not find Restore .pc in Settings."
+    exit 1
+  fi
+  if ! tap_ui_label "validation.purplecoins" 15; then
+    echo "Could not find validation.purplecoins in the Android file picker."
+    exit 1
+  fi
+  if ! tap_ui_label "Backup restored successfully." 20; then
+    echo "Restore success message was not visible; verifying restored records in the app UI."
+  fi
+
+  adb shell am force-stop "$APP_ID"
+  adb shell monkey -p "$APP_ID" -c android.intent.category.LAUNCHER 1 >/dev/null
+  if ! tap_ui_label "Transactions" 15; then
+    echo "Could not open Transactions after restore."
+    exit 1
+  fi
+  if ! tap_ui_label "Fixture expense" 20; then
+    echo "Restored fixture transaction was not visible."
+    exit 1
+  fi
+  if ! scroll_to_ui_label "receipt.txt"; then
+    echo "Restored fixture attachment was not visible."
+    exit 1
+  fi
+  echo "Verified restored transaction and attachment in the release app UI."
+  echo "AVD .purplecoins restore passed."
+}
+
 run_avd() {
   require_cmd adb
   require_cmd emulator
@@ -319,6 +485,9 @@ Commands:
   build    Clean prebuild Android and assemble release APK with Gradle
   avd      Start the first configured Android Virtual Device
   install  Install existing APK on local AVD/device
+  avd-backups  List .pc and .purplecoins files in AVD Downloads
+  avd-ui  Print visible AVD UI labels and bounds
+  avd-restore-test  Restore and verify a .purplecoins fixture on the AVD
   release  Create tag v{version} and publish GitHub release v{version} with existing APK
 HELP
 }
@@ -349,6 +518,18 @@ case "${1:-}" in
   install)
     cd "$ROOT_DIR/app"
     run_install
+    ;;
+  avd-backups)
+    cd "$ROOT_DIR/app"
+    run_avd_backups
+    ;;
+  avd-ui)
+    cd "$ROOT_DIR/app"
+    run_avd_ui
+    ;;
+  avd-restore-test)
+    cd "$ROOT_DIR/app"
+    run_avd_restore_test
     ;;
   release)
     cd "$ROOT_DIR/app"
