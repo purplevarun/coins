@@ -99,6 +99,21 @@ describe("trends utils", () => {
 		]);
 	});
 
+	it("subtracts refund credits from expenses without counting income", () => {
+		const transactionAt = new Date(2026, 0, 15).getTime();
+		expect(
+			getTrendSeries([
+				buildTransaction({
+					transactionAt,
+					categoryKind: "REFUND",
+					amount: "25",
+				}),
+			]),
+		).toEqual([
+			{ year: "2026", income: "0", expenses: "-25", networth: "25" },
+		]);
+	});
+
 	it("aggregates every transaction into yearly income/expense/networth points", () => {
 		const transactions: readonly Transaction[] = [
 			buildTransaction({

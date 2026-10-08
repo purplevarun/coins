@@ -67,6 +67,10 @@ const hookMocks = vi.hoisted(() => ({
 	handleCreateFolder: vi.fn(),
 }));
 
+const databaseState = vi.hoisted(() => ({
+	database: { id: "db" } as any,
+}));
+
 vi.mock("react", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("react")>();
 	return {
@@ -124,7 +128,7 @@ vi.mock("@/components/TextField", () => ({
 
 vi.mock("@/hooks/useDatabaseContext", () => ({
 	default: () => ({
-		database: { id: "db" },
+		database: databaseState.database,
 		refreshData: hookMocks.refreshData,
 	}),
 }));
@@ -306,6 +310,7 @@ describe("form screens", () => {
 
 		Object.values(serviceMocks).forEach((mockFn) => mockFn.mockReset());
 		Object.values(hookMocks).forEach((mockFn) => mockFn.mockReset());
+		databaseState.database = { id: "db" };
 
 		serviceMocks.getCategories.mockResolvedValue([
 			{ id: "income", name: "Salary", isIncome: true },
@@ -1174,6 +1179,64 @@ describe("form screens", () => {
 		expect(serviceMocks.saveBudget).toHaveBeenCalled();
 		expect(hookMocks.refreshData).toHaveBeenCalled();
 		expect(navigation.goBack).toHaveBeenCalled();
+	});
+
+	it("saves forms in database transactions when available", async () => {
+		const withTransactionAsync = vi.fn(
+			async (operation: () => Promise<void>) => operation(),
+		);
+		databaseState.database = { id: "transaction-db", withTransactionAsync };
+		reactMocks.useState.mockImplementation((initial: any) => [
+			initial === ""
+				? "Valid value"
+				: typeof initial === "function"
+					? initial()
+					: initial,
+			vi.fn(),
+		]);
+
+		const screens = [
+			{
+				tree: NoteFormScreen({
+					navigation: { goBack: vi.fn() },
+					route: { key: "note-legacy", name: "NoteForm", params: {} },
+				} as any),
+				label: "Save note",
+			},
+			{
+				tree: TodoFormScreen({
+					navigation: { goBack: vi.fn() },
+					route: { key: "todo-legacy", name: "TodoForm", params: {} },
+				} as any),
+				label: "Save todo",
+			},
+			{
+				tree: VaultFormScreen({
+					navigation: { goBack: vi.fn() },
+					route: {
+						key: "vault-legacy",
+						name: "VaultForm",
+						params: { kind: "PASSWORD" },
+					},
+				} as any),
+				label: "Save entry",
+			},
+		];
+
+		for (const { tree, label } of screens) {
+			findByPredicate(
+				tree,
+				(node) =>
+					node?.props?.label === label &&
+					typeof node?.props?.onPress === "function",
+			)[0]?.props?.onPress();
+		}
+		await flush();
+
+		expect(serviceMocks.saveNote).toHaveBeenCalled();
+		expect(serviceMocks.saveTodo).toHaveBeenCalled();
+		expect(serviceMocks.savePassword).toHaveBeenCalled();
+		expect(withTransactionAsync).toHaveBeenCalledTimes(3);
 	});
 
 	it("covers BudgetFormScreen load and save error branches", async () => {
