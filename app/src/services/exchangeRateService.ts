@@ -54,9 +54,7 @@ const fetchExchangeRates = async (
 ): Promise<number> => {
 	const sources = [
 		...(await getSourceRows(database)),
-		...(typeof getArchivedSourceRows === "function"
-			? await getArchivedSourceRows(database)
-			: []),
+		...(await getArchivedSourceRows(database)),
 	];
 	const currencies = [
 		...new Set(

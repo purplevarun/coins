@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
 	getExchangeRateRows: vi.fn<TestAsyncFunction>().mockResolvedValue([]),
+	getArchivedSourceRows: vi.fn<TestAsyncFunction>().mockResolvedValue([]),
 	getSourceRows: vi.fn<TestAsyncFunction>().mockResolvedValue([]),
 	upsertExchangeRateRow: vi
 		.fn<TestAsyncFunction>()
@@ -19,6 +20,7 @@ vi.mock("@/constants/appConstants", () => ({
 vi.mock("@/repositories/financeRepository", () => ({
 	default: {
 		getExchangeRateRows: mocks.getExchangeRateRows,
+		getArchivedSourceRows: mocks.getArchivedSourceRows,
 		getSourceRows: mocks.getSourceRows,
 		upsertExchangeRateRow: mocks.upsertExchangeRateRow,
 	},
@@ -37,6 +39,8 @@ describe("exchangeRateService", () => {
 		vi.useFakeTimers();
 		vi.setSystemTime(new Date("2026-08-25T12:00:00.000Z"));
 		mocks.getExchangeRateRows.mockClear();
+		mocks.getArchivedSourceRows.mockReset();
+		mocks.getArchivedSourceRows.mockResolvedValue([]);
 		mocks.getSourceRows.mockClear();
 		mocks.upsertExchangeRateRow.mockClear();
 		database.withTransactionAsync.mockClear();

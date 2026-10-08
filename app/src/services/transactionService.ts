@@ -201,10 +201,7 @@ const prepareTransactionInput = async (
 			throw new AppError("INVESTMENT_REQUIRED", "Select an investment.");
 		}
 		const reason = validateRequiredInvestmentReason(input.reason);
-		if (
-			typeof getInvestmentRow === "function" &&
-			!(await getInvestmentRow(database, input.investmentId))
-		) {
+		if (!(await getInvestmentRow(database, input.investmentId))) {
 			throw new AppError(
 				"INVESTMENT_NOT_FOUND",
 				"The selected investment no longer exists.",

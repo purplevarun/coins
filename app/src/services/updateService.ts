@@ -44,18 +44,14 @@ const isApkAsset = (
 	value: unknown,
 	tagName: string,
 ): value is GitHubReleaseAsset => {
-	if (
-		!isRecord(value) ||
-		typeof value.name !== "string" ||
-		!value.name.toLowerCase().endsWith(".apk") ||
-		value.state !== "uploaded" ||
-		typeof value.size !== "number" ||
-		!Number.isSafeInteger(value.size) ||
-		value.size <= 0 ||
-		typeof value.browser_download_url !== "string"
-	) {
-		return false;
-	}
+	if (!isRecord(value)) return false;
+	if (typeof value.name !== "string") return false;
+	if (!value.name.toLowerCase().endsWith(".apk")) return false;
+	if (value.state !== "uploaded") return false;
+	if (typeof value.size !== "number") return false;
+	if (!Number.isSafeInteger(value.size)) return false;
+	if (value.size <= 0) return false;
+	if (typeof value.browser_download_url !== "string") return false;
 	try {
 		const url = new URL(value.browser_download_url);
 		return (

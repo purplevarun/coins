@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => {
 			.fn<TestAsyncFunction>()
 			.mockResolvedValue(undefined),
 		getCategoryRow: vi.fn<TestAsyncFunction>().mockResolvedValue(null),
+		getInvestmentRow: vi.fn<TestAsyncFunction>(),
 		getSourceRow: vi.fn<TestAsyncFunction>().mockResolvedValue(null),
 		getTransactionPageRows: vi
 			.fn<
@@ -49,6 +50,7 @@ vi.mock("@/repositories/financeRepository", () => ({
 		deleteTransactionItemRows: mocks.deleteTransactionItemRows,
 		deleteTransactionRow: mocks.deleteTransactionRow,
 		getCategoryRow: mocks.getCategoryRow,
+		getInvestmentRow: mocks.getInvestmentRow,
 		getSourceRow: mocks.getSourceRow,
 		getTransactionPageRows: mocks.getTransactionPageRows,
 		getTransactionRow: mocks.getTransactionRow,
@@ -80,6 +82,7 @@ describe("transactionService", () => {
 			id: "source",
 			currencyCode: "INR",
 		});
+		mocks.getInvestmentRow.mockResolvedValue({ id: "inv1" });
 		vi.useFakeTimers();
 		vi.setSystemTime(new Date("2026-08-25T12:00:00.000Z"));
 		Object.values(mocks).forEach((mockFn) => {
@@ -383,6 +386,24 @@ describe("transactionService", () => {
 		).rejects.toMatchObject({ code: "CATEGORY_NOT_FOUND" });
 	});
 
+	it("fails when a blank general credit references a missing category", async () => {
+		mocks.getCategoryRow
+			.mockResolvedValueOnce({ id: "missing-category", name: "Missing" })
+			.mockResolvedValueOnce(null);
+
+		await expect(
+			transactionService.saveTransaction(database, {
+				classification: "GENERAL",
+				type: "CREDIT",
+				sourceId: "s1",
+				categoryId: "missing-category",
+				amount: "10",
+				reason: "   ",
+				transactionAt: 1,
+			}),
+		).rejects.toMatchObject({ code: "CATEGORY_NOT_FOUND" });
+	});
+
 	it("validates investment inputs", async () => {
 		await expect(
 			transactionService.saveTransaction(database, {
@@ -408,6 +429,19 @@ describe("transactionService", () => {
 		).rejects.toMatchObject({
 			code: "TRANSACTION_REASON_REQUIRED",
 		});
+
+		mocks.getInvestmentRow.mockResolvedValueOnce(null);
+		await expect(
+			transactionService.saveTransaction(database, {
+				classification: "INVESTMENT",
+				type: "DEBIT",
+				sourceId: "s1",
+				investmentId: "missing-investment",
+				amount: "10",
+				reason: "invest",
+				transactionAt: 1,
+			}),
+		).rejects.toMatchObject({ code: "INVESTMENT_NOT_FOUND" });
 
 		const id = await transactionService.saveTransaction(database, {
 			transactionAt: 1,

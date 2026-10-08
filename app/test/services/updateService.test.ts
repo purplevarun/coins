@@ -180,12 +180,22 @@ describe("updateService", () => {
 			"release name",
 		],
 		[release({ assets: [apk("notes.txt")] }), "unambiguous APK"],
+		[release({ assets: [null] }), "unambiguous APK"],
+		[release({ assets: [{ ...apk(), name: null }] }), "unambiguous APK"],
+		[release({ assets: [{ ...apk(), state: "new" }] }), "unambiguous APK"],
+		[
+			release({ assets: [{ ...apk(), browser_download_url: null }] }),
+			"unambiguous APK",
+		],
 		[
 			release({
 				assets: [{ ...apk(), browser_download_url: "not a URL" }],
 			}),
 			"unambiguous APK",
 		],
+		[release({ assets: [{ ...apk(), size: 1.5 }] }), "unambiguous APK"],
+		[release({ assets: [{ ...apk(), size: 0 }] }), "unambiguous APK"],
+		[release({ assets: [{ ...apk(), size: "123" }] }), "unambiguous APK"],
 		[
 			release({
 				assets: [
