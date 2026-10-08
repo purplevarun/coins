@@ -13,7 +13,7 @@ and private vault records. SQLite is the source of truth.
 - Sources, categories, trips, investments, and calendar budgets
 - Category-driven analysis with month, year, all-time, and custom periods
 - INR analysis backed by persisted manual and API-fetched exchange rates
-- Source validation based on the latest linked transaction timestamp
+- Source validation invalidated by linked payment changes
 - Notes, todos, folders, passwords, cards, and identity records
 - One SQLite-backed attachment per supported record, limited to 2 MB
 - Compressed `.pc` SQLite backup export; restore accepts `.pc` and `.purplecoins`
@@ -84,21 +84,37 @@ Native ESLint rejects local type declarations outside the type directories.
 
 ## Development
 
-```powershell
-cd app
-bun install
-bun run android
+```sh
+./run setup
 ```
 
 Run every local quality gate from the repository root:
 
-```powershell
-cd app
-bun run check
+```sh
+./run format
+./run test
+./run build
 ```
 
-The check command verifies formatting, ESLint, strict TypeScript, Vitest, and
-Expo dependency compatibility.
+The test command verifies strict TypeScript, Vitest with coverage, and ESLint.
+Real SQLite tests cover empty and populated restores, incomplete backup schemas,
+rollback, exact decimal totals, source validation, and currency conversion.
+To also verify an existing backup without modifying it:
+
+```sh
+PURPLECOINS_TEST_BACKUP=/path/to/backup.purplecoins ./run test
+```
+
+To generate synthetic valid and incomplete backups for native regression testing:
+
+```sh
+PURPLECOINS_TEST_ARTIFACTS=/tmp/purplecoins-native-fixtures ./run test
+```
+
+Yearly trends include each itemized expense once and use persisted INR exchange
+rates. Missing historical rates hide the trend chart with a warning. Source
+validation is cleared atomically when a linked payment is created, edited, moved,
+or deleted, including both sides of transfers.
 
 ## Backups
 
@@ -109,12 +125,14 @@ files, and checks the picked file before replacing local data.
 
 ### Database Setup
 
-The app creates any missing current-schema tables automatically. The empty
-`SCHEMA_MIGRATIONS` array is reserved for future SQL migrations and runs after
-schema creation for both fresh databases and restored backups.
+The app creates any missing current-schema tables automatically.
+`SCHEMA_MIGRATIONS` runs after schema creation for fresh databases and temporary
+restore databases.
 
-Backups must already contain the current schema, including transaction items.
-Restore validates this before replacing live data. Older app versions may not
+Backups must contain every live table, including transaction items. After applying
+supported migrations to a temporary copy, restore checks that every required
+column exists before replacing any live rows. An incomplete schema is rejected;
+a copy failure rolls back the entire replacement. Older app versions may not
 understand backups written by newer app versions.
 
 ### App Updates
