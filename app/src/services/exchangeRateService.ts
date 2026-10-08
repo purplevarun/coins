@@ -9,8 +9,12 @@ import type { SQLiteDatabase } from "expo-sqlite";
 import { z } from "zod";
 
 const { DEFAULT_CURRENCY_CODE, EXCHANGE_RATE_API_URL } = appConstants;
-const { getExchangeRateRows, getSourceRows, upsertExchangeRateRow } =
-	financeRepository;
+const {
+	getArchivedSourceRows,
+	getExchangeRateRows,
+	getSourceRows,
+	upsertExchangeRateRow,
+} = financeRepository;
 const { normalizeMoney } = moneyUtils;
 
 const exchangeRateResponseSchema = z.array(
@@ -48,7 +52,12 @@ const saveManualExchangeRate = async (
 const fetchExchangeRates = async (
 	database: SQLiteDatabase,
 ): Promise<number> => {
-	const sources = await getSourceRows(database);
+	const sources = [
+		...(await getSourceRows(database)),
+		...(typeof getArchivedSourceRows === "function"
+			? await getArchivedSourceRows(database)
+			: []),
+	];
 	const currencies = [
 		...new Set(
 			sources

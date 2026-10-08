@@ -1,5 +1,6 @@
 import CustomText from "@/components/CustomText";
 
+import type { SQLiteDatabase } from "expo-sqlite";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -20,6 +21,17 @@ import noteService from "@/services/noteService";
 import type NoteFormScreenProps from "@/types/NoteFormScreenProps";
 import getErrorMessage from "@/utils/error";
 const { deleteNote, getNote, saveNote } = noteService;
+
+const runInTransaction = async (
+	database: SQLiteDatabase,
+	operation: () => Promise<void>,
+): Promise<void> => {
+	if (typeof database.withTransactionAsync === "function") {
+		await database.withTransactionAsync(operation);
+		return;
+	}
+	await operation();
+};
 
 const NoteFormScreen = ({
 	navigation,
@@ -59,14 +71,16 @@ const NoteFormScreen = ({
 		setIsSaving(true);
 		setError("");
 		try {
-			const savedId = await saveNote(
-				database,
-				noteId,
-				title,
-				content,
-				folderId || undefined,
-			);
-			await attachment.processAttachment(savedId);
+			await runInTransaction(database, async () => {
+				const savedId = await saveNote(
+					database,
+					noteId,
+					title,
+					content,
+					folderId || undefined,
+				);
+				await attachment.processAttachment(savedId);
+			});
 			refreshData();
 			navigation.goBack();
 		} catch (caughtError: unknown) {

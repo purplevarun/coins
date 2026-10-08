@@ -21,6 +21,7 @@ const {
 	deleteTransactionRow,
 	deleteTransactionItemRows,
 	getCategoryRow,
+	getInvestmentRow,
 	getSourceRow,
 	getTransactionPageRows,
 	getTransactionRow,
@@ -199,11 +200,21 @@ const prepareTransactionInput = async (
 		if (!input.investmentId) {
 			throw new AppError("INVESTMENT_REQUIRED", "Select an investment.");
 		}
+		const reason = validateRequiredInvestmentReason(input.reason);
+		if (
+			typeof getInvestmentRow === "function" &&
+			!(await getInvestmentRow(database, input.investmentId))
+		) {
+			throw new AppError(
+				"INVESTMENT_NOT_FOUND",
+				"The selected investment no longer exists.",
+			);
+		}
 		return {
 			...input,
 			type: input.type === "TRANSFER" ? "DEBIT" : input.type,
 			amount,
-			reason: validateRequiredInvestmentReason(input.reason),
+			reason,
 			categoryId: undefined,
 			tripId: undefined,
 			destinationSourceId: undefined,
@@ -214,6 +225,12 @@ const prepareTransactionInput = async (
 	if (input.type !== "TRANSFER") {
 		if (!input.categoryId) {
 			throw new AppError("CATEGORY_REQUIRED", "Select a category.");
+		}
+		if (!(await getCategoryRow(database, input.categoryId))) {
+			throw new AppError(
+				"CATEGORY_NOT_FOUND",
+				"The selected category no longer exists.",
+			);
 		}
 		return {
 			...input,

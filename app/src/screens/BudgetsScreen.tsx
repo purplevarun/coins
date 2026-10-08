@@ -203,6 +203,13 @@ const BudgetsScreen = ({
 		() => (
 			<ListHeader>
 				<Notice message="Budgets use INR and reset on calendar month or calendar year boundaries." />
+				{monthlyAnalysis?.missingCurrencies?.length ||
+				yearlyAnalysis?.missingCurrencies?.length ? (
+					<Notice
+						message="Some foreign-currency spending is excluded until INR exchange rates are set."
+						tone="warning"
+					/>
+				) : null}
 				{error ? <Notice message={error} tone="danger" /> : null}
 			</ListHeader>
 		),

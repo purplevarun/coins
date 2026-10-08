@@ -156,7 +156,7 @@ const GlobalSearchScreen = ({
 					)} · ${formatDate(transaction.transactionAt)}`,
 					icon: "swap-horizontal",
 					color: COLORS.primary,
-					searchExtra: `${transaction.amount} ${formatMoney(transaction.amount, transaction.sourceCurrencyCode).replace(/,/g, "")} ${transaction.categoryName ?? ""} ${transaction.tripName ?? ""} ${transaction.investmentName ?? ""} ${transaction.destinationSourceName ?? ""}`,
+					searchExtra: `${transaction.amount} ${formatMoney(transaction.amount, transaction.sourceCurrencyCode).replace(/,/g, "")} ${transaction.categoryName ?? ""} ${(transaction.items ?? []).map((item) => `${item.amount} ${item.categoryName}`).join(" ")} ${transaction.tripName ?? ""} ${transaction.investmentName ?? ""} ${transaction.destinationSourceName ?? ""}`,
 				})),
 				...sources.map((source): GlobalSearchResult => ({
 					id: source.id,

@@ -1,5 +1,6 @@
 import CustomText from "@/components/CustomText";
 
+import type { SQLiteDatabase } from "expo-sqlite";
 import { useEffect, useState } from "react";
 import { StyleSheet, Switch, View } from "react-native";
 
@@ -21,6 +22,17 @@ import todoService from "@/services/todoService";
 import type TodoFormScreenProps from "@/types/TodoFormScreenProps";
 import getErrorMessage from "@/utils/error";
 const { deleteTodo, getTodo, saveTodo } = todoService;
+
+const runInTransaction = async (
+	database: SQLiteDatabase,
+	operation: () => Promise<void>,
+): Promise<void> => {
+	if (typeof database.withTransactionAsync === "function") {
+		await database.withTransactionAsync(operation);
+		return;
+	}
+	await operation();
+};
 
 const TodoFormScreen = ({
 	navigation,
@@ -66,15 +78,17 @@ const TodoFormScreen = ({
 		setIsSaving(true);
 		setError("");
 		try {
-			const savedId = await saveTodo(database, {
-				id: todoId,
-				title,
-				description,
-				folderId: folderId || undefined,
-				dueAt: hasDueDate ? dueAt : undefined,
-				isDone,
+			await runInTransaction(database, async () => {
+				const savedId = await saveTodo(database, {
+					id: todoId,
+					title,
+					description,
+					folderId: folderId || undefined,
+					dueAt: hasDueDate ? dueAt : undefined,
+					isDone,
+				});
+				await attachment.processAttachment(savedId);
 			});
-			await attachment.processAttachment(savedId);
 			refreshData();
 			navigation.goBack();
 		} catch (caughtError: unknown) {

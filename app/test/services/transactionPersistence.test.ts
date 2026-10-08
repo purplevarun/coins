@@ -14,6 +14,9 @@ import financeRepository from "@/repositories/financeRepository";
 import analysisService from "@/services/analysisService";
 import sourceService from "@/services/sourceService";
 import transactionService from "@/services/transactionService";
+import tripTotalService from "@/services/tripTotalService";
+import moneyUtils from "@/utils/money";
+import { getTrendSeries } from "@/utils/trends";
 
 const createFixture = async (): Promise<
 	ReturnType<typeof createTestDatabase>
@@ -52,6 +55,212 @@ const receipt = {
 };
 
 describe("split expense persistence", () => {
+	it.each(["edit", "delete"])(
+		"clears source validation after a payment %s",
+		async (operation) => {
+			const { database } = await createFixture();
+			await sourceService.validateSource(database, "bank");
+			const id = await transactionService.saveTransaction(
+				database,
+				expense,
+			);
+			expect(
+				(await sourceService.getSource(database, "bank"))?.validatedAt,
+			).toBeNull();
+			await sourceService.validateSource(database, "bank");
+			expect(
+				(await sourceService.getSource(database, "bank"))?.validatedAt,
+			).not.toBeNull();
+			if (operation === "edit") {
+				await transactionService.saveTransaction(database, {
+					...expense,
+					id,
+					items: [{ categoryId: "food", amount: "250" }],
+				});
+			} else {
+				await transactionService.deleteTransaction(database, id);
+			}
+			expect(await sourceService.getSources(database)).toMatchObject([
+				{
+					balance: operation === "edit" ? "-250" : "0",
+					validatedAt: null,
+				},
+			]);
+		},
+	);
+
+	it("invalidates both old and new transfer accounts and preserves unrelated validation", async () => {
+		const { database } = await createFixture();
+		const oldDestination = await sourceService.createSource(
+			database,
+			"Old destination",
+			"INR",
+		);
+		const newSource = await sourceService.createSource(
+			database,
+			"New source",
+			"INR",
+		);
+		const newDestination = await sourceService.createSource(
+			database,
+			"New destination",
+			"INR",
+		);
+		const unrelated = await sourceService.createSource(
+			database,
+			"Unrelated",
+			"INR",
+		);
+		const transfer: TransactionInput = {
+			classification: "GENERAL",
+			type: "TRANSFER",
+			sourceId: "bank",
+			destinationSourceId: oldDestination,
+			amount: "10",
+			reason: "Transfer",
+			transactionAt: 100,
+		};
+		const id = await transactionService.saveTransaction(database, transfer);
+		const allSources = [
+			"bank",
+			oldDestination,
+			newSource,
+			newDestination,
+			unrelated,
+		];
+		for (const sourceId of allSources)
+			await sourceService.validateSource(database, sourceId);
+		await transactionService.saveTransaction(database, {
+			...transfer,
+			id,
+			sourceId: newSource,
+			destinationSourceId: newDestination,
+		});
+		for (const sourceId of allSources.slice(0, -1)) {
+			expect(
+				(await sourceService.getSource(database, sourceId))
+					?.validatedAt,
+			).toBeNull();
+		}
+		expect(
+			(await sourceService.getSource(database, unrelated))?.validatedAt,
+		).not.toBeNull();
+		for (const sourceId of allSources)
+			await sourceService.validateSource(database, sourceId);
+		await transactionService.deleteTransaction(database, id);
+		for (const sourceId of [newSource, newDestination]) {
+			expect(
+				(await sourceService.getSource(database, sourceId))
+					?.validatedAt,
+			).toBeNull();
+		}
+		expect(
+			(await sourceService.getSource(database, "bank"))?.validatedAt,
+		).not.toBeNull();
+	});
+
+	it("uses persisted rates consistently in summary and yearly trends", async () => {
+		const { database } = await createFixture();
+		const sourceId = await sourceService.createSource(
+			database,
+			"Dollar bank",
+			"USD",
+		);
+		await financeRepository.upsertExchangeRateRow(database, {
+			currencyCode: "USD",
+			rateToInr: "83",
+			source: "MANUAL",
+			fetchedAt: null,
+			updatedAt: 1,
+		});
+		for (const selectedSource of ["bank", sourceId]) {
+			await transactionService.saveTransaction(database, {
+				classification: "GENERAL",
+				type: "CREDIT",
+				sourceId: selectedSource,
+				categoryId: "salary",
+				amount: "100",
+				reason: "Income",
+				transactionAt: 100,
+			});
+		}
+		const summary = await analysisService.getAnalysisSummary(database, {
+			dateRange: { start: 0, end: 200 },
+			isNativeCurrency: false,
+		});
+		const [point] = getTrendSeries(
+			await transactionService.getTransactions(database),
+			moneyUtils.getRateMap(
+				await financeRepository.getExchangeRateRows(database),
+			),
+		);
+		expect(summary.totalIncome).toBe("8400");
+		expect(point?.income).toBe(summary.totalIncome);
+	});
+
+	it("returns empty analysis and trip totals without transactions", async () => {
+		const { database } = await createFixture();
+		expect(
+			await analysisService.getAnalysisSummary(database, {
+				dateRange: { start: 0, end: 200 },
+				isNativeCurrency: false,
+			}),
+		).toMatchObject({
+			categories: [],
+			investments: [],
+			totalIncome: "0",
+			totalExpense: "0",
+			netProfit: "0",
+			missingCurrencies: [],
+		});
+		expect(await tripTotalService.getTripTotals(database)).toEqual([]);
+	});
+
+	it("preserves cents in large category, investment, trip, and source totals", async () => {
+		const { database, sqlite } = await createFixture();
+		sqlite.exec(
+			"INSERT INTO trips (id, name) VALUES ('trip', 'Trip'); INSERT INTO investments (id, name) VALUES ('fund', 'Fund');",
+		);
+		await transactionService.saveTransaction(database, {
+			...expense,
+			tripId: "trip",
+			items: [
+				{ categoryId: "food", amount: "100000000000.01" },
+				{ categoryId: "food", amount: "0.02" },
+			],
+		});
+		expect(await sourceService.getSources(database)).toMatchObject([
+			{ balance: "-100000000000.03" },
+		]);
+		await transactionService.saveTransaction(database, {
+			classification: "INVESTMENT",
+			type: "DEBIT",
+			sourceId: "bank",
+			investmentId: "fund",
+			amount: "100000000000.01",
+			reason: "Invested",
+			transactionAt: 100,
+		});
+		await transactionService.saveTransaction(database, {
+			classification: "INVESTMENT",
+			type: "CREDIT",
+			sourceId: "bank",
+			investmentId: "fund",
+			amount: "0.02",
+			reason: "Redeemed",
+			transactionAt: 100,
+		});
+		const summary = await analysisService.getAnalysisSummary(database, {
+			dateRange: { start: 0, end: 200 },
+			isNativeCurrency: true,
+		});
+		expect(summary.totalExpense).toBe("100000000000.03");
+		expect(summary.investments).toMatchObject([{ net: "99999999999.99" }]);
+		expect(await tripTotalService.getTripTotals(database)).toMatchObject([
+			{ total: "100000000000.03" },
+		]);
+	});
+
 	it("keeps credit category validation and reason defaults intact", async () => {
 		const { database } = await createFixture();
 		const income: TransactionInput = {
@@ -231,6 +440,8 @@ describe("split expense persistence", () => {
 			receipt,
 		);
 		const original = await transactionService.getTransaction(database, id);
+		await sourceService.validateSource(database, "bank");
+		const originalSources = await sourceService.getSources(database);
 		sqlite.exec(
 			"CREATE TRIGGER fail_receipt BEFORE UPDATE ON attachments BEGIN SELECT RAISE(ABORT, 'receipt failure'); END;",
 		);
@@ -247,6 +458,9 @@ describe("split expense persistence", () => {
 		).rejects.toThrow("receipt failure");
 		expect(await transactionService.getTransaction(database, id)).toEqual(
 			original,
+		);
+		expect(await sourceService.getSources(database)).toEqual(
+			originalSources,
 		);
 		expect(sqlite.prepare("SELECT content FROM attachments").get()).toEqual(
 			{ content: receipt.content },

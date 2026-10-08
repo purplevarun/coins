@@ -90,7 +90,7 @@ const SettingsScreen = ({
 			setNoticeScope("top");
 			setError(getErrorMessage(caughtError));
 		});
-	}, [database]);
+	}, [database, refreshData]);
 
 	const handleCurrencyToggle = async (value: boolean): Promise<void> => {
 		setIsNativeCurrency(value);
@@ -146,6 +146,27 @@ const SettingsScreen = ({
 		try {
 			const wasRestored = await restoreBackup(database);
 			if (wasRestored) {
+				const [
+					native,
+					fy,
+					tripId,
+					loadedTrips,
+					sourceId,
+					loadedSources,
+				] = await Promise.all([
+					getNativeCurrencyDisplay(database),
+					getFyStartMonth(database),
+					getDefaultTripId(database),
+					getTrips(database),
+					getDefaultSourceId(database),
+					getSources(database),
+				]);
+				setIsNativeCurrency(native);
+				setFyStartMonth(fy);
+				setDefaultTripId(tripId ?? "");
+				setTrips(loadedTrips);
+				setDefaultSourceId(sourceId ?? "");
+				setSources(loadedSources);
 				refreshData();
 				setMessage("Backup restored successfully.");
 			}

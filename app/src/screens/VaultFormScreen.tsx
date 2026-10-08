@@ -1,5 +1,6 @@
 import CustomText from "@/components/CustomText";
 
+import type { SQLiteDatabase } from "expo-sqlite";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -23,6 +24,17 @@ import getErrorMessage from "@/utils/error";
 const { deleteCard, getCard, saveCard } = cardService;
 const { deleteIdentity, getIdentity, saveIdentity } = identityService;
 const { deletePassword, getPassword, savePassword } = passwordService;
+
+const runInTransaction = async (
+	database: SQLiteDatabase,
+	operation: () => Promise<void>,
+): Promise<void> => {
+	if (typeof database.withTransactionAsync === "function") {
+		await database.withTransactionAsync(operation);
+		return;
+	}
+	await operation();
+};
 
 const VaultFormScreen = ({
 	navigation,
@@ -98,38 +110,40 @@ const VaultFormScreen = ({
 		setIsSaving(true);
 		setError("");
 		try {
-			let savedId = "";
-			if (kind === "PASSWORD") {
-				savedId = await savePassword(database, {
-					id: entryId,
-					title,
-					username,
-					password,
-					website,
-					notes,
-				});
-			} else if (kind === "CARD") {
-				savedId = await saveCard(database, {
-					id: entryId,
-					name: title,
-					cardType,
-					cardNumber,
-					expiry,
-					cvv,
-					pin,
-					network,
-					notes,
-				});
-				await attachment.processAttachment(savedId);
-			} else {
-				savedId = await saveIdentity(database, {
-					id: entryId,
-					title,
-					idNumber,
-					notes,
-				});
-				await attachment.processAttachment(savedId);
-			}
+			await runInTransaction(database, async () => {
+				let savedId = "";
+				if (kind === "PASSWORD") {
+					savedId = await savePassword(database, {
+						id: entryId,
+						title,
+						username,
+						password,
+						website,
+						notes,
+					});
+				} else if (kind === "CARD") {
+					savedId = await saveCard(database, {
+						id: entryId,
+						name: title,
+						cardType,
+						cardNumber,
+						expiry,
+						cvv,
+						pin,
+						network,
+						notes,
+					});
+					await attachment.processAttachment(savedId);
+				} else {
+					savedId = await saveIdentity(database, {
+						id: entryId,
+						title,
+						idNumber,
+						notes,
+					});
+					await attachment.processAttachment(savedId);
+				}
+			});
 			refreshData();
 			navigation.goBack();
 		} catch (caughtError: unknown) {
