@@ -481,12 +481,12 @@ describe("AnalysisScreen", () => {
 		).not.toHaveLength(0);
 	});
 
-	it("renders YTD title branch", async () => {
+	it("renders the last 12 months title branch", async () => {
 		const navigation = { navigate: vi.fn() };
 		let stateCall = 0;
 		reactMocks.useState.mockImplementation((initial: any) => {
 			stateCall += 1;
-			if (stateCall === 1) return ["YTD", vi.fn()];
+			if (stateCall === 1) return ["LAST_12M", vi.fn()];
 			return [
 				typeof initial === "function" ? initial() : initial,
 				vi.fn(),
@@ -498,7 +498,7 @@ describe("AnalysisScreen", () => {
 
 		expect(
 			findByPredicate(tree, (node) =>
-				String(JSON.stringify(node)).includes("Year to Date"),
+				String(JSON.stringify(node)).includes("Last 12 months"),
 			),
 		).not.toHaveLength(0);
 	});
@@ -676,7 +676,9 @@ describe("AnalysisScreen", () => {
 		expect(
 			getPeriodTitle("FY", new Date("2026-01-10T00:00:00.000Z"), 4),
 		).toBe("FY 2025–26");
-		expect(getPeriodTitle("YTD", anchorDate, 4)).toBe("Year to Date");
+		expect(getPeriodTitle("LAST_12M", anchorDate, 4)).toBe(
+			"Last 12 months",
+		);
 		expect(getPeriodTitle("ALL", anchorDate, 4)).toBe("All transactions");
 		expect(getPeriodTitle("CUSTOM", anchorDate, 4)).toBe("Custom period");
 

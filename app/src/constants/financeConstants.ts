@@ -8,7 +8,7 @@ const ANALYSIS_PERIODS = [
 	"ALL",
 	"CUSTOM",
 	"FY",
-	"YTD",
+	"LAST_12M",
 ] as const;
 const RELATION_KINDS = ["SOURCE", "CATEGORY", "TRIP", "INVESTMENT"] as const;
 const VAULT_KINDS = ["PASSWORD", "CARD", "IDENTITY"] as const;
@@ -30,7 +30,7 @@ const ANALYSIS_PERIOD_OPTIONS = [
 	{ label: "Month", value: "MONTH" },
 	{ label: "Year", value: "YEAR" },
 	{ label: "FY", value: "FY" },
-	{ label: "YTD", value: "YTD" },
+	{ label: "Last 12M", value: "LAST_12M" },
 	{ label: "All", value: "ALL" },
 	{ label: "Custom", value: "CUSTOM" },
 ] as const;

@@ -115,8 +115,8 @@ const getPeriodTitle = (
 		const fyStartYear = month0 >= fyStartMonth ? year : year - 1;
 		return `FY ${fyStartYear}–${String(fyStartYear + 1).slice(2)}`;
 	}
-	if (period === "YTD") {
-		return "Year to Date";
+	if (period === "LAST_12M") {
+		return "Last 12 months";
 	}
 	if (period === "ALL") {
 		return "All transactions";
@@ -489,10 +489,10 @@ const AnalysisScreen = ({
 					</Pressable>
 				</View>
 			) : null}
-			{period === "YTD" ? (
+			{period === "LAST_12M" ? (
 				<View style={styles.periodText}>
 					<CustomText style={styles.periodTitle}>
-						Year to Date
+						Last 12 months
 					</CustomText>
 					<CustomText style={styles.periodRange}>
 						{formatDate(dateRange.start)} –{" "}

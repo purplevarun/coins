@@ -8,7 +8,7 @@ const {
 	getAnalysisDateRange,
 	getCustomDateRange,
 	getFyDateRange,
-	getYtdDateRange,
+	getLast12MonthsDateRange,
 	shiftAnalysisAnchor,
 } = dateUtils;
 
@@ -99,7 +99,7 @@ describe("date utils", () => {
 		});
 	});
 
-	it("routes FY and YTD through getAnalysisDateRange", () => {
+	it("routes FY and LAST_12M through getAnalysisDateRange", () => {
 		const anchor = new Date("2026-05-12T00:00:00.000Z");
 		expect(getAnalysisDateRange("FY", anchor, 4)).toEqual({
 			start: new Date(2026, 3, 1).getTime(),
@@ -108,21 +108,32 @@ describe("date utils", () => {
 
 		vi.useFakeTimers();
 		vi.setSystemTime(new Date("2026-08-25T10:20:30.000Z"));
-		expect(getAnalysisDateRange("YTD", anchor)).toEqual({
-			start: new Date(2026, 0, 1, 0, 0, 0, 0).getTime(),
+		expect(getAnalysisDateRange("LAST_12M", anchor)).toEqual({
+			start: new Date(2025, 7, 26, 0, 0, 0, 0).getTime(),
 			end: new Date(2026, 7, 25, 23, 59, 59, 999).getTime(),
 		});
 		vi.useRealTimers();
 	});
 
-	it("returns deterministic ytd range around mocked now", () => {
+	it("returns a rolling twelve month range around mocked now", () => {
 		vi.useFakeTimers();
 		vi.setSystemTime(new Date("2026-08-25T10:20:30.000Z"));
 
-		const range = getYtdDateRange();
-		expect(range.start).toBe(new Date(2026, 0, 1, 0, 0, 0, 0).getTime());
+		const range = getLast12MonthsDateRange();
+		expect(range.start).toBe(new Date(2025, 7, 26, 0, 0, 0, 0).getTime());
 		expect(range.end).toBe(
 			new Date(2026, 7, 25, 23, 59, 59, 999).getTime(),
+		);
+
+		vi.useRealTimers();
+	});
+
+	it("rolls the twelve month start across a year boundary", () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(2026, 11, 31, 10, 20, 30));
+
+		expect(getLast12MonthsDateRange().start).toBe(
+			new Date(2026, 0, 1, 0, 0, 0, 0).getTime(),
 		);
 
 		vi.useRealTimers();

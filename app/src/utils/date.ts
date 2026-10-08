@@ -21,9 +21,13 @@ const getFyDateRange = (anchorDate: Date, fyStartMonth: number): DateRange => {
 	return { start, end };
 };
 
-const getYtdDateRange = (): DateRange => {
+const getLast12MonthsDateRange = (): DateRange => {
 	const now = new Date();
-	const start = new Date(now.getFullYear(), 0, 1).getTime();
+	const start = new Date(
+		now.getFullYear() - 1,
+		now.getMonth(),
+		now.getDate() + 1,
+	).getTime();
 	const end = new Date(
 		now.getFullYear(),
 		now.getMonth(),
@@ -47,8 +51,8 @@ const getAnalysisDateRange = (
 	if (period === "FY") {
 		return getFyDateRange(anchorDate, fyStartMonth);
 	}
-	if (period === "YTD") {
-		return getYtdDateRange();
+	if (period === "LAST_12M") {
+		return getLast12MonthsDateRange();
 	}
 	const year = anchorDate.getFullYear();
 	const month = anchorDate.getMonth();
@@ -148,7 +152,7 @@ const dateUtils = {
 	getCustomDateRange,
 	getDayDateRange,
 	getFyDateRange,
-	getYtdDateRange,
+	getLast12MonthsDateRange,
 	shiftDay,
 	shiftAnalysisAnchor,
 };
