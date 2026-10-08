@@ -60,6 +60,7 @@ const {
 	addMoney,
 	compareMoney,
 	formatMoney,
+	formatMoneyPercentage,
 	getMissingCurrencies,
 	getRateMap,
 	subtractMoney,
@@ -239,6 +240,21 @@ const getSummaryMetrics = (
 				? COLORS.danger
 				: COLORS.success,
 	},
+	{
+		label: "Savings %",
+		value: formatMoneyPercentage(
+			summary?.netProfit ?? ZERO_AMOUNT,
+			summary?.totalIncome ?? ZERO_AMOUNT,
+		),
+		accent:
+			compareMoney(summary?.netProfit ?? ZERO_AMOUNT, ZERO_AMOUNT) < 0
+				? "danger"
+				: "success",
+		color:
+			compareMoney(summary?.netProfit ?? ZERO_AMOUNT, ZERO_AMOUNT) < 0
+				? COLORS.danger
+				: COLORS.success,
+	},
 ];
 
 const HAS_ARROWS: readonly AnalysisPeriod[] = ["MONTH", "YEAR", "FY"];
@@ -407,15 +423,8 @@ const AnalysisScreen = ({
 	);
 
 	const renderMetric = (metric: SummaryMetricInput): React.JSX.Element => (
-		<View
-			key={metric.label}
-			style={[
-				styles.summaryTile,
-				metric.label === "Net after investments" &&
-					styles.summaryTileFull,
-			]}
-		>
-			<GlassCard accent={metric.accent}>
+		<View key={metric.label} style={styles.summaryTile}>
+			<GlassCard accent={metric.accent} style={styles.summaryCard}>
 				<CustomText style={styles.summaryLabel}>
 					{metric.label}
 				</CustomText>
@@ -667,8 +676,8 @@ const styles = StyleSheet.create({
 	summaryTile: {
 		width: SIZES.TILE,
 	},
-	summaryTileFull: {
-		width: SIZES.FULL,
+	summaryCard: {
+		flex: FLEX.FILL,
 	},
 	summaryLabel: {
 		color: COLORS.textMuted,

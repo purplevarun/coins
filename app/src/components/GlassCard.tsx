@@ -6,7 +6,7 @@ import COLORS from "@/constants/colors";
 import styleConstants from "@/constants/styleConstants";
 import type GlassCardProps from "@/types/GlassCardProps";
 
-const { BORDER, OVERFLOW, RADIUS, SHADOW, SPACING } = styleConstants;
+const { BORDER, FLEX, OVERFLOW, RADIUS, SHADOW, SPACING } = styleConstants;
 
 const getAccentColor = (accent: GlassCardProps["accent"]): string => {
 	if (accent === "success") {
@@ -24,8 +24,11 @@ const getAccentColor = (accent: GlassCardProps["accent"]): string => {
 const GlassCard = ({
 	children,
 	accent = "default",
+	style,
 }: GlassCardProps): ReactNode => (
-	<View style={[styles.wrapper, { borderColor: getAccentColor(accent) }]}>
+	<View
+		style={[styles.wrapper, { borderColor: getAccentColor(accent) }, style]}
+	>
 		<BlurView intensity={32} tint="dark" style={styles.blur}>
 			<View style={styles.content}>{children}</View>
 		</BlurView>
@@ -45,6 +48,7 @@ const styles = StyleSheet.create({
 		elevation: SHADOW.ELEVATION_LOW,
 	},
 	blur: {
+		flex: FLEX.FILL,
 		backgroundColor: COLORS.glass,
 	},
 	content: {

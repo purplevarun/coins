@@ -788,6 +788,23 @@ describe("AnalysisScreen", () => {
 				"-40",
 				"40",
 				"-20",
+			).map((metric) => metric.value)[5],
+		).toBe("20.0%");
+
+		expect(
+			getSummaryMetrics(
+				{
+					missingCurrencies: [],
+					totalIncome: "100",
+					totalExpense: "80",
+					netProfit: "20",
+					categories: [],
+					refundNets: [],
+					investments: [],
+				},
+				"-40",
+				"40",
+				"-20",
 			).map((metric) => metric.label),
 		).toEqual([
 			"Income",
@@ -795,7 +812,10 @@ describe("AnalysisScreen", () => {
 			"Investments",
 			"Net",
 			"Net after investments",
+			"Savings %",
 		]);
+
+		expect(getSummaryMetrics(null, "0", "0", "0")[5]?.value).toBe("—");
 
 		const negativeSummaryMetrics = getSummaryMetrics(
 			{
@@ -815,6 +835,9 @@ describe("AnalysisScreen", () => {
 		expect(negativeSummaryMetrics[3]?.color).toBe(COLORS.danger);
 		expect(negativeSummaryMetrics[4]?.accent).toBe("danger");
 		expect(negativeSummaryMetrics[4]?.color).toBe(COLORS.danger);
+		expect(negativeSummaryMetrics[5]?.accent).toBe("danger");
+		expect(negativeSummaryMetrics[5]?.color).toBe(COLORS.danger);
+		expect(negativeSummaryMetrics[5]?.value).toBe("-50.0%");
 
 		const positiveSummaryMetrics = getSummaryMetrics(
 			{
@@ -832,6 +855,9 @@ describe("AnalysisScreen", () => {
 		);
 		expect(positiveSummaryMetrics[4]?.accent).toBe("success");
 		expect(positiveSummaryMetrics[4]?.color).toBe(COLORS.success);
+		expect(positiveSummaryMetrics[5]?.accent).toBe("success");
+		expect(positiveSummaryMetrics[5]?.color).toBe(COLORS.success);
+		expect(positiveSummaryMetrics[5]?.value).toBe("50.0%");
 	});
 
 	it.each([undefined, { minDate: null, maxDate: null }])(

@@ -6,6 +6,7 @@ import type ExchangeRate from "@/types/ExchangeRate";
 
 const MONEY_PATTERN = /^(?:\d+\.?\d*|\.\d+)$/;
 const ZERO_AMOUNT = "0";
+const UNAVAILABLE_PERCENTAGE = "—";
 const { DEFAULT_CURRENCY_CODE } = appConstants;
 
 const getRateMap = (
@@ -66,6 +67,12 @@ const absoluteMoney = (amount: string): string =>
 const sumMoney = (amounts: readonly string[]): string =>
 	amounts.reduce(addMoney, ZERO_AMOUNT);
 
+const formatMoneyPercentage = (part: string, whole: string): string => {
+	const total = new Decimal(whole);
+	if (total.isZero()) return UNAVAILABLE_PERCENTAGE;
+	return `${new Decimal(part).times(100).dividedBy(total).toFixed(1)}%`;
+};
+
 const formatMoney = (amount: string, currencyCode: string): string => {
 	const numericAmount = new Decimal(amount).toNumber();
 	try {
@@ -87,6 +94,7 @@ const moneyUtils = {
 	addMoney,
 	compareMoney,
 	formatMoney,
+	formatMoneyPercentage,
 	getConversionRate,
 	getMissingCurrencies,
 	getRateMap,
@@ -94,6 +102,7 @@ const moneyUtils = {
 	normalizeMoney,
 	subtractMoney,
 	sumMoney,
+	UNAVAILABLE_PERCENTAGE,
 	ZERO_AMOUNT,
 };
 
