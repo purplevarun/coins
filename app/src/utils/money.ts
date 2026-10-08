@@ -1,9 +1,36 @@
 import Decimal from "decimal.js";
 
+import appConstants from "@/constants/appConstants";
 import AppError from "@/errors/AppError";
+import type ExchangeRate from "@/types/ExchangeRate";
 
 const MONEY_PATTERN = /^(?:\d+\.?\d*|\.\d+)$/;
 const ZERO_AMOUNT = "0";
+const { DEFAULT_CURRENCY_CODE } = appConstants;
+
+const getRateMap = (
+	rates: readonly ExchangeRate[],
+): ReadonlyMap<string, string> =>
+	new Map(rates.map((rate) => [rate.currencyCode, rate.rateToInr]));
+
+const getConversionRate = (
+	currencyCode: string,
+	isNativeCurrency: boolean,
+	rateMap: ReadonlyMap<string, string>,
+): string | null => {
+	if (isNativeCurrency || currencyCode === DEFAULT_CURRENCY_CODE) return "1";
+	return rateMap.get(currencyCode) ?? null;
+};
+
+const getMissingCurrencies = (
+	currencyCodes: readonly string[],
+	rateMap: ReadonlyMap<string, string>,
+): readonly string[] =>
+	[...new Set(currencyCodes)].filter(
+		(currencyCode) =>
+			currencyCode !== DEFAULT_CURRENCY_CODE &&
+			!rateMap.has(currencyCode),
+	);
 
 const normalizeMoney = (value: string): string => {
 	const trimmedValue = value.trim();
@@ -39,13 +66,6 @@ const absoluteMoney = (amount: string): string =>
 const sumMoney = (amounts: readonly string[]): string =>
 	amounts.reduce(addMoney, ZERO_AMOUNT);
 
-// SQL SUM aggregates return floats; 13 significant digits keeps paise-level
-// precision up to eleven-digit totals while discarding float noise.
-const SUM_SIGNIFICANT_DIGITS = 13;
-
-const sumToMoney = (value: number): string =>
-	new Decimal(value).toSignificantDigits(SUM_SIGNIFICANT_DIGITS).toFixed();
-
 const formatMoney = (amount: string, currencyCode: string): string => {
 	const numericAmount = new Decimal(amount).toNumber();
 	try {
@@ -67,11 +87,13 @@ const moneyUtils = {
 	addMoney,
 	compareMoney,
 	formatMoney,
+	getConversionRate,
+	getMissingCurrencies,
+	getRateMap,
 	multiplyMoney,
 	normalizeMoney,
 	subtractMoney,
 	sumMoney,
-	sumToMoney,
 	ZERO_AMOUNT,
 };
 

@@ -1,3 +1,4 @@
+import type CategoryKind from "@/types/CategoryKind";
 import type TransactionClassification from "@/types/TransactionClassification";
 import type TransactionItem from "@/types/TransactionItem";
 import type TransactionType from "@/types/TransactionType";
@@ -22,6 +23,7 @@ type Transaction = Readonly<{
 	destinationSourceName: string | null;
 	destinationCurrencyCode: string | null;
 	categoryName: string | null;
+	categoryKind?: CategoryKind | null;
 	tripName: string | null;
 	investmentName: string | null;
 	hasAttachment: boolean;

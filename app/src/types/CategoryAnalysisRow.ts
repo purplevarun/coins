@@ -3,8 +3,8 @@ type CategoryAnalysisRow = Readonly<{
 	categoryName: string;
 	kind: string;
 	currencyCode: string;
-	credits: number;
-	debits: number;
+	credits: string;
+	debits: string;
 }>;
 
 export type { CategoryAnalysisRow as default };

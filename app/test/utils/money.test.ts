@@ -43,11 +43,11 @@ describe("money utilities", () => {
 		expect(moneyUtils.ZERO_AMOUNT).toBe("0");
 	});
 
-	it("converts SQL sums to money strings without float noise", () => {
-		expect(moneyUtils.sumToMoney(0)).toBe("0");
-		expect(moneyUtils.sumToMoney(0.1 + 0.2)).toBe("0.3");
-		expect(moneyUtils.sumToMoney(27000)).toBe("27000");
-		expect(moneyUtils.sumToMoney(12345678901.25)).toBe("12345678901.25");
+	it("preserves fractional amounts when summing large totals", () => {
+		expect(moneyUtils.sumMoney([])).toBe("0");
+		expect(moneyUtils.sumMoney(["100000000000.01", "0.02"])).toBe(
+			"100000000000.03",
+		);
 	});
 
 	it("formats money for known and unknown currencies", () => {

@@ -6,7 +6,6 @@ import type CategoryAnalysis from "@/types/CategoryAnalysis";
 import type CategoryAnalysisRow from "@/types/CategoryAnalysisRow";
 import type CategoryCurrencySummary from "@/types/CategoryCurrencySummary";
 import type CategoryKind from "@/types/CategoryKind";
-import type ExchangeRate from "@/types/ExchangeRate";
 import type InvestmentAnalysis from "@/types/InvestmentAnalysis";
 import type InvestmentAnalysisRow from "@/types/InvestmentAnalysisRow";
 import moneyUtils from "@/utils/money";
@@ -23,28 +22,14 @@ const {
 	absoluteMoney,
 	addMoney,
 	compareMoney,
+	getConversionRate,
+	getMissingCurrencies,
+	getRateMap,
 	multiplyMoney,
 	subtractMoney,
 	sumMoney,
-	sumToMoney,
 	ZERO_AMOUNT,
 } = moneyUtils;
-
-const getRateMap = (
-	rates: readonly ExchangeRate[],
-): ReadonlyMap<string, string> =>
-	new Map(rates.map((rate) => [rate.currencyCode, rate.rateToInr]));
-
-const getConversionRate = (
-	currencyCode: string,
-	isNativeCurrency: boolean,
-	rateMap: ReadonlyMap<string, string>,
-): string | null => {
-	if (isNativeCurrency || currencyCode === DEFAULT_CURRENCY_CODE) {
-		return "1";
-	}
-	return rateMap.get(currencyCode) ?? null;
-};
 
 const buildCategoryAnalysis = (
 	rows: readonly CategoryAnalysisRow[],
@@ -78,11 +63,11 @@ const buildCategoryAnalysis = (
 		};
 		const credits = addMoney(
 			current.credits,
-			multiplyMoney(sumToMoney(row.credits), rate),
+			multiplyMoney(row.credits, rate),
 		);
 		const debits = addMoney(
 			current.debits,
-			multiplyMoney(sumToMoney(row.debits), rate),
+			multiplyMoney(row.debits, rate),
 		);
 		totals.set(key, {
 			...current,
@@ -127,11 +112,11 @@ const buildInvestmentAnalysis = (
 		};
 		const totalInvested = addMoney(
 			current.totalInvested,
-			multiplyMoney(sumToMoney(row.totalInvested), rate),
+			multiplyMoney(row.totalInvested, rate),
 		);
 		const totalRedeemed = addMoney(
 			current.totalRedeemed,
-			multiplyMoney(sumToMoney(row.totalRedeemed), rate),
+			multiplyMoney(row.totalRedeemed, rate),
 		);
 		totals.set(key, {
 			...current,
@@ -176,16 +161,6 @@ const buildCategoryCurrencySummaries = (
 		left.currencyCode.localeCompare(right.currencyCode),
 	);
 };
-
-const getMissingCurrencies = (
-	currencyCodes: readonly string[],
-	rateMap: ReadonlyMap<string, string>,
-): readonly string[] =>
-	currencyCodes.filter(
-		(currencyCode) =>
-			currencyCode !== DEFAULT_CURRENCY_CODE &&
-			!rateMap.has(currencyCode),
-	);
 
 const getAnalysisSummary = async (
 	database: SQLiteDatabase,

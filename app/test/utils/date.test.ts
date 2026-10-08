@@ -13,6 +13,54 @@ const {
 } = dateUtils;
 
 describe("date utils", () => {
+	it.each([4, 10])(
+		"reaches January history with an FY start month of %i",
+		(fyStartMonth) => {
+			const anchor = new Date(2026, 9, 7);
+			const earliest = new Date(2026, 0, 15).getTime();
+			const shifted = shiftAnalysisAnchor(
+				"FY",
+				anchor,
+				-1,
+				earliest,
+				anchor.getTime(),
+				fyStartMonth,
+			);
+			const range = getAnalysisDateRange("FY", shifted, fyStartMonth);
+			expect(range.start).toBeLessThanOrEqual(earliest);
+			expect(range.end).toBeGreaterThanOrEqual(earliest);
+			expect(
+				shiftAnalysisAnchor(
+					"FY",
+					shifted,
+					-1,
+					earliest,
+					anchor.getTime(),
+					fyStartMonth,
+				),
+			).toBe(shifted);
+		},
+	);
+
+	it("allows forward FY navigation from January into a financial year with June data", () => {
+		const anchor = new Date(2026, 0, 15);
+		const latest = new Date(2026, 5, 15).getTime();
+		const shifted = shiftAnalysisAnchor(
+			"FY",
+			anchor,
+			1,
+			undefined,
+			latest,
+			4,
+		);
+		const range = getAnalysisDateRange("FY", shifted, 4);
+		expect(range.start).toBe(new Date(2026, 3, 1).getTime());
+		expect(range.end).toBeGreaterThanOrEqual(latest);
+		expect(
+			shiftAnalysisAnchor("FY", shifted, 1, undefined, latest, 4),
+		).toBe(shifted);
+	});
+
 	it("returns all-time range for ALL and CUSTOM", () => {
 		const anchor = new Date("2026-08-25T10:00:00.000Z");
 		expect(getAnalysisDateRange("ALL", anchor)).toEqual({

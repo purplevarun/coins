@@ -11,6 +11,7 @@ const reactMocks = vi.hoisted(() => ({
 }));
 
 const serviceMocks = vi.hoisted(() => ({
+	getExchangeRateRows: vi.fn(),
 	getTransactionMinMaxDate: vi.fn(),
 	getTransactionRows: vi.fn(),
 	getAnalysisSummary: vi.fn(),
@@ -92,6 +93,7 @@ vi.mock("@/hooks/useDatabaseContext", () => ({
 
 vi.mock("@/repositories/financeRepository", () => ({
 	default: {
+		getExchangeRateRows: serviceMocks.getExchangeRateRows,
 		getTransactionMinMaxDate: serviceMocks.getTransactionMinMaxDate,
 		getTransactionRows: serviceMocks.getTransactionRows,
 	},
@@ -118,8 +120,9 @@ vi.mock("@/utils/error", () => ({
 	default: (caughtError: unknown) =>
 		caughtError instanceof Error ? caughtError.message : "Unknown error",
 }));
-vi.mock("@/utils/money", () => ({
+vi.mock("@/utils/money", async (importOriginal) => ({
 	default: {
+		...(await importOriginal<typeof import("@/utils/money")>()).default,
 		absoluteMoney: serviceMocks.absoluteMoney,
 		addMoney: serviceMocks.addMoney,
 		compareMoney: serviceMocks.compareMoney,
@@ -185,6 +188,7 @@ describe("AnalysisScreen", () => {
 		]);
 
 		Object.values(serviceMocks).forEach((mockFn) => mockFn.mockReset());
+		serviceMocks.getExchangeRateRows.mockResolvedValue([]);
 		serviceMocks.getAnalysisDateRange.mockReturnValue({
 			start: 1,
 			end: 31,
@@ -200,6 +204,8 @@ describe("AnalysisScreen", () => {
 		serviceMocks.getTransactionRows.mockResolvedValue([
 			{
 				id: "t1",
+				sourceCurrencyCode: "INR",
+				items: [],
 				classification: "GENERAL",
 				type: "CREDIT",
 				categoryId: "c1",
@@ -544,6 +550,7 @@ describe("AnalysisScreen", () => {
 			-1,
 			undefined,
 			undefined,
+			4,
 		);
 		expect(serviceMocks.shiftAnalysisAnchor).toHaveBeenCalledWith(
 			"MONTH",
@@ -551,6 +558,7 @@ describe("AnalysisScreen", () => {
 			1,
 			undefined,
 			undefined,
+			4,
 		);
 	});
 
@@ -579,42 +587,64 @@ describe("AnalysisScreen", () => {
 		);
 	});
 
-	it("renders the trend chart when trend data is available", async () => {
-		const navigation = { navigate: vi.fn() };
-		let stateCall = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			stateCall += 1;
-			if (stateCall === 10) {
+	it.each([
+		{ currencyCode: "INR", rate: null, missing: false },
+		{ currencyCode: "USD", rate: "83", missing: false },
+		{ currencyCode: "USD", rate: null, missing: true },
+	])(
+		"renders currency-aware trends for $currencyCode with rate $rate",
+		async ({ currencyCode, rate, missing }) => {
+			const navigation = { navigate: vi.fn() };
+			let stateCall = 0;
+			reactMocks.useState.mockImplementation((initial: any) => {
+				stateCall += 1;
+				if (stateCall === 11)
+					return [
+						rate ? [{ currencyCode, rateToInr: rate }] : [],
+						vi.fn(),
+					];
+				if (stateCall === 10) {
+					return [
+						[
+							{
+								id: "t1",
+								sourceCurrencyCode: currencyCode,
+								items: [],
+								classification: "GENERAL",
+								type: "CREDIT",
+								categoryId: "c1",
+								amount: "100",
+								transactionAt: new Date("2024-01-15").getTime(),
+							},
+						],
+						vi.fn(),
+					];
+				}
 				return [
-					[
-						{
-							id: "t1",
-							classification: "GENERAL",
-							type: "CREDIT",
-							categoryId: "c1",
-							amount: "100",
-							transactionAt: new Date("2024-01-15").getTime(),
-						},
-					],
+					typeof initial === "function" ? initial() : initial,
 					vi.fn(),
 				];
-			}
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
+			});
 
-		const tree = AnalysisScreen({ navigation } as any);
-		await flush();
+			const tree = AnalysisScreen({ navigation } as any);
+			await flush();
 
-		expect(
-			findByPredicate(
-				tree,
-				(node) => typeof node?.props?.series !== "undefined",
-			),
-		).not.toHaveLength(0);
-	});
+			expect(
+				findByPredicate(
+					tree,
+					(node) => typeof node?.props?.series !== "undefined",
+				),
+			).toHaveLength(missing ? 0 : 1);
+			expect(
+				findByPredicate(
+					tree,
+					(node) =>
+						node?.props?.message ===
+						getMissingRatesMessage([currencyCode]),
+				),
+			).toHaveLength(missing ? 1 : 0);
+		},
+	);
 
 	it("covers AnalysisScreen helper branches directly", () => {
 		const anchorDate = new Date("2026-04-10T00:00:00.000Z");
@@ -797,29 +827,32 @@ describe("AnalysisScreen", () => {
 		expect(positiveSummaryMetrics[4]?.color).toBe(COLORS.success);
 	});
 
-	it("covers getScreenData branch when min/max transaction dates are unavailable", async () => {
-		const navigation = { navigate: vi.fn() };
-		serviceMocks.getTransactionMinMaxDate.mockResolvedValueOnce(undefined);
+	it.each([undefined, { minDate: null, maxDate: null }])(
+		"clears stale date bounds for empty query result %j",
+		async (result) => {
+			const navigation = { navigate: vi.fn() };
+			serviceMocks.getTransactionMinMaxDate.mockResolvedValueOnce(result);
 
-		const setMinTxnDate = vi.fn();
-		const setMaxTxnDate = vi.fn();
-		let stateCall = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			stateCall += 1;
-			if (stateCall === 8) return [undefined, setMinTxnDate];
-			if (stateCall === 9) return [undefined, setMaxTxnDate];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
+			const setMinTxnDate = vi.fn();
+			const setMaxTxnDate = vi.fn();
+			let stateCall = 0;
+			reactMocks.useState.mockImplementation((initial: any) => {
+				stateCall += 1;
+				if (stateCall === 8) return [100, setMinTxnDate];
+				if (stateCall === 9) return [200, setMaxTxnDate];
+				return [
+					typeof initial === "function" ? initial() : initial,
+					vi.fn(),
+				];
+			});
 
-		AnalysisScreen({ navigation } as any);
-		await flush();
+			AnalysisScreen({ navigation } as any);
+			await flush();
 
-		expect(setMinTxnDate).not.toHaveBeenCalled();
-		expect(setMaxTxnDate).not.toHaveBeenCalled();
-	});
+			expect(setMinTxnDate).toHaveBeenCalledWith(undefined);
+			expect(setMaxTxnDate).toHaveBeenCalledWith(undefined);
+		},
+	);
 
 	it("covers disabled arrows, error notice, and donut center fallback", async () => {
 		const navigation = { navigate: vi.fn() };

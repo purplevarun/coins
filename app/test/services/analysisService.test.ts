@@ -18,8 +18,8 @@ const createCategoryRow = (
 	categoryName: "Domo Living Rent",
 	kind: "EXPENSE",
 	currencyCode: "INR",
-	credits: 0,
-	debits: 0,
+	credits: "0",
+	debits: "0",
 	...overrides,
 });
 
@@ -29,15 +29,15 @@ const createInvestmentRow = (
 	investmentId: "mutual-fund",
 	investmentName: "Mutual Fund",
 	currencyCode: "INR",
-	totalInvested: 0,
-	totalRedeemed: 0,
+	totalInvested: "0",
+	totalRedeemed: "0",
 	...overrides,
 });
 
 describe("category-driven analysis", () => {
 	it("nets reimbursements against the category debit", () => {
 		const result = buildCategoryAnalysis(
-			[createCategoryRow({ credits: 13000, debits: 27000 })],
+			[createCategoryRow({ credits: "13000", debits: "27000" })],
 			true,
 			new Map(),
 		);
@@ -53,8 +53,8 @@ describe("category-driven analysis", () => {
 				createCategoryRow({
 					categoryId: "company-trip",
 					categoryName: "Company Trip",
-					credits: 800,
-					debits: 400,
+					credits: "800",
+					debits: "400",
 				}),
 			],
 			true,
@@ -65,9 +65,12 @@ describe("category-driven analysis", () => {
 		expect(result[0]?.isIncome).toBe(false);
 	});
 
-	it("cleans float noise from SQL sums", () => {
+	it("sums decimal allocations without floating-point drift", () => {
 		const result = buildCategoryAnalysis(
-			[createCategoryRow({ credits: 0.1 + 0.2, debits: 0.1 })],
+			[
+				createCategoryRow({ credits: "0.1", debits: "0.1" }),
+				createCategoryRow({ credits: "0.2" }),
+			],
 			true,
 			new Map(),
 		);
@@ -79,15 +82,15 @@ describe("category-driven analysis", () => {
 	it("sorts the most expense-heavy category first", () => {
 		const result = buildCategoryAnalysis(
 			[
-				createCategoryRow({ categoryId: "rent", debits: 14000 }),
+				createCategoryRow({ categoryId: "rent", debits: "14000" }),
 				createCategoryRow({
 					categoryId: "company-trip",
-					credits: 400,
+					credits: "400",
 				}),
 				createCategoryRow({
 					categoryId: "salary",
 					kind: "INCOME",
-					credits: 100000,
+					credits: "100000",
 				}),
 			],
 			true,
@@ -104,16 +107,16 @@ describe("category-driven analysis", () => {
 	it("merges converted currencies into one base bucket and skips missing rates", () => {
 		const result = buildCategoryAnalysis(
 			[
-				createCategoryRow({ credits: 100, debits: 500 }),
+				createCategoryRow({ credits: "100", debits: "500" }),
 				createCategoryRow({
 					currencyCode: "USD",
-					credits: 0,
-					debits: 10,
+					credits: "0",
+					debits: "10",
 				}),
 				createCategoryRow({
 					currencyCode: "EUR",
-					credits: 0,
-					debits: 999,
+					credits: "0",
+					debits: "999",
 				}),
 			],
 			false,
@@ -214,8 +217,8 @@ describe("investment analysis", () => {
 		const result = buildInvestmentAnalysis(
 			[
 				createInvestmentRow({
-					totalInvested: 10000,
-					totalRedeemed: 2500,
+					totalInvested: "10000",
+					totalRedeemed: "2500",
 				}),
 			],
 			true,
@@ -233,24 +236,24 @@ describe("investment analysis", () => {
 				createInvestmentRow({
 					investmentId: "inv1",
 					investmentName: "Index Fund",
-					totalInvested: 100,
+					totalInvested: "100",
 				}),
 				createInvestmentRow({
 					investmentId: "inv1",
 					investmentName: "Index Fund",
 					currencyCode: "USD",
-					totalRedeemed: 20,
+					totalRedeemed: "20",
 				}),
 				createInvestmentRow({
 					investmentId: "inv2",
 					investmentName: "Bond",
-					totalInvested: 50,
+					totalInvested: "50",
 				}),
 				createInvestmentRow({
 					investmentId: "inv3",
 					investmentName: "Unpriced",
 					currencyCode: "EUR",
-					totalInvested: 999,
+					totalInvested: "999",
 				}),
 			],
 			false,

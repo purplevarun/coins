@@ -36,6 +36,7 @@ import type AnalysisScreenProps from "@/types/AnalysisScreenProps";
 import type AnalysisSummary from "@/types/AnalysisSummary";
 import type ChartDatum from "@/types/ChartDatum";
 import type DateRange from "@/types/DateRange";
+import type ExchangeRate from "@/types/ExchangeRate";
 import type SummaryMetricInput from "@/types/SummaryMetricInput";
 import type Transaction from "@/types/Transaction";
 import dateUtils from "@/utils/date";
@@ -44,7 +45,8 @@ import moneyUtils from "@/utils/money";
 import runAfterRender from "@/utils/runAfterRender";
 import { getTrendSeries } from "@/utils/trends";
 const { DEFAULT_CURRENCY_CODE } = appConstants;
-const { getTransactionMinMaxDate, getTransactionRows } = financeRepository;
+const { getExchangeRateRows, getTransactionMinMaxDate, getTransactionRows } =
+	financeRepository;
 const { getAnalysisSummary } = analysisService;
 const { getFyStartMonth } = settingsService;
 const {
@@ -58,6 +60,8 @@ const {
 	addMoney,
 	compareMoney,
 	formatMoney,
+	getMissingCurrencies,
+	getRateMap,
 	subtractMoney,
 	sumMoney,
 	ZERO_AMOUNT,
@@ -139,6 +143,7 @@ const isShiftNavigationDisabled = (
 	direction: -1 | 1,
 	minTxnDate: number | undefined,
 	maxTxnDate: number | undefined,
+	fyStartMonth = DEFAULT_FY_START_MONTH,
 ): boolean => {
 	if (direction === -1 && minTxnDate === undefined) return false;
 	if (direction === 1 && maxTxnDate === undefined) return false;
@@ -148,6 +153,7 @@ const isShiftNavigationDisabled = (
 		direction,
 		minTxnDate,
 		maxTxnDate,
+		fyStartMonth,
 	);
 	return shifted === anchorDate;
 };
@@ -253,6 +259,9 @@ const AnalysisScreen = ({
 	const [trendTransactions, setTrendTransactions] = useState<
 		readonly Transaction[]
 	>([]);
+	const [trendExchangeRates, setTrendExchangeRates] = useState<
+		readonly ExchangeRate[]
+	>([]);
 
 	const dateRange = useMemo(
 		() =>
@@ -268,22 +277,23 @@ const AnalysisScreen = ({
 
 	const getScreenData = useCallback(async (): Promise<void> => {
 		try {
-			const [summaryResult, minMax, fy, trendRows] = await Promise.all([
-				getAnalysisSummary(database, {
-					dateRange,
-					isNativeCurrency: false,
-				}),
-				getTransactionMinMaxDate(database),
-				getFyStartMonth(database),
-				getTransactionRows(database),
-			]);
+			const [summaryResult, minMax, fy, trendRows, rates] =
+				await Promise.all([
+					getAnalysisSummary(database, {
+						dateRange,
+						isNativeCurrency: false,
+					}),
+					getTransactionMinMaxDate(database),
+					getFyStartMonth(database),
+					getTransactionRows(database),
+					getExchangeRateRows(database),
+				]);
 			setSummary(summaryResult);
 			setFyStartMonth(fy);
-			if (minMax) {
-				setMinTxnDate(minMax.minDate);
-				setMaxTxnDate(minMax.maxDate);
-			}
+			setMinTxnDate(minMax?.minDate ?? undefined);
+			setMaxTxnDate(minMax?.maxDate ?? undefined);
 			setTrendTransactions(trendRows);
+			setTrendExchangeRates(rates);
 			setError("");
 		} catch (caughtError: unknown) {
 			setError(getErrorMessage(caughtError));
@@ -316,13 +326,27 @@ const AnalysisScreen = ({
 
 	const handleBack = (): void => {
 		setAnchorDate((prev) =>
-			shiftAnalysisAnchor(period, prev, -1, minTxnDate, maxTxnDate),
+			shiftAnalysisAnchor(
+				period,
+				prev,
+				-1,
+				minTxnDate,
+				maxTxnDate,
+				fyStartMonth,
+			),
 		);
 	};
 
 	const handleForward = (): void => {
 		setAnchorDate((prev) =>
-			shiftAnalysisAnchor(period, prev, 1, minTxnDate, maxTxnDate),
+			shiftAnalysisAnchor(
+				period,
+				prev,
+				1,
+				minTxnDate,
+				maxTxnDate,
+				fyStartMonth,
+			),
 		);
 	};
 
@@ -334,8 +358,9 @@ const AnalysisScreen = ({
 			-1,
 			minTxnDate,
 			maxTxnDate,
+			fyStartMonth,
 		);
-	}, [anchorDate, maxTxnDate, minTxnDate, period]);
+	}, [anchorDate, maxTxnDate, minTxnDate, period, fyStartMonth]);
 
 	const isForwardDisabled = useMemo((): boolean => {
 		return isShiftNavigationDisabled(
@@ -344,8 +369,9 @@ const AnalysisScreen = ({
 			1,
 			minTxnDate,
 			maxTxnDate,
+			fyStartMonth,
 		);
-	}, [anchorDate, maxTxnDate, minTxnDate, period]);
+	}, [anchorDate, maxTxnDate, minTxnDate, period, fyStartMonth]);
 
 	const hasMissingCurrencies = Boolean(summary?.missingCurrencies.length);
 	const investmentNet = sumMoney(
@@ -364,8 +390,18 @@ const AnalysisScreen = ({
 		netAfterInvestments,
 	);
 	const trendSeries = useMemo(
-		() => getTrendSeries(trendTransactions),
-		[trendTransactions],
+		() => getTrendSeries(trendTransactions, getRateMap(trendExchangeRates)),
+		[trendTransactions, trendExchangeRates],
+	);
+	const missingTrendCurrencies = getMissingCurrencies(
+		trendTransactions
+			.filter(
+				(transaction) =>
+					transaction.classification === "GENERAL" &&
+					transaction.type !== "TRANSFER",
+			)
+			.map((transaction) => transaction.sourceCurrencyCode),
+		getRateMap(trendExchangeRates),
 	);
 
 	const renderMetric = (metric: SummaryMetricInput): React.JSX.Element => (
@@ -541,7 +577,14 @@ const AnalysisScreen = ({
 						subtitle="Income, expenses and net worth year by year, across every transaction regardless of the selected period."
 						title="Trends"
 					/>
-					{trendSeries.length ? (
+					{missingTrendCurrencies.length ? (
+						<Notice
+							message={getMissingRatesMessage(
+								missingTrendCurrencies,
+							)}
+							tone="warning"
+						/>
+					) : trendSeries.length ? (
 						<GlassCard>
 							<TrendLineChart series={trendSeries} />
 						</GlassCard>

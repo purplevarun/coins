@@ -770,10 +770,11 @@ const getCategoryAnalysisRows = async (
 		SELECT
 			category.id AS categoryId,
 			category.name AS categoryName,
+			category.kind AS categoryKind,
 			category.kind AS kind,
 			allocation.currencyCode AS currencyCode,
-			SUM(CASE WHEN allocation.type = 'CREDIT' THEN CAST(allocation.amount AS REAL) ELSE 0 END) AS credits,
-			SUM(CASE WHEN allocation.type = 'DEBIT' THEN CAST(allocation.amount AS REAL) ELSE 0 END) AS debits
+			CASE WHEN allocation.type = 'CREDIT' THEN allocation.amount ELSE '0' END AS credits,
+			CASE WHEN allocation.type = 'DEBIT' THEN allocation.amount ELSE '0' END AS debits
 		FROM (
 			SELECT item.category_id AS categoryId, item.amount AS amount,
 				t.type AS type, source.currency_code AS currencyCode
@@ -791,7 +792,6 @@ const getCategoryAnalysisRows = async (
 				AND t.transaction_at BETWEEN ? AND ?
 		) allocation
 		INNER JOIN categories category ON category.id = allocation.categoryId
-		GROUP BY category.id, allocation.currencyCode
 		ORDER BY category.id, allocation.currencyCode;
 	`,
 		start,
@@ -811,14 +811,13 @@ const getInvestmentAnalysisRows = async (
 			investment.id AS investmentId,
 			investment.name AS investmentName,
 			source.currency_code AS currencyCode,
-			SUM(CASE WHEN t.type = 'DEBIT' THEN CAST(t.amount AS REAL) ELSE 0 END) AS totalInvested,
-			SUM(CASE WHEN t.type = 'CREDIT' THEN CAST(t.amount AS REAL) ELSE 0 END) AS totalRedeemed
+			CASE WHEN t.type = 'DEBIT' THEN t.amount ELSE '0' END AS totalInvested,
+			CASE WHEN t.type = 'CREDIT' THEN t.amount ELSE '0' END AS totalRedeemed
 		FROM transactions t
 		INNER JOIN investments investment ON investment.id = t.investment_id
 		INNER JOIN sources source ON source.id = t.source_id
 		WHERE t.classification = 'INVESTMENT'
 			AND t.transaction_at BETWEEN ? AND ?
-		GROUP BY investment.id, source.currency_code
 		ORDER BY investment.id, source.currency_code;
 	`,
 		start,
@@ -832,14 +831,13 @@ const getTripTotalRows = async (
 		SELECT
 			t.trip_id AS tripId,
 			source.currency_code AS currencyCode,
-			SUM(CASE WHEN t.type = 'CREDIT' THEN CAST(t.amount AS REAL) ELSE 0 END) AS credits,
-			SUM(CASE WHEN t.type = 'DEBIT' THEN CAST(t.amount AS REAL) ELSE 0 END) AS debits
+			CASE WHEN t.type = 'CREDIT' THEN t.amount ELSE '0' END AS credits,
+			CASE WHEN t.type = 'DEBIT' THEN t.amount ELSE '0' END AS debits
 		FROM transactions t
 		INNER JOIN sources source ON source.id = t.source_id
 		WHERE t.classification = 'GENERAL'
 			AND t.type != 'TRANSFER'
 			AND t.trip_id IS NOT NULL
-		GROUP BY t.trip_id, source.currency_code
 		ORDER BY source.currency_code, t.trip_id;
 	`);
 
@@ -949,6 +947,20 @@ const deleteTransactionItemRows = async (
 	);
 };
 
+const invalidateTransactionSources = async (
+	database: SQLiteDatabase,
+	id: string,
+): Promise<void> => {
+	await database.runAsync(
+		`UPDATE sources SET validated_at = NULL WHERE id IN (
+			SELECT source_id FROM transactions WHERE id = ?
+			UNION SELECT destination_source_id FROM transactions WHERE id = ?
+		);`,
+		id,
+		id,
+	);
+};
+
 const createTransactionRow = async (
 	database: SQLiteDatabase,
 	transaction: TransactionInput,
@@ -978,6 +990,7 @@ const createTransactionRow = async (
 		now,
 		now,
 	);
+	await invalidateTransactionSources(database, id);
 };
 
 const updateTransactionRow = async (
@@ -986,6 +999,7 @@ const updateTransactionRow = async (
 	id: string,
 	now: number,
 ): Promise<void> => {
+	await invalidateTransactionSources(database, id);
 	await database.runAsync(
 		`
 			UPDATE transactions SET
@@ -1017,6 +1031,7 @@ const updateTransactionRow = async (
 		now,
 		id,
 	);
+	await invalidateTransactionSources(database, id);
 };
 
 const deleteTransactionRow = async (
@@ -1024,6 +1039,7 @@ const deleteTransactionRow = async (
 	id: string,
 ): Promise<void> => {
 	await database.withTransactionAsync(async (): Promise<void> => {
+		await invalidateTransactionSources(database, id);
 		await database.runAsync(
 			"DELETE FROM attachments WHERE owner_type = 'TRANSACTION' AND owner_id = ?;",
 			id,

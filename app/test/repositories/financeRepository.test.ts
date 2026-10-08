@@ -227,15 +227,15 @@ describe("financeRepository", () => {
 		},
 	);
 
-	it("aggregates category credits and debits per currency in SQL", async () => {
+	it("returns exact category allocation strings without SQL numeric aggregation", async () => {
 		const rows = [
 			{
 				categoryId: "rent",
 				categoryName: "Rent",
 				kind: "EXPENSE",
 				currencyCode: "INR",
-				credits: 0,
-				debits: 27000,
+				credits: "0",
+				debits: "27000",
 			},
 		];
 		const getAllAsync = vi.fn().mockResolvedValue(rows);
@@ -243,7 +243,9 @@ describe("financeRepository", () => {
 
 		expect(await getCategoryAnalysisRows(database, 1, 2)).toEqual(rows);
 		expect(getAllAsync).toHaveBeenCalledExactlyOnceWith(
-			expect.stringContaining("GROUP BY category.id"),
+			expect.stringContaining(
+				"THEN allocation.amount ELSE '0' END AS credits",
+			),
 			1,
 			2,
 			1,
@@ -251,6 +253,7 @@ describe("financeRepository", () => {
 		);
 		const sql = getAllAsync.mock.calls[0]?.[0] as string;
 		expect(sql).toContain("UNION ALL");
+		expect(sql).not.toMatch(/SUM\(|CAST\(/);
 		expect(sql).toContain(
 			"t.classification = 'GENERAL' AND t.type = 'DEBIT'",
 		);
@@ -267,14 +270,14 @@ describe("financeRepository", () => {
 		);
 	});
 
-	it("aggregates invested and redeemed totals per investment currency in SQL", async () => {
+	it("returns exact invested and redeemed amount strings", async () => {
 		const rows = [
 			{
 				investmentId: "mf",
 				investmentName: "Fund",
 				currencyCode: "INR",
-				totalInvested: 10000,
-				totalRedeemed: 2500,
+				totalInvested: "10000",
+				totalRedeemed: "2500",
 			},
 		];
 		const getAllAsync = vi.fn().mockResolvedValue(rows);
@@ -283,24 +286,25 @@ describe("financeRepository", () => {
 		expect(await getInvestmentAnalysisRows(database, 3, 4)).toEqual(rows);
 		expect(getAllAsync).toHaveBeenCalledExactlyOnceWith(
 			expect.stringContaining(
-				"GROUP BY investment.id, source.currency_code",
+				"THEN t.amount ELSE '0' END AS totalInvested",
 			),
 			3,
 			4,
 		);
 		const sql = getAllAsync.mock.calls[0]?.[0] as string;
 		expect(sql).toContain("t.classification = 'INVESTMENT'");
+		expect(sql).not.toMatch(/SUM\(|CAST\(/);
 		expect(sql).not.toContain("archived");
 		expect(sql).toContain("t.transaction_at BETWEEN ? AND ?");
 	});
 
-	it("aggregates trip credits and debits per currency in SQL", async () => {
+	it("returns exact trip credit and debit amount strings", async () => {
 		const rows = [
 			{
 				tripId: "goa",
 				currencyCode: "INR",
-				credits: 40,
-				debits: 100,
+				credits: "40",
+				debits: "100",
 			},
 		];
 		const getAllAsync = vi.fn().mockResolvedValue(rows);
@@ -308,11 +312,12 @@ describe("financeRepository", () => {
 
 		expect(await getTripTotalRows(database)).toEqual(rows);
 		expect(getAllAsync).toHaveBeenCalledExactlyOnceWith(
-			expect.stringContaining("GROUP BY t.trip_id, source.currency_code"),
+			expect.stringContaining("THEN t.amount ELSE '0' END AS credits"),
 		);
 		const sql = getAllAsync.mock.calls[0]?.[0] as string;
 		expect(sql).toContain("t.classification = 'GENERAL'");
 		expect(sql).toContain("t.type != 'TRANSFER'");
+		expect(sql).not.toMatch(/SUM\(|CAST\(/);
 		expect(sql).toContain("t.trip_id IS NOT NULL");
 		expect(sql).toContain("ORDER BY source.currency_code, t.trip_id");
 	});

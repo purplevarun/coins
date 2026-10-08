@@ -2,8 +2,8 @@ type InvestmentAnalysisRow = Readonly<{
 	investmentId: string;
 	investmentName: string;
 	currencyCode: string;
-	totalInvested: number;
-	totalRedeemed: number;
+	totalInvested: string;
+	totalRedeemed: string;
 }>;
 
 export type { InvestmentAnalysisRow as default };

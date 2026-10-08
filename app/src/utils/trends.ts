@@ -2,7 +2,13 @@ import type Transaction from "@/types/Transaction";
 import type TrendPoint from "@/types/TrendPoint";
 import moneyUtils from "@/utils/money";
 
-const { addMoney, subtractMoney, ZERO_AMOUNT } = moneyUtils;
+const {
+	addMoney,
+	getConversionRate,
+	multiplyMoney,
+	subtractMoney,
+	ZERO_AMOUNT,
+} = moneyUtils;
 
 const getYear = (timestamp: number): string =>
 	String(new Date(timestamp).getFullYear());
@@ -10,9 +16,17 @@ const getYear = (timestamp: number): string =>
 // Aggregates every transaction into yearly points, independent of any selected analysis period.
 const getTrendSeries = (
 	transactions: readonly Transaction[],
+	rateMap: ReadonlyMap<string, string> = new Map(),
 ): readonly TrendPoint[] => {
 	const yearlyTotals = new Map<string, TrendPoint>();
 	transactions.forEach((transaction) => {
+		const rate = getConversionRate(
+			transaction.sourceCurrencyCode,
+			false,
+			rateMap,
+		);
+		if (rate === null) return;
+		const amount = multiplyMoney(transaction.amount, rate);
 		const year = getYear(transaction.transactionAt);
 		const current = yearlyTotals.get(year) ?? {
 			year,
@@ -23,14 +37,19 @@ const getTrendSeries = (
 		const nextIncome =
 			transaction.classification === "GENERAL" &&
 			transaction.type === "CREDIT" &&
-			transaction.categoryId
-				? addMoney(current.income, transaction.amount)
+			transaction.categoryId &&
+			transaction.categoryKind !== "REFUND"
+				? addMoney(current.income, amount)
 				: current.income;
 		const nextExpenses =
 			transaction.classification === "GENERAL" &&
-			transaction.type === "DEBIT" &&
-			transaction.categoryId
-				? addMoney(current.expenses, transaction.amount)
+			((transaction.type === "DEBIT" &&
+				(transaction.categoryId || transaction.items.length > 0)) ||
+				(transaction.type === "CREDIT" &&
+					transaction.categoryKind === "REFUND"))
+				? transaction.categoryKind === "REFUND"
+					? subtractMoney(current.expenses, amount)
+					: addMoney(current.expenses, amount)
 				: current.expenses;
 		yearlyTotals.set(year, {
 			...current,

@@ -20,11 +20,26 @@ describe("tripTotalService", () => {
 		mocks.getTripTotalRows.mockClear();
 	});
 
-	it("maps aggregated rows into spent-positive totals", () => {
+	it("groups exact rows into spent-positive totals", () => {
 		const totals = tripTotalService.buildTripTotals([
-			{ tripId: "trip1", currencyCode: "INR", credits: 40, debits: 100 },
-			{ tripId: "trip1", currencyCode: "USD", credits: 0, debits: 10 },
-			{ tripId: "tripA", currencyCode: "EUR", credits: 20, debits: 0 },
+			{
+				tripId: "trip1",
+				currencyCode: "INR",
+				credits: "40",
+				debits: "100",
+			},
+			{
+				tripId: "trip1",
+				currencyCode: "USD",
+				credits: "0",
+				debits: "10",
+			},
+			{
+				tripId: "tripA",
+				currencyCode: "EUR",
+				credits: "20",
+				debits: "0",
+			},
 		]);
 
 		expect(totals).toEqual([
@@ -52,13 +67,19 @@ describe("tripTotalService", () => {
 		]);
 	});
 
-	it("cleans float noise from SQL sums", () => {
+	it("sums decimal allocations without floating-point drift", () => {
 		const totals = tripTotalService.buildTripTotals([
 			{
 				tripId: "trip1",
 				currencyCode: "INR",
-				credits: 0.1 + 0.2,
-				debits: 1,
+				credits: "0.1",
+				debits: "1",
+			},
+			{
+				tripId: "trip1",
+				currencyCode: "INR",
+				credits: "0.2",
+				debits: "0",
 			},
 		]);
 
@@ -66,9 +87,9 @@ describe("tripTotalService", () => {
 		expect(totals[0]?.total).toBe("0.7");
 	});
 
-	it("loads aggregated rows from the repository in getTripTotals", async () => {
+	it("loads exact rows from the repository in getTripTotals", async () => {
 		mocks.getTripTotalRows.mockResolvedValueOnce([
-			{ tripId: "trip2", currencyCode: "EUR", credits: 0, debits: 5 },
+			{ tripId: "trip2", currencyCode: "EUR", credits: "0", debits: "5" },
 		]);
 
 		const totals = await tripTotalService.getTripTotals(database);

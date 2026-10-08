@@ -69,6 +69,7 @@ const shiftAnalysisAnchor = (
 	direction: -1 | 1,
 	minDate?: number,
 	maxDate?: number,
+	fyStartMonth = DEFAULT_FY_START_MONTH,
 ): Date => {
 	const shiftedDate = new Date(anchorDate);
 	if (period !== "MONTH" && period !== "YEAR" && period !== "FY") {
@@ -83,41 +84,11 @@ const shiftAnalysisAnchor = (
 		shiftedDate.setFullYear(shiftedDate.getFullYear() + direction);
 	}
 
-	// Clamp: don't go before min or after max
-	if (direction === -1 && minDate !== undefined) {
-		const minAnchor = new Date(minDate);
-		if (
-			period === "MONTH" &&
-			(shiftedDate.getFullYear() < minAnchor.getFullYear() ||
-				(shiftedDate.getFullYear() === minAnchor.getFullYear() &&
-					shiftedDate.getMonth() < minAnchor.getMonth()))
-		) {
-			return anchorDate;
-		}
-		if (
-			(period === "YEAR" || period === "FY") &&
-			shiftedDate.getFullYear() < minAnchor.getFullYear()
-		) {
-			return anchorDate;
-		}
-	}
-	if (direction === 1 && maxDate !== undefined) {
-		const maxAnchor = new Date(maxDate);
-		if (
-			period === "MONTH" &&
-			(shiftedDate.getFullYear() > maxAnchor.getFullYear() ||
-				(shiftedDate.getFullYear() === maxAnchor.getFullYear() &&
-					shiftedDate.getMonth() > maxAnchor.getMonth()))
-		) {
-			return anchorDate;
-		}
-		if (
-			(period === "YEAR" || period === "FY") &&
-			shiftedDate.getFullYear() > maxAnchor.getFullYear()
-		) {
-			return anchorDate;
-		}
-	}
+	const range = getAnalysisDateRange(period, shiftedDate, fyStartMonth);
+	if (direction === -1 && minDate !== undefined && range.end < minDate)
+		return anchorDate;
+	if (direction === 1 && maxDate !== undefined && range.start > maxDate)
+		return anchorDate;
 
 	return shiftedDate;
 };

@@ -40,6 +40,65 @@ describe("trends utils", () => {
 		expect(getTrendSeries([])).toEqual([]);
 	});
 
+	it("converts income and expenses to INR and excludes missing rates", () => {
+		const transactionAt = new Date(2026, 0, 15).getTime();
+		expect(
+			getTrendSeries(
+				[
+					buildTransaction({ transactionAt, amount: "100" }),
+					buildTransaction({
+						transactionAt,
+						amount: "100",
+						sourceCurrencyCode: "USD",
+					}),
+					buildTransaction({
+						transactionAt,
+						amount: "10",
+						type: "DEBIT",
+						sourceCurrencyCode: "USD",
+					}),
+					buildTransaction({
+						transactionAt,
+						amount: "999",
+						sourceCurrencyCode: "EUR",
+					}),
+				],
+				new Map([["USD", "83"]]),
+			),
+		).toEqual([
+			{ year: "2026", income: "8400", expenses: "830", networth: "7570" },
+		]);
+		expect(
+			getTrendSeries([
+				buildTransaction({ transactionAt, sourceCurrencyCode: "EUR" }),
+			]),
+		).toEqual([]);
+	});
+
+	it("counts an itemized expense once without a parent category", () => {
+		const transaction = buildTransaction({
+			id: "split-expense",
+			transactionAt: new Date(2026, 0, 15).getTime(),
+			type: "DEBIT",
+			categoryId: null,
+			categoryName: null,
+			amount: "200",
+			items: ["food", "grocery"].map((categoryId, position) => ({
+				id: `item-${categoryId}`,
+				transactionId: "split-expense",
+				categoryId,
+				categoryName: categoryId,
+				amount: "100",
+				position,
+				createdAt: 1,
+				updatedAt: 1,
+			})),
+		});
+		expect(getTrendSeries([transaction])).toEqual([
+			{ year: "2026", income: "0", expenses: "200", networth: "-200" },
+		]);
+	});
+
 	it("aggregates every transaction into yearly income/expense/networth points", () => {
 		const transactions: readonly Transaction[] = [
 			buildTransaction({
