@@ -1,3 +1,4 @@
+import dateConstants from "@/constants/dateConstants";
 import type HeaderIconButtonProps from "@/types/HeaderIconButtonProps";
 import type HeaderOptions from "@test/types/HeaderOptions";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -697,6 +698,12 @@ describe("AnalysisScreen", () => {
 			true,
 		);
 		expect(getDateRangeLabel({ start: 1, end: 2 })).toBe("date:1 – date:2");
+		expect(
+			getDateRangeLabel({
+				start: dateConstants.ALL_TIME_START,
+				end: dateConstants.ALL_TIME_END,
+			}),
+		).toBe("");
 		expect(getMissingRatesMessage(["USD", "EUR"])).toBe(
 			"Update INR exchange rates for USD, EUR before analysis can include those transactions.",
 		);

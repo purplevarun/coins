@@ -67,7 +67,7 @@ const {
 	ZERO_AMOUNT,
 } = moneyUtils;
 
-const { DEFAULT_FY_START_MONTH } = dateConstants;
+const { ALL_TIME_END, ALL_TIME_START, DEFAULT_FY_START_MONTH } = dateConstants;
 const { ANALYSIS_PERIOD_OPTIONS, DEFAULT_ANALYSIS_PERIOD } = financeConstants;
 
 const CHART_COLORS = [
@@ -159,7 +159,9 @@ const isShiftNavigationDisabled = (
 };
 
 const getDateRangeLabel = (dateRange: DateRange): string =>
-	`${formatDate(dateRange.start)} – ${formatDate(dateRange.end)}`;
+	dateRange.start === ALL_TIME_START && dateRange.end === ALL_TIME_END
+		? ""
+		: `${formatDate(dateRange.start)} – ${formatDate(dateRange.end)}`;
 
 const getMissingRatesMessage = (missingCurrencies: readonly string[]): string =>
 	`Update INR exchange rates for ${missingCurrencies.join(", ")} before analysis can include those transactions.`;
