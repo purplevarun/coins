@@ -2562,6 +2562,7 @@ describe("list screens", () => {
 			if (call === 2 || call === 3) {
 				return [
 					{
+						missingCurrencies: call === 2 ? ["USD"] : [],
 						categories: [
 							{
 								categoryId: "c1",
@@ -2722,6 +2723,7 @@ describe("list screens", () => {
 			if (call === 2) {
 				return [
 					{
+						missingCurrencies: [],
 						categories: [
 							{
 								categoryId: "c3",
