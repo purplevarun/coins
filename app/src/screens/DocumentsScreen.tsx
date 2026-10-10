@@ -179,11 +179,11 @@ const DocumentsScreen = (): React.JSX.Element => {
 		[handleDelete, handleSend, handleView],
 	);
 
-	const listHeader = error ? (
+	const listHeader = (
 		<ListHeader>
-			<Notice message={error} tone="danger" />
+			{error ? <Notice message={error} tone="danger" /> : null}
 		</ListHeader>
-	) : undefined;
+	);
 
 	const listEmpty = useMemo(
 		() => (
