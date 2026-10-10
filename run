@@ -397,6 +397,137 @@ run_avd_restore_test() {
   echo "AVD .purplecoins restore passed."
 }
 
+assert_ui_label() {
+  LABEL="$1"
+  ATTEMPT=0
+  while [ "$ATTEMPT" -lt 20 ]; do
+    if [ -n "$(get_ui_label_center "$LABEL" || true)" ]; then
+      return 0
+    fi
+    ATTEMPT=$((ATTEMPT + 1))
+  done
+  echo "Expected UI label not found: $LABEL"
+  exit 1
+}
+
+visit_ui_label() {
+  LABEL="$1"
+  if ! tap_ui_label "$LABEL" 20; then
+    echo "Could not open UI label: $LABEL"
+    exit 1
+  fi
+  assert_ui_label "$LABEL"
+}
+
+assert_ui_label_absent() {
+  LABEL="$1"
+  if [ -n "$(get_ui_label_center "$LABEL" || true)" ]; then
+    echo "Unexpected empty-state label: $LABEL"
+    exit 1
+  fi
+}
+
+run_avd_backup_test() {
+  require_cmd adb
+  validate_state
+
+  BACKUP_NAME="${2:-}"
+  if [ -z "$BACKUP_NAME" ] || [ "$(basename "$BACKUP_NAME")" != "$BACKUP_NAME" ]; then
+    echo "Usage: ./run avd-backup-test <backup filename from Downloads>"
+    exit 1
+  fi
+
+  if ! adb devices | grep -q "device$"; then
+    echo "No AVD/device running. Start one and rerun."
+    exit 1
+  fi
+
+  BACKUP_PATH="/sdcard/Download/$BACKUP_NAME"
+  if ! adb shell test -f "$BACKUP_PATH"; then
+    echo "Backup not found in AVD Downloads: $BACKUP_NAME"
+    exit 1
+  fi
+
+  APP_ID=$(get_app_id)
+  echo "Installing a clean app instance for no-data checks..."
+  run_install
+  adb shell monkey -p "$APP_ID" -c android.intent.category.LAUNCHER 1 >/dev/null
+
+  for TILE_STATE in \
+    "Transactions|No transactions found" \
+    "Sources|No sources yet" \
+    "Categories|No categories yet" \
+    "Trips|No trips yet" \
+    "Investments|No investments yet" \
+    "Analysis|Nothing to analyse"; do
+    TILE="${TILE_STATE%%|*}"
+    EMPTY_STATE="${TILE_STATE#*|}"
+    visit_ui_label "$TILE"
+    assert_ui_label "$EMPTY_STATE"
+    adb shell input keyevent 4
+  done
+
+  visit_ui_label "Tools"
+  for TILE_STATE in \
+    "Notes|No notes found" \
+    "Todos|No todos yet" \
+    "Documents|No documents yet" \
+    "Passwords|Nothing here yet" \
+    "Cards|Nothing here yet" \
+    "Identity|Nothing here yet"; do
+    TILE="${TILE_STATE%%|*}"
+    EMPTY_STATE="${TILE_STATE#*|}"
+    visit_ui_label "$TILE"
+    assert_ui_label "$EMPTY_STATE"
+    adb shell input keyevent 4
+  done
+
+  visit_ui_label "Health"
+  assert_ui_label "Coming soon"
+
+  visit_ui_label "Finance"
+  if ! tap_ui_label "Settings" 1; then
+    SIZE=$(adb shell wm size | sed -n 's/.*Physical size: \([0-9][0-9]*\)x\([0-9][0-9]*\).*/\1 \2/p')
+    set -- $SIZE
+    adb shell input tap $(($1 * 91 / 100)) $(($2 * 7 / 100))
+  fi
+  assert_ui_label "Settings & backup"
+  if ! scroll_to_ui_label "Restore .pc"; then
+    echo "Could not find Restore .pc in Settings."
+    exit 1
+  fi
+  assert_ui_label "$BACKUP_NAME"
+  echo "Restoring Downloads/$BACKUP_NAME without modifying the backup file..."
+  if ! tap_ui_label "$BACKUP_NAME" 20; then
+    echo "Could not select $BACKUP_NAME in the Android file picker."
+    exit 1
+  fi
+  assert_ui_label "Backup restored successfully."
+
+  adb shell am force-stop "$APP_ID"
+  adb shell monkey -p "$APP_ID" -c android.intent.category.LAUNCHER 1 >/dev/null
+  visit_ui_label "Transactions"
+  assert_ui_label_absent "No transactions found"
+  adb shell input keyevent 4
+  visit_ui_label "Sources"
+  assert_ui_label_absent "No sources yet"
+  adb shell input keyevent 4
+  visit_ui_label "Categories"
+  assert_ui_label_absent "No categories yet"
+  adb shell input keyevent 4
+  visit_ui_label "Trips"
+  assert_ui_label_absent "No trips yet"
+  adb shell input keyevent 4
+  visit_ui_label "Investments"
+  assert_ui_label_absent "No investments yet"
+  adb shell input keyevent 4
+  visit_ui_label "Tools"
+  visit_ui_label "Documents"
+  assert_ui_label_absent "No documents yet"
+
+  echo "No-data screens passed; Downloads/$BACKUP_NAME restored and populated screens passed."
+}
+
 run_avd() {
   require_cmd adb
   require_cmd emulator
@@ -488,6 +619,7 @@ Commands:
   avd-backups  List .pc and .purplecoins files in AVD Downloads
   avd-ui  Print visible AVD UI labels and bounds
   avd-restore-test  Restore and verify a .purplecoins fixture on the AVD
+  avd-backup-test <filename> Run empty-state checks, then restore a Downloads backup
   release  Create tag v{version} and publish GitHub release v{version} with existing APK
 HELP
 }
@@ -530,6 +662,10 @@ case "${1:-}" in
   avd-restore-test)
     cd "$ROOT_DIR/app"
     run_avd_restore_test
+    ;;
+  avd-backup-test)
+    cd "$ROOT_DIR/app"
+    run_avd_backup_test "$@"
     ;;
   release)
     cd "$ROOT_DIR/app"
