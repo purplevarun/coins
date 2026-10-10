@@ -4,6 +4,7 @@ import GlassCard from "@/components/GlassCard";
 import PagedScreenList from "@/components/PagedScreenList";
 import COLORS from "@/constants/colors";
 import financeConstants from "@/constants/financeConstants";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import analysisService from "@/services/analysisService";
@@ -76,12 +77,12 @@ const resolveDetailsView = (
 			items: [],
 			emptyMessage:
 				mode === "CATEGORIES"
-					? "No categories in this period."
-					: "No investment activity in this period.",
+					? MESSAGES.ANALYSIS_DETAILS.CATEGORIES_EMPTY_MESSAGE
+					: MESSAGES.ANALYSIS_DETAILS.INVESTMENTS_EMPTY_MESSAGE,
 			emptyTitle:
 				mode === "CATEGORIES"
-					? "Nothing to analyse"
-					: "No investment activity",
+					? MESSAGES.ANALYSIS.EMPTY_TITLE
+					: MESSAGES.ANALYSIS_DETAILS.INVESTMENTS_EMPTY_TITLE,
 			errorMessage: "",
 		};
 	}

@@ -10,6 +10,7 @@ import ScreenContainer from "@/components/ScreenContainer";
 import TextField from "@/components/TextField";
 import appConstants from "@/constants/appConstants";
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import sourceService from "@/services/sourceService";
@@ -73,29 +74,33 @@ const SourceFormScreen = ({
 			<GlassCard>
 				<View style={styles.form}>
 					<CustomText style={styles.heading}>
-						{entityId ? "Edit source" : "New source"}
+						{entityId
+							? MESSAGES.RELATION_FORMS.EDIT_SOURCE
+							: MESSAGES.RELATION_FORMS.NEW_SOURCE}
 					</CustomText>
 					<TextField
-						label="Name"
+						label={MESSAGES.COMPONENTS.NAME}
 						onChangeText={setName}
-						placeholder="Source name"
+						placeholder={MESSAGES.RELATION_FORMS.SOURCE_NAME}
 						value={name}
 					/>
 					<TextField
 						autoCapitalize="characters"
 						isEditable={!entityId}
-						label="Currency"
+						label={MESSAGES.COMPONENTS.CURRENCY}
 						onChangeText={setCurrencyCode}
-						placeholder="INR"
+						placeholder={appConstants.DEFAULT_CURRENCY_CODE}
 						value={currencyCode}
 					/>
 					{entityId ? (
-						<Notice message="Currency is fixed after a source is created. Only the source name can be edited." />
+						<Notice
+							message={MESSAGES.RELATION_FORMS.CURRENCY_LOCKED}
+						/>
 					) : null}
 					{error ? <Notice message={error} tone="danger" /> : null}
 					<AppButton
 						isLoading={isSaving}
-						label="Save"
+						label={MESSAGES.COMMON.SAVE}
 						onPress={() => void handleSave()}
 					/>
 				</View>

@@ -4,6 +4,7 @@ import { Image, Modal, StyleSheet, View } from "react-native";
 import Pdf from "react-native-pdf";
 
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import type AttachmentViewerProps from "@/types/AttachmentViewerProps";
 import { getAttachmentPreviewKind } from "@/utils/attachment";
@@ -49,7 +50,7 @@ const AttachmentViewer = ({
 						{fileName}
 					</CustomText>
 					<HeaderIconButton
-						accessibilityLabel="Close preview"
+						accessibilityLabel={MESSAGES.COMPONENTS.CLOSE_PREVIEW}
 						icon="close"
 						onPress={onClose}
 					/>

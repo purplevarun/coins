@@ -13,6 +13,7 @@ import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
 import appConstants from "@/constants/appConstants";
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
@@ -103,9 +104,9 @@ const BudgetsScreen = ({
 	const handleDelete = useCallback(
 		(budget: Budget): void => {
 			dialog.confirm({
-				title: "Delete budget?",
+				title: MESSAGES.BUDGETS.DELETE_TITLE,
 				message: budget.categoryName,
-				confirmLabel: "Delete",
+				confirmLabel: MESSAGES.COMMON.DELETE,
 				variant: "danger",
 				onConfirm: () => {
 					const processDelete = async (): Promise<void> => {
@@ -114,7 +115,7 @@ const BudgetsScreen = ({
 							refreshData();
 						} catch (caughtError: unknown) {
 							dialog.showMessage({
-								title: "Unable to delete",
+								title: MESSAGES.COMMON.UNABLE_TO_DELETE,
 								message: getErrorMessage(caughtError),
 								variant: "danger",
 							});
@@ -143,8 +144,8 @@ const BudgetsScreen = ({
 							</CustomText>
 							<CustomText style={styles.period}>
 								{budget.period === "MONTHLY"
-									? "Calendar month"
-									: "Calendar year"}
+									? MESSAGES.BUDGETS.CALENDAR_MONTH
+									: MESSAGES.BUDGETS.CALENDAR_YEAR}
 							</CustomText>
 						</View>
 						<CustomText
@@ -177,7 +178,7 @@ const BudgetsScreen = ({
 						<AppButton
 							icon="create-outline"
 							isCompact
-							label="Edit"
+							label={MESSAGES.COMMON.EDIT}
 							onPress={() =>
 								navigation.navigate("BudgetForm", {
 									budgetId: budget.id,
@@ -188,7 +189,7 @@ const BudgetsScreen = ({
 						<AppButton
 							icon="trash-outline"
 							isCompact
-							label="Delete"
+							label={MESSAGES.COMMON.DELETE}
 							onPress={() => handleDelete(budget)}
 							variant="danger"
 						/>
@@ -202,11 +203,11 @@ const BudgetsScreen = ({
 	const listHeader = useMemo(
 		() => (
 			<ListHeader>
-				<Notice message="Budgets use INR and reset on calendar month or calendar year boundaries." />
+				<Notice message={MESSAGES.BUDGETS.RESET_NOTICE} />
 				{monthlyAnalysis?.missingCurrencies.length ||
 				yearlyAnalysis?.missingCurrencies.length ? (
 					<Notice
-						message="Some foreign-currency spending is excluded until INR exchange rates are set."
+						message={MESSAGES.BUDGETS.MISSING_RATES}
 						tone="warning"
 					/>
 				) : null}
@@ -220,8 +221,8 @@ const BudgetsScreen = ({
 		() => (
 			<EmptyState
 				icon="speedometer-outline"
-				message="Set a monthly or yearly target for an expense category."
-				title="No budgets yet"
+				message={MESSAGES.BUDGETS.EMPTY_MESSAGE}
+				title={MESSAGES.BUDGETS.EMPTY_TITLE}
 			/>
 		),
 		[],

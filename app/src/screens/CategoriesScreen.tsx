@@ -22,9 +22,11 @@ import Notice from "@/components/Notice";
 import PagedScreenList from "@/components/PagedScreenList";
 import SearchBar from "@/components/SearchBar";
 import SegmentedControl from "@/components/SegmentedControl";
+import appConstants from "@/constants/appConstants";
 import COLORS from "@/constants/colors";
 import dateConstants from "@/constants/dateConstants";
 import financeConstants from "@/constants/financeConstants";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
@@ -45,6 +47,8 @@ const { getCategories, setCategoryArchived } = categoryService;
 const { getExchangeRates } = exchangeRateService;
 const { getNativeCurrencyDisplay } = settingsService;
 const { compareMoney, formatMoney, ZERO_AMOUNT } = moneyUtils;
+
+const { DEFAULT_CURRENCY_CODE } = appConstants;
 
 const { ALL_TIME_END, ALL_TIME_START } = dateConstants;
 const { CATEGORY_KIND_LABELS, CATEGORY_KIND_OPTIONS, DEFAULT_CATEGORY_KIND } =
@@ -121,7 +125,9 @@ const CategoriesScreen = ({
 				<View style={styles.headerActions}>
 					<HeaderIconButton
 						accessibilityLabel={
-							searchVisible ? "Close search" : "Search"
+							searchVisible
+								? MESSAGES.COMMON.CLOSE_SEARCH
+								: MESSAGES.COMMON.SEARCH
 						}
 						icon={
 							searchVisible ? "close-outline" : "search-outline"
@@ -134,7 +140,7 @@ const CategoriesScreen = ({
 						}}
 					/>
 					<HeaderIconButton
-						accessibilityLabel="Budgets"
+						accessibilityLabel={MESSAGES.BUDGETS.TITLE}
 						icon="speedometer-outline"
 						onPress={() => navigation.navigate("Budgets")}
 					/>
@@ -151,7 +157,7 @@ const CategoriesScreen = ({
 				await getScreenData();
 			} catch (caughtError: unknown) {
 				dialog.showMessage({
-					title: "Unable to archive",
+					title: MESSAGES.COMMON.UNABLE_TO_ARCHIVE,
 					message: getErrorMessage(caughtError),
 					variant: "danger",
 				});
@@ -164,9 +170,8 @@ const CategoriesScreen = ({
 		(id: string, name: string): void => {
 			dialog.confirm({
 				title: `Archive "${name}"?`,
-				message:
-					"It will be hidden from lists and dropdowns everywhere. You can restore it anytime from Settings \u2192 Archived relations.",
-				confirmLabel: "Archive",
+				message: MESSAGES.COMMON.ARCHIVE_CONFIRM,
+				confirmLabel: MESSAGES.COMMON.ARCHIVE,
 				variant: "danger",
 				onConfirm: () => void handleArchive(id),
 			});
@@ -267,9 +272,10 @@ const CategoriesScreen = ({
 									<CustomText style={styles.amount}>
 										{`${
 											category.kind === "REFUND"
-												? "Refund net "
+												? MESSAGES.CATEGORIES
+														.REFUND_NET_PREFIX
 												: ""
-										}${formatMoney(ZERO_AMOUNT, "INR")}`}
+										}${formatMoney(ZERO_AMOUNT, DEFAULT_CURRENCY_CODE)}`}
 									</CustomText>
 								) : (
 									totals.map((total) => (
@@ -290,7 +296,8 @@ const CategoriesScreen = ({
 										>
 											{`${
 												category.kind === "REFUND"
-													? "Refund net "
+													? MESSAGES.CATEGORIES
+															.REFUND_NET_PREFIX
 													: ""
 											}${
 												!isNativeCurrency ? "≈ " : ""
@@ -305,7 +312,7 @@ const CategoriesScreen = ({
 						</View>
 						<View style={styles.actions}>
 							<Pressable
-								accessibilityLabel="Archive"
+								accessibilityLabel={MESSAGES.COMMON.ARCHIVE}
 								accessibilityRole="button"
 								hitSlop={8}
 								onPress={() =>
@@ -346,7 +353,7 @@ const CategoriesScreen = ({
 				{searchVisible ? (
 					<SearchBar
 						onChangeText={setSearchQuery}
-						placeholder="Search categories..."
+						placeholder={MESSAGES.CATEGORIES.SEARCH_PLACEHOLDER}
 						value={searchQuery}
 					/>
 				) : null}
@@ -369,11 +376,13 @@ const CategoriesScreen = ({
 				icon={isFiltered ? "search-outline" : "add-circle-outline"}
 				message={
 					isFiltered
-						? "No results match your search."
-						: "Add your first category to get started."
+						? MESSAGES.COMMON.NO_SEARCH_RESULTS
+						: MESSAGES.CATEGORIES.EMPTY_MESSAGE
 				}
 				title={
-					isFiltered ? "No matching categories" : "No categories yet"
+					isFiltered
+						? MESSAGES.CATEGORIES.NO_MATCHES_TITLE
+						: MESSAGES.CATEGORIES.EMPTY_TITLE
 				}
 			/>
 		);

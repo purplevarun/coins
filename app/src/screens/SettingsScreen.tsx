@@ -12,6 +12,7 @@ import ScreenContainer from "@/components/ScreenContainer";
 import SelectField from "@/components/SelectField";
 import COLORS from "@/constants/colors";
 import dateConstants from "@/constants/dateConstants";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
@@ -130,7 +131,7 @@ const SettingsScreen = ({
 		setMessage("");
 		try {
 			await exportBackup(database);
-			setMessage("Backup prepared successfully.");
+			setMessage(MESSAGES.SETTINGS.BACKUP_PREPARED);
 		} catch (caughtError: unknown) {
 			setError(getErrorMessage(caughtError));
 		} finally {
@@ -147,7 +148,7 @@ const SettingsScreen = ({
 			const wasRestored = await restoreBackup(database);
 			if (wasRestored) {
 				refreshData();
-				setMessage("Backup restored successfully.");
+				setMessage(MESSAGES.SETTINGS.BACKUP_RESTORED);
 			}
 		} catch (caughtError: unknown) {
 			setError(getErrorMessage(caughtError));
@@ -172,12 +173,14 @@ const SettingsScreen = ({
 			const isDownloaded = isUpdateDownloaded(release);
 			dialog.confirm({
 				title: isDownloaded
-					? "Update ready to install"
-					: "Update available",
+					? MESSAGES.SETTINGS.UPDATE_READY
+					: MESSAGES.SETTINGS.UPDATE_AVAILABLE,
 				message: isDownloaded
 					? `Version ${release.version} is already downloaded and ready to install.`
 					: `Version ${release.version} is ready to download and install.`,
-				confirmLabel: isDownloaded ? "Install" : "Update",
+				confirmLabel: isDownloaded
+					? MESSAGES.COMMON.INSTALL
+					: MESSAGES.COMMON.UPDATE,
 				onConfirm: () => {
 					const processUpdate = async (): Promise<void> => {
 						setNoticeScope("update");
@@ -186,9 +189,7 @@ const SettingsScreen = ({
 						setIsUpdating(true);
 						try {
 							await downloadAndInstallUpdate(release);
-							setMessage(
-								"The Android installer has been opened.",
-							);
+							setMessage(MESSAGES.SETTINGS.INSTALLER_OPENED);
 						} catch (caughtError: unknown) {
 							setError(getErrorMessage(caughtError));
 						} finally {
@@ -206,12 +207,12 @@ const SettingsScreen = ({
 	};
 
 	const tripOptions: readonly SelectOption[] = [
-		{ label: "None", value: "" },
+		{ label: MESSAGES.SETTINGS.NONE, value: "" },
 		...trips.map((t) => ({ label: t.name, value: t.id })),
 	];
 
 	const sourceOptions: readonly SelectOption[] = [
-		{ label: "None", value: "" },
+		{ label: MESSAGES.SETTINGS.NONE, value: "" },
 		...sources.map((source) => ({
 			label: source.name,
 			value: source.id,
@@ -242,14 +243,16 @@ const SettingsScreen = ({
 			<GlassCard>
 				<View style={styles.section}>
 					{renderNotice("update")}
-					<CustomText style={styles.heading}>App update</CustomText>
+					<CustomText style={styles.heading}>
+						{MESSAGES.SETTINGS.APP_UPDATE}
+					</CustomText>
 					<CustomText style={styles.description}>
 						Get the latest APK from GitHub.
 					</CustomText>
 					<AppButton
 						icon="cloud-download-outline"
 						isLoading={isUpdating}
-						label="Check for update"
+						label={MESSAGES.SETTINGS.CHECK_FOR_UPDATE}
 						onPress={() => void handleCheckForUpdate()}
 					/>
 				</View>
@@ -285,7 +288,7 @@ const SettingsScreen = ({
 						Configuration
 					</CustomText>
 					<SelectField
-						label="Financial year start month"
+						label={MESSAGES.SETTINGS.FY_START_MONTH}
 						onChange={(value) =>
 							void handleFyStartMonthChange(value)
 						}
@@ -300,22 +303,22 @@ const SettingsScreen = ({
 					</CustomText>
 					<SelectField
 						isOptional
-						label="Default source"
+						label={MESSAGES.SETTINGS.DEFAULT_SOURCE}
 						onChange={(value) =>
 							void handleDefaultSourceChange(value)
 						}
 						options={sourceOptions}
-						placeholder="No default source"
+						placeholder={MESSAGES.SETTINGS.NO_DEFAULT_SOURCE}
 						value={defaultSourceId}
 					/>
 					<SelectField
 						isOptional
-						label="Default trip"
+						label={MESSAGES.SETTINGS.DEFAULT_TRIP}
 						onChange={(value) =>
 							void handleDefaultTripChange(value)
 						}
 						options={tripOptions}
-						placeholder="No default trip"
+						placeholder={MESSAGES.SETTINGS.NO_DEFAULT_TRIP}
 						value={defaultTripId}
 					/>
 					<CustomText style={styles.switchDescription}>
@@ -326,14 +329,16 @@ const SettingsScreen = ({
 			</GlassCard>
 			<GlassCard>
 				<View style={styles.section}>
-					<CustomText style={styles.heading}>Relations</CustomText>
+					<CustomText style={styles.heading}>
+						{MESSAGES.SETTINGS.RELATIONS}
+					</CustomText>
 					<CustomText style={styles.description}>
 						Sources, categories, trips and investments that have
 						been archived can be found and restored here.
 					</CustomText>
 					<AppButton
 						icon="archive-outline"
-						label="Archived relations"
+						label={MESSAGES.SETTINGS.ARCHIVED_RELATIONS}
 						onPress={() => navigation.navigate("ArchivedRelations")}
 						variant="secondary"
 					/>
@@ -353,13 +358,13 @@ const SettingsScreen = ({
 					<AppButton
 						icon="share-outline"
 						isLoading={isWorking}
-						label="Export .pc"
+						label={MESSAGES.SETTINGS.EXPORT}
 						onPress={() => void handleExport()}
 					/>
 					<AppButton
 						icon="download-outline"
 						isDisabled={isWorking}
-						label="Restore .pc"
+						label={MESSAGES.SETTINGS.RESTORE}
 						onPress={() => void handleRestore()}
 						variant="secondary"
 					/>

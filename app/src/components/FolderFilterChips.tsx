@@ -8,6 +8,7 @@ import AppButton from "@/components/AppButton";
 import CustomTextInput from "@/components/CustomTextInput";
 import COLORS from "@/constants/colors";
 import folderConstants from "@/constants/folderConstants";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import type Folder from "@/types/Folder";
 import type FolderFilterChipsProps from "@/types/FolderFilterChipsProps";
@@ -26,7 +27,7 @@ const FolderFilterChips = ({
 
 	const staticChips = [
 		{ id: FOLDER_FILTER_ALL, name: "All" },
-		{ id: FOLDER_FILTER_NONE, name: "No folder" },
+		{ id: FOLDER_FILTER_NONE, name: MESSAGES.COMPONENTS.NO_FOLDER },
 	] as const;
 
 	const handleLongPress = (folder: Folder): void => {
@@ -178,20 +179,22 @@ const FolderFilterChips = ({
 								<CustomTextInput
 									autoFocus
 									onChangeText={setRenameName}
-									placeholder="Folder name"
+									placeholder={
+										MESSAGES.COMPONENTS.FOLDER_NAME
+									}
 									style={styles.renameInput}
 									value={renameName}
 								/>
 								<View style={styles.renameActions}>
 									<AppButton
 										isCompact
-										label="Cancel"
+										label={MESSAGES.COMMON.CANCEL}
 										onPress={handleClose}
 										variant="secondary"
 									/>
 									<AppButton
 										isCompact
-										label="Save"
+										label={MESSAGES.COMMON.SAVE}
 										onPress={handleRenameConfirm}
 									/>
 								</View>

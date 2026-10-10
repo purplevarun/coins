@@ -14,6 +14,7 @@ import ListHeader from "@/components/ListHeader";
 import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
@@ -106,8 +107,8 @@ const DocumentsScreen = (): React.JSX.Element => {
 		(document: AttachmentMetadata): void => {
 			dialog.confirm({
 				title: `Delete "${document.fileName}"?`,
-				message: "This removes the file from its linked record.",
-				confirmLabel: "Delete",
+				message: MESSAGES.DOCUMENTS.DELETE_MESSAGE,
+				confirmLabel: MESSAGES.COMMON.DELETE,
 				variant: "danger",
 				onConfirm: () => {
 					const processDelete = async (): Promise<void> => {
@@ -154,21 +155,21 @@ const DocumentsScreen = (): React.JSX.Element => {
 					<AppButton
 						icon="eye-outline"
 						isCompact
-						label="View"
+						label={MESSAGES.COMMON.VIEW}
 						onPress={() => void handleView(item)}
 						variant="secondary"
 					/>
 					<AppButton
 						icon="share-outline"
 						isCompact
-						label="Send"
+						label={MESSAGES.COMMON.SEND}
 						onPress={() => void handleSend(item)}
 						variant="secondary"
 					/>
 					<AppButton
 						icon="trash-outline"
 						isCompact
-						label="Delete"
+						label={MESSAGES.COMMON.DELETE}
 						onPress={() => handleDelete(item)}
 						variant="danger"
 					/>
@@ -188,8 +189,8 @@ const DocumentsScreen = (): React.JSX.Element => {
 		() => (
 			<EmptyState
 				icon="documents-outline"
-				message="Attach a file or add one anywhere in the app."
-				title="No documents yet"
+				message={MESSAGES.DOCUMENTS.EMPTY_MESSAGE}
+				title={MESSAGES.DOCUMENTS.EMPTY_TITLE}
 			/>
 		),
 		[],

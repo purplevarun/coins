@@ -14,6 +14,7 @@ import TextField from "@/components/TextField";
 import appConstants from "@/constants/appConstants";
 import COLORS from "@/constants/colors";
 import financeConstants from "@/constants/financeConstants";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import attachmentService from "@/services/attachmentService";
@@ -178,15 +179,15 @@ const GlobalSearchScreen = ({
 					id: trip.id,
 					kind: "TRIP",
 					title: trip.name,
-					subtitle: "Trip",
+					subtitle: MESSAGES.GLOBAL_SEARCH.TRIP,
 					icon: "airplane-outline",
-					color: "#68D5FF",
+					color: COLORS.cyan,
 				})),
 				...investments.map((investment): GlobalSearchResult => ({
 					id: investment.id,
 					kind: "INVESTMENT",
 					title: investment.name,
-					subtitle: "Investment",
+					subtitle: MESSAGES.GLOBAL_SEARCH.INVESTMENT,
 					icon: "trending-up",
 					color: COLORS.success,
 				})),
@@ -195,13 +196,15 @@ const GlobalSearchScreen = ({
 					kind: "BUDGET",
 					title: budget.categoryName,
 					subtitle: `${
-						budget.period === "MONTHLY" ? "Monthly" : "Yearly"
+						budget.period === "MONTHLY"
+							? MESSAGES.BUDGETS.MONTHLY
+							: MESSAGES.BUDGETS.YEARLY
 					} budget · ${formatMoney(
 						budget.amount,
 						DEFAULT_CURRENCY_CODE,
 					)}`,
 					icon: "speedometer-outline",
-					color: "#FF8FA3",
+					color: COLORS.pink,
 					searchExtra: `${budget.period} ${budget.amount}`,
 				})),
 			]);
@@ -280,9 +283,9 @@ const GlobalSearchScreen = ({
 			<ListHeader>
 				<TextField
 					autoCapitalize="none"
-					label="Search"
+					label={MESSAGES.COMMON.SEARCH}
 					onChangeText={setSearch}
-					placeholder="Search all records"
+					placeholder={MESSAGES.GLOBAL_SEARCH.SEARCH_PLACEHOLDER}
 					value={search}
 				/>
 				{error ? <Notice message={error} tone="danger" /> : null}
@@ -297,10 +300,10 @@ const GlobalSearchScreen = ({
 				icon="search-outline"
 				message={
 					normalizedSearch.length < MINIMUM_SEARCH_LENGTH
-						? "Type at least two characters."
-						: "No matching records found."
+						? MESSAGES.GLOBAL_SEARCH.EMPTY_MESSAGE
+						: MESSAGES.GLOBAL_SEARCH.NO_MATCHES
 				}
-				title="Search"
+				title={MESSAGES.COMMON.SEARCH}
 			/>
 		),
 		[normalizedSearch.length],
@@ -331,7 +334,8 @@ const GlobalSearchScreen = ({
 							</CustomText>
 							<CustomText style={styles.subtitle}>
 								{getKindLabel(result.kind)} ·{" "}
-								{result.subtitle || "No details"}
+								{result.subtitle ||
+									MESSAGES.GLOBAL_SEARCH.NO_DETAILS}
 							</CustomText>
 						</View>
 					</View>

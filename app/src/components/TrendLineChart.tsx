@@ -1,5 +1,6 @@
 import CustomText from "@/components/CustomText";
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import type ChartBounds from "@/types/ChartBounds";
 import type TrendLineChartProps from "@/types/TrendLineChartProps";
@@ -23,9 +24,21 @@ const AXIS_TICKS = [
 ] as const;
 
 const TREND_SERIES_CONFIG: readonly TrendSeriesConfig[] = [
-	{ key: "income", label: "Income", color: COLORS.success },
-	{ key: "expenses", label: "Expenses", color: COLORS.danger },
-	{ key: "networth", label: "Net worth", color: COLORS.primaryBright },
+	{
+		key: "income",
+		label: MESSAGES.FINANCIAL_METRICS.INCOME,
+		color: COLORS.success,
+	},
+	{
+		key: "expenses",
+		label: MESSAGES.FINANCIAL_METRICS.EXPENSES,
+		color: COLORS.danger,
+	},
+	{
+		key: "networth",
+		label: MESSAGES.COMPONENTS.NET_WORTH,
+		color: COLORS.primaryBright,
+	},
 ];
 
 const formatAxisValue = (value: number): string => {

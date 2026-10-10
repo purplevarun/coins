@@ -7,6 +7,7 @@ import ListHeader from "@/components/ListHeader";
 import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
@@ -41,10 +42,10 @@ const RelationDetailsScreen = ({
 	const [error, setError] = useState("");
 	const isTripType = kind === "TRIP_TYPE";
 	const label = isTripType
-		? "Trip type"
+		? MESSAGES.RELATION_DETAILS.TRIP_TYPE
 		: kind === "PLATFORM"
-			? "Investment platform"
-			: "Investment type";
+			? MESSAGES.RELATION_DETAILS.INVESTMENT_PLATFORM
+			: MESSAGES.RELATION_DETAILS.INVESTMENT_TYPE;
 
 	useFocusEffect(
 		useCallback(() => {
@@ -90,7 +91,7 @@ const RelationDetailsScreen = ({
 			navigation.goBack();
 		} catch (caughtError: unknown) {
 			dialog.showMessage({
-				title: "Unable to delete",
+				title: MESSAGES.COMMON.UNABLE_TO_DELETE,
 				message: getErrorMessage(caughtError),
 				variant: "danger",
 			});
@@ -101,13 +102,13 @@ const RelationDetailsScreen = ({
 		navigation.setOptions({
 			headerRight: () => (
 				<HeaderIconButton
-					accessibilityLabel="Delete"
+					accessibilityLabel={MESSAGES.COMMON.DELETE}
 					icon="trash-outline"
 					onPress={() =>
 						dialog.confirm({
 							title: `Delete "${entityName}"?`,
 							message: `This ${label.toLowerCase()} will be permanently deleted. Linked records must be reassigned first.`,
-							confirmLabel: "Delete",
+							confirmLabel: MESSAGES.COMMON.DELETE,
 							variant: "danger",
 							onConfirm: () => void handleDelete(),
 						})
@@ -141,13 +142,15 @@ const RelationDetailsScreen = ({
 							}
 							title={
 								isTripType
-									? "No trips yet"
-									: "No investments yet"
+									? MESSAGES.RELATION_DETAILS.NO_TRIPS_TITLE
+									: MESSAGES.RELATION_DETAILS
+											.NO_INVESTMENTS_TITLE
 							}
 							message={
 								isTripType
-									? "No trips linked to this type."
-									: "No investments linked here."
+									? MESSAGES.RELATION_DETAILS.NO_TRIPS_LINKED
+									: MESSAGES.RELATION_DETAILS
+											.NO_INVESTMENTS_LINKED
 							}
 						/>
 					)

@@ -15,6 +15,7 @@ import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
 import TransactionCard from "@/components/TransactionCard";
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
@@ -57,7 +58,7 @@ const getRelationColor = (kind: RelationKind): string => {
 		return COLORS.warning;
 	}
 	if (kind === "TRIP") {
-		return "#68D5FF";
+		return COLORS.cyan;
 	}
 	return COLORS.success;
 };
@@ -127,7 +128,7 @@ const LinkedTransactionsScreen = ({
 			navigation.goBack();
 		} catch (caughtError: unknown) {
 			dialog.showMessage({
-				title: "Unable to delete",
+				title: MESSAGES.COMMON.UNABLE_TO_DELETE,
 				message: getErrorMessage(caughtError),
 				variant: "danger",
 			});
@@ -138,7 +139,7 @@ const LinkedTransactionsScreen = ({
 		dialog.confirm({
 			title: `Delete ${entityName}?`,
 			message: `This permanently deletes the ${relationLabels.singular} when it has no linked transactions.`,
-			confirmLabel: "Delete",
+			confirmLabel: MESSAGES.COMMON.DELETE,
 			variant: "danger",
 			onConfirm: () => {
 				void processDelete();
@@ -202,14 +203,14 @@ const LinkedTransactionsScreen = ({
 						<AppButton
 							icon="create-outline"
 							isCompact
-							label="Edit"
+							label={MESSAGES.COMMON.EDIT}
 							onPress={handleEdit}
 							variant="secondary"
 						/>
 						<AppButton
 							icon="trash-outline"
 							isCompact
-							label="Delete"
+							label={MESSAGES.COMMON.DELETE}
 							onPress={handleDelete}
 							variant="danger"
 						/>
@@ -234,7 +235,7 @@ const LinkedTransactionsScreen = ({
 			<EmptyState
 				icon="swap-horizontal-outline"
 				message={`No transactions are linked to this ${relationLabels.singular}.`}
-				title="No linked transactions"
+				title={MESSAGES.LINKED_TRANSACTIONS.EMPTY_TITLE}
 			/>
 		),
 		[relationLabels.singular],

@@ -4,6 +4,7 @@ import { StyleSheet, View } from "react-native";
 import AppButton from "@/components/AppButton";
 import SelectField from "@/components/SelectField";
 import TextField from "@/components/TextField";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import type InvestmentTypePickerProps from "@/types/InvestmentTypePickerProps";
 import type SelectOption from "@/types/SelectOption";
@@ -32,30 +33,30 @@ const InvestmentTypePicker = ({
 		<View style={styles.container}>
 			<SelectField
 				isOptional
-				label="Investment type"
+				label={MESSAGES.COMPONENTS.INVESTMENT_TYPE}
 				onChange={onChange}
 				options={options}
-				placeholder="No type"
+				placeholder={MESSAGES.INVESTMENTS.NO_TYPE}
 				value={value}
 			/>
 			{isCreating ? (
 				<View style={styles.creator}>
 					<TextField
-						label="New investment type"
+						label={MESSAGES.COMPONENTS.NEW_INVESTMENT_TYPE}
 						onChangeText={setTypeName}
-						placeholder="Type name"
+						placeholder={MESSAGES.COMPONENTS.TYPE_NAME}
 						value={typeName}
 					/>
 					<View style={styles.actions}>
 						<AppButton
 							isCompact
-							label="Cancel"
+							label={MESSAGES.COMMON.CANCEL}
 							onPress={() => setIsCreating(false)}
 							variant="secondary"
 						/>
 						<AppButton
 							isCompact
-							label="Create"
+							label={MESSAGES.COMMON.CREATE}
 							onPress={() => void handleCreate()}
 						/>
 					</View>
@@ -64,7 +65,7 @@ const InvestmentTypePicker = ({
 				<AppButton
 					icon="pricetags-outline"
 					isCompact
-					label="New investment type"
+					label={MESSAGES.COMPONENTS.NEW_INVESTMENT_TYPE}
 					onPress={() => setIsCreating(true)}
 					variant="secondary"
 				/>

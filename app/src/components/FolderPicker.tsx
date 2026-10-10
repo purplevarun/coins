@@ -6,6 +6,7 @@ import AppButton from "@/components/AppButton";
 import SelectField from "@/components/SelectField";
 import TextField from "@/components/TextField";
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import type FolderPickerProps from "@/types/FolderPickerProps";
 import type SelectOption from "@/types/SelectOption";
@@ -34,30 +35,30 @@ const FolderPicker = ({
 		<View style={styles.container}>
 			<SelectField
 				isOptional
-				label="Folder"
+				label={MESSAGES.COMPONENTS.FOLDER}
 				onChange={onChange}
 				options={options}
-				placeholder="No folder"
+				placeholder={MESSAGES.COMPONENTS.NO_FOLDER}
 				value={value}
 			/>
 			{isCreating ? (
 				<View style={styles.creator}>
 					<TextField
-						label="New folder"
+						label={MESSAGES.COMPONENTS.NEW_FOLDER}
 						onChangeText={setFolderName}
-						placeholder="Folder name"
+						placeholder={MESSAGES.COMPONENTS.FOLDER_NAME}
 						value={folderName}
 					/>
 					<View style={styles.actions}>
 						<AppButton
 							isCompact
-							label="Cancel"
+							label={MESSAGES.COMMON.CANCEL}
 							onPress={() => setIsCreating(false)}
 							variant="secondary"
 						/>
 						<AppButton
 							isCompact
-							label="Create"
+							label={MESSAGES.COMMON.CREATE}
 							onPress={() => void handleCreate()}
 						/>
 					</View>
@@ -66,7 +67,7 @@ const FolderPicker = ({
 				<AppButton
 					icon="folder-open-outline"
 					isCompact
-					label="New folder"
+					label={MESSAGES.COMPONENTS.NEW_FOLDER}
 					onPress={() => setIsCreating(true)}
 					variant="secondary"
 				/>

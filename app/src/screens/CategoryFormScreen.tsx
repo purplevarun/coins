@@ -11,6 +11,7 @@ import SegmentedControl from "@/components/SegmentedControl";
 import TextField from "@/components/TextField";
 import COLORS from "@/constants/colors";
 import financeConstants from "@/constants/financeConstants";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
@@ -80,10 +81,9 @@ const CategoryFormScreen = ({
 			return;
 		}
 		dialog.confirm({
-			title: "Change analysis classification?",
-			message:
-				"This will reclassify the category across all historical analysis.",
-			confirmLabel: "Change",
+			title: MESSAGES.RELATION_FORMS.RECLASSIFY_TITLE,
+			message: MESSAGES.RELATION_FORMS.RECLASSIFY_MESSAGE,
+			confirmLabel: MESSAGES.COMMON.CHANGE,
 			variant: "danger",
 			onConfirm: () => void processSave(),
 		});
@@ -94,12 +94,14 @@ const CategoryFormScreen = ({
 			<GlassCard>
 				<View style={styles.form}>
 					<CustomText style={styles.heading}>
-						{entityId ? "Edit category" : "New category"}
+						{entityId
+							? MESSAGES.RELATION_FORMS.EDIT_CATEGORY
+							: MESSAGES.RELATION_FORMS.NEW_CATEGORY}
 					</CustomText>
 					<TextField
-						label="Name"
+						label={MESSAGES.COMPONENTS.NAME}
 						onChangeText={setName}
-						placeholder="Category name"
+						placeholder={MESSAGES.RELATION_FORMS.CATEGORY_NAME}
 						value={name}
 					/>
 					<View style={styles.switchRow}>
@@ -122,7 +124,7 @@ const CategoryFormScreen = ({
 					{error ? <Notice message={error} tone="danger" /> : null}
 					<AppButton
 						isLoading={isSaving}
-						label="Save"
+						label={MESSAGES.COMMON.SAVE}
 						onPress={handleSave}
 					/>
 				</View>

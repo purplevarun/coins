@@ -24,6 +24,7 @@ import TransactionCard from "@/components/TransactionCard";
 import appConstants from "@/constants/appConstants";
 import COLORS from "@/constants/colors";
 import financeConstants from "@/constants/financeConstants";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import transactionService from "@/services/transactionService";
@@ -165,8 +166,8 @@ const TransactionsScreen = ({
 					<HeaderIconButton
 						accessibilityLabel={
 							viewMode === "DAY"
-								? "Switch to scroll view"
-								: "Switch to day view"
+								? MESSAGES.TRANSACTIONS.SWITCH_TO_SCROLL_VIEW
+								: MESSAGES.TRANSACTIONS.SWITCH_TO_DAY_VIEW
 						}
 						icon={
 							viewMode === "DAY"
@@ -182,7 +183,9 @@ const TransactionsScreen = ({
 					/>
 					<HeaderIconButton
 						accessibilityLabel={
-							searchVisible ? "Close search" : "Search"
+							searchVisible
+								? MESSAGES.COMMON.CLOSE_SEARCH
+								: MESSAGES.COMMON.SEARCH
 						}
 						icon={
 							searchVisible ? "close-outline" : "search-outline"
@@ -261,7 +264,9 @@ const TransactionsScreen = ({
 				{viewMode === "DAY" ? (
 					<View style={styles.dayRow}>
 						<Pressable
-							accessibilityLabel="Previous day"
+							accessibilityLabel={
+								MESSAGES.TRANSACTIONS.PREVIOUS_DAY
+							}
 							accessibilityRole="button"
 							onPress={() => handleDayChange(-1)}
 							style={styles.dayButton}
@@ -276,7 +281,7 @@ const TransactionsScreen = ({
 							{formatDate(getDayDateRange(activeDate).start)}
 						</CustomText>
 						<Pressable
-							accessibilityLabel="Next day"
+							accessibilityLabel={MESSAGES.TRANSACTIONS.NEXT_DAY}
 							accessibilityRole="button"
 							disabled={isToday}
 							onPress={() => handleDayChange(1)}
@@ -301,7 +306,7 @@ const TransactionsScreen = ({
 				{searchVisible ? (
 					<SearchBar
 						onChangeText={setSearchQuery}
-						placeholder="Search transactions..."
+						placeholder={MESSAGES.TRANSACTIONS.SEARCH_PLACEHOLDER}
 						value={searchQuery}
 					/>
 				) : null}
@@ -324,7 +329,7 @@ const TransactionsScreen = ({
 		if (paging.isLoading) {
 			return (
 				<ActivityIndicator
-					accessibilityLabel="Loading transactions"
+					accessibilityLabel={MESSAGES.TRANSACTIONS.LOADING}
 					color={COLORS.primary}
 					style={styles.footer}
 				/>
@@ -334,7 +339,7 @@ const TransactionsScreen = ({
 			return (
 				<AppButton
 					icon="refresh-outline"
-					label="Retry"
+					label={MESSAGES.COMMON.RETRY}
 					onPress={() => {
 						void getScreenData(viewMode === "SCROLL");
 					}}
@@ -349,7 +354,7 @@ const TransactionsScreen = ({
 		return paging.hasMore ? (
 			<AppButton
 				icon="chevron-down-outline"
-				label="Load more"
+				label={MESSAGES.COMMON.LOAD_MORE}
 				onPress={() => {
 					void getScreenData(true);
 				}}
@@ -377,13 +382,13 @@ const TransactionsScreen = ({
 				icon={isFiltered ? "search-outline" : "swap-horizontal-outline"}
 				message={
 					isFiltered
-						? "No results match your search."
-						: "Add a general or investment transaction."
+						? MESSAGES.COMMON.NO_SEARCH_RESULTS
+						: MESSAGES.TRANSACTIONS.EMPTY_MESSAGE
 				}
 				title={
 					isFiltered
-						? "No matching transactions"
-						: "No transactions found"
+						? MESSAGES.TRANSACTIONS.NO_MATCHES_TITLE
+						: MESSAGES.TRANSACTIONS.EMPTY_TITLE
 				}
 			/>
 		);

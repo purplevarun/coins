@@ -5,6 +5,7 @@ import { StyleSheet } from "react-native";
 import AppButton from "@/components/AppButton";
 import ScreenList from "@/components/ScreenList";
 import appConstants from "@/constants/appConstants";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import type PagedScreenListProps from "@/types/PagedScreenListProps";
 
@@ -27,7 +28,7 @@ const PagedScreenList = <T,>({
 		items.length > visibleCount ? (
 			<AppButton
 				icon="chevron-down-outline"
-				label="Load more"
+				label={MESSAGES.COMMON.LOAD_MORE}
 				onPress={showMore}
 				style={styles.footer}
 				variant="secondary"

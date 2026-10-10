@@ -17,6 +17,7 @@ import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
 import TextField from "@/components/TextField";
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
@@ -38,8 +39,8 @@ const { deletePassword, getPasswords } = passwordService;
 const { formatDate } = dateUtils;
 
 const CARD_TYPE_LABEL: Record<string, string> = {
-	CREDIT_CARD: "Credit card",
-	DEBIT_CARD: "Debit card",
+	CREDIT_CARD: MESSAGES.VAULT.CREDIT_CARD,
+	DEBIT_CARD: MESSAGES.VAULT.DEBIT_CARD,
 };
 
 const getVaultFormParams = (
@@ -48,13 +49,13 @@ const getVaultFormParams = (
 ): VaultFormParams => (entryId ? { kind, entryId } : { kind });
 
 const getPasswordSubtitle = (username: string, website: string): string =>
-	username || website || "No username";
+	username || website || MESSAGES.VAULT.NO_USERNAME;
 
 const getCardSubtitle = (cardType: string, network: string): string =>
 	`${CARD_TYPE_LABEL[cardType] ?? cardType}${network ? ` · ${network}` : ""}`;
 
 const getIdentitySubtitle = (idNumber: string): string =>
-	idNumber || "No ID number";
+	idNumber || MESSAGES.VAULT.NO_ID_NUMBER;
 
 const getVaultListData = (
 	kind: VaultKind,
@@ -187,8 +188,8 @@ const VaultScreen = ({
 		(id: string, label: string, vaultKind: VaultKind): void => {
 			dialog.confirm({
 				title: `Delete ${label}?`,
-				message: "This action cannot be undone.",
-				confirmLabel: "Delete",
+				message: MESSAGES.COMMON.IRREVERSIBLE,
+				confirmLabel: MESSAGES.COMMON.DELETE,
 				variant: "danger",
 				onConfirm: () => {
 					const processDelete = async (): Promise<void> => {
@@ -265,7 +266,7 @@ const VaultScreen = ({
 								<View style={styles.cardFields}>
 									<CopyRow
 										isMasked={!isRevealed}
-										label="Password"
+										label={MESSAGES.VAULT_FORM.PASSWORD}
 										value={entry.password}
 									/>
 								</View>
@@ -285,7 +286,7 @@ const VaultScreen = ({
 								<AppButton
 									icon="copy-outline"
 									isCompact
-									label="Copy"
+									label={MESSAGES.COMMON.COPY}
 									onPress={() =>
 										void handleCopy(
 											entry.password,
@@ -297,7 +298,7 @@ const VaultScreen = ({
 								<AppButton
 									icon="trash-outline"
 									isCompact
-									label="Delete"
+									label={MESSAGES.COMMON.DELETE}
 									onPress={() =>
 										handleDelete(
 											entry.id,
@@ -352,8 +353,8 @@ const VaultScreen = ({
 								<Pressable
 									accessibilityLabel={
 										isRevealed
-											? "Hide card details"
-											: "Show card details"
+											? MESSAGES.VAULT.HIDE_CARD_DETAILS
+											: MESSAGES.VAULT.SHOW_CARD_DETAILS
 									}
 									onPress={() => toggleRevealed(entry.id)}
 									style={styles.revealBtn}
@@ -372,24 +373,24 @@ const VaultScreen = ({
 							<View style={styles.cardFields}>
 								<CopyRow
 									isMasked={!isRevealed}
-									label="Card number"
+									label={MESSAGES.VAULT.CARD_NUMBER}
 									onCopy={(v, l) => void handleCopy(v, l)}
 									value={entry.cardNumber}
 								/>
 								<CopyRow
 									isMasked={!isRevealed}
-									label="Expiry"
+									label={MESSAGES.VAULT.EXPIRY}
 									value={entry.expiry}
 								/>
 								<CopyRow
 									isMasked={!isRevealed}
-									label="CVV"
+									label={MESSAGES.COMPONENTS.CVV}
 									onCopy={(v, l) => void handleCopy(v, l)}
 									value={entry.cvv}
 								/>
 								<CopyRow
 									isMasked={!isRevealed}
-									label="PIN"
+									label={MESSAGES.COMPONENTS.PIN}
 									onCopy={(v, l) => void handleCopy(v, l)}
 									value={entry.pin}
 								/>
@@ -398,7 +399,7 @@ const VaultScreen = ({
 								<AppButton
 									icon="trash-outline"
 									isCompact
-									label="Delete"
+									label={MESSAGES.COMMON.DELETE}
 									onPress={() =>
 										handleDelete(
 											entry.id,
@@ -450,7 +451,7 @@ const VaultScreen = ({
 							<AppButton
 								icon="trash-outline"
 								isCompact
-								label="Delete"
+								label={MESSAGES.COMMON.DELETE}
 								onPress={() =>
 									handleDelete(
 										entry.id,
@@ -472,9 +473,9 @@ const VaultScreen = ({
 		() => (
 			<ListHeader>
 				<TextField
-					label="Search"
+					label={MESSAGES.COMMON.SEARCH}
 					onChangeText={setSearch}
-					placeholder="Search vault"
+					placeholder={MESSAGES.VAULT.SEARCH_PLACEHOLDER}
 					value={search}
 				/>
 				{message ? <Notice message={message} /> : null}
@@ -491,10 +492,14 @@ const VaultScreen = ({
 				icon={isFiltered ? "search-outline" : "lock-closed-outline"}
 				message={
 					isFiltered
-						? "No results match your search."
-						: "Add your first local vault entry."
+						? MESSAGES.COMMON.NO_SEARCH_RESULTS
+						: MESSAGES.VAULT.EMPTY_MESSAGE
 				}
-				title={isFiltered ? "No matching entries" : "Nothing here yet"}
+				title={
+					isFiltered
+						? MESSAGES.VAULT.NO_MATCHES_TITLE
+						: MESSAGES.VAULT.EMPTY_TITLE
+				}
 			/>
 		);
 	}, [search]);

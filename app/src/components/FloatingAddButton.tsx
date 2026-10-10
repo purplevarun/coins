@@ -2,6 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import type FloatingAddButtonProps from "@/types/FloatingAddButtonProps";
 
@@ -26,7 +27,7 @@ const FloatingAddButton = ({
 	onPress,
 }: FloatingAddButtonProps): React.JSX.Element => (
 	<Pressable
-		accessibilityLabel="Add"
+		accessibilityLabel={MESSAGES.COMMON.ADD}
 		onPress={onPress}
 		style={({ pressed }) => [styles.button, pressed && styles.pressed]}
 	>

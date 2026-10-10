@@ -10,6 +10,7 @@ import ScreenContainer from "@/components/ScreenContainer";
 import SelectField from "@/components/SelectField";
 import TextField from "@/components/TextField";
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import tripService from "@/services/tripService";
@@ -77,29 +78,31 @@ const TripFormScreen = ({
 			<GlassCard>
 				<View style={styles.form}>
 					<CustomText style={styles.heading}>
-						{entityId ? "Edit trip" : "New trip"}
+						{entityId
+							? MESSAGES.RELATION_FORMS.EDIT_TRIP
+							: MESSAGES.RELATION_FORMS.NEW_TRIP}
 					</CustomText>
 					<TextField
-						label="Name"
+						label={MESSAGES.COMPONENTS.NAME}
 						onChangeText={setName}
-						placeholder="Trip name"
+						placeholder={MESSAGES.RELATION_FORMS.TRIP_NAME}
 						value={name}
 					/>
 					<SelectField
-						label="Type"
+						label={MESSAGES.COMPONENTS.TYPE}
 						options={tripTypes.map((type) => ({
 							label: type.name,
 							value: type.id,
 						}))}
 						value={tripTypeId}
 						onChange={setTripTypeId}
-						placeholder="Select trip type"
+						placeholder={MESSAGES.RELATION_FORMS.SELECT_TRIP_TYPE}
 						isOptional
 					/>
 					{error ? <Notice message={error} tone="danger" /> : null}
 					<AppButton
 						isLoading={isSaving}
-						label="Save"
+						label={MESSAGES.COMMON.SAVE}
 						onPress={() => void handleSave()}
 					/>
 				</View>

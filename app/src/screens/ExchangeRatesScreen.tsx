@@ -13,6 +13,7 @@ import ScreenList from "@/components/ScreenList";
 import TextField from "@/components/TextField";
 import appConstants from "@/constants/appConstants";
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import exchangeRateService from "@/services/exchangeRateService";
@@ -90,7 +91,7 @@ const ExchangeRatesScreen = (
 			setMessage(
 				count
 					? `Updated ${count} exchange rate${count === 1 ? "" : "s"}.`
-					: "No foreign source currencies found.",
+					: MESSAGES.EXCHANGE_RATES.NO_FOREIGN_CURRENCIES,
 			);
 			refreshData();
 			await getScreenData();
@@ -136,7 +137,7 @@ const ExchangeRatesScreen = (
 							<CustomText style={styles.meta}>
 								{rate
 									? `${rate.source} · ${formatDateTime(rate.updatedAt)}`
-									: "Rate not set"}
+									: MESSAGES.EXCHANGE_RATES.RATE_NOT_SET}
 							</CustomText>
 						</View>
 						<CustomText style={styles.equals}>
@@ -163,7 +164,7 @@ const ExchangeRatesScreen = (
 					/>
 					<AppButton
 						isCompact
-						label="Save manual rate"
+						label={MESSAGES.EXCHANGE_RATES.SAVE_MANUAL}
 						onPress={() => void handleSave(currencyCode)}
 						variant="secondary"
 					/>
@@ -176,11 +177,11 @@ const ExchangeRatesScreen = (
 	const listHeader = useMemo(
 		() => (
 			<ListHeader>
-				<Notice message="Rates are master values used only for converted category and analysis totals. Transfers always use their stored from and to amounts." />
+				<Notice message={MESSAGES.EXCHANGE_RATES.DESCRIPTION} />
 				<AppButton
 					icon="cloud-download-outline"
 					isLoading={isFetching}
-					label="Fetch latest rates"
+					label={MESSAGES.EXCHANGE_RATES.FETCH_LATEST}
 					onPress={() => void handleFetch()}
 				/>
 				{error ? <Notice message={error} tone="danger" /> : null}
@@ -194,8 +195,8 @@ const ExchangeRatesScreen = (
 		() => (
 			<EmptyState
 				icon="earth-outline"
-				message="Add a source with a currency other than INR."
-				title="No foreign currencies"
+				message={MESSAGES.EXCHANGE_RATES.EMPTY_MESSAGE}
+				title={MESSAGES.EXCHANGE_RATES.EMPTY_TITLE}
 			/>
 		),
 		[],

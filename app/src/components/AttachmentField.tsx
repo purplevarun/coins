@@ -6,6 +6,7 @@ import { StyleSheet, View } from "react-native";
 import AppButton from "@/components/AppButton";
 import AttachmentViewer from "@/components/AttachmentViewer";
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import type AttachmentFieldProps from "@/types/AttachmentFieldProps";
 import { formatFileSize } from "@/utils/attachment";
@@ -37,7 +38,9 @@ const AttachmentField = ({
 
 	return (
 		<View style={styles.container}>
-			<CustomText style={styles.label}>Attachment</CustomText>
+			<CustomText style={styles.label}>
+				{MESSAGES.COMPONENTS.ATTACHMENT}
+			</CustomText>
 			{fileName && sizeBytes ? (
 				<>
 					<View style={styles.fileRow}>
@@ -66,14 +69,14 @@ const AttachmentField = ({
 								<AppButton
 									icon="eye-outline"
 									isCompact
-									label="View"
+									label={MESSAGES.COMMON.VIEW}
 									onPress={() => void handleView()}
 									variant="secondary"
 								/>
 								<AppButton
 									icon="share-outline"
 									isCompact
-									label="Send"
+									label={MESSAGES.COMMON.SEND}
 									onPress={onSend}
 									variant="secondary"
 								/>
@@ -82,7 +85,7 @@ const AttachmentField = ({
 						<AppButton
 							icon="trash-outline"
 							isCompact
-							label="Delete"
+							label={MESSAGES.COMMON.DELETE}
 							onPress={onRemove}
 							variant="danger"
 						/>
@@ -97,12 +100,14 @@ const AttachmentField = ({
 			) : (
 				<AppButton
 					icon="attach"
-					label="Choose document"
+					label={MESSAGES.COMPONENTS.CHOOSE_DOCUMENT}
 					onPress={onPick}
 					variant="secondary"
 				/>
 			)}
-			<CustomText style={styles.hint}>One file, maximum 2 MB.</CustomText>
+			<CustomText style={styles.hint}>
+				{MESSAGES.COMPONENTS.ATTACHMENT_SIZE_HINT}
+			</CustomText>
 		</View>
 	);
 };

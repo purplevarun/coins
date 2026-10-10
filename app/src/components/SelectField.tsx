@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import type SelectFieldProps from "@/types/SelectFieldProps";
 
@@ -77,7 +78,7 @@ const SelectField = ({
 						<CustomTextInput
 							autoFocus
 							onChangeText={setSearch}
-							placeholder="Search..."
+							placeholder={MESSAGES.COMPONENTS.SEARCH_PLACEHOLDER}
 							style={styles.searchInput}
 							value={search}
 						/>

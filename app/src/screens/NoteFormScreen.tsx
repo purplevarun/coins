@@ -12,6 +12,7 @@ import Notice from "@/components/Notice";
 import ScreenContainer from "@/components/ScreenContainer";
 import TextField from "@/components/TextField";
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useAttachment from "@/hooks/useAttachment";
@@ -92,9 +93,9 @@ const NoteFormScreen = ({
 
 	const handleDelete = (targetNoteId: string): void => {
 		dialog.confirm({
-			title: "Delete note?",
-			message: "This action cannot be undone.",
-			confirmLabel: "Delete",
+			title: MESSAGES.NOTES.DELETE_TITLE,
+			message: MESSAGES.COMMON.IRREVERSIBLE,
+			confirmLabel: MESSAGES.COMMON.DELETE,
 			variant: "danger",
 			onConfirm: () => {
 				const processDelete = async (): Promise<void> => {
@@ -116,19 +117,21 @@ const NoteFormScreen = ({
 			<GlassCard>
 				<View style={styles.form}>
 					<CustomText style={styles.heading}>
-						{noteId ? "Edit note" : "New note"}
+						{noteId
+							? MESSAGES.NOTES.EDIT_TITLE
+							: MESSAGES.NOTES.NEW_TITLE}
 					</CustomText>
 					<TextField
-						label="Title"
+						label={MESSAGES.COMPONENTS.TITLE}
 						onChangeText={setTitle}
-						placeholder="Note title"
+						placeholder={MESSAGES.NOTES.TITLE_PLACEHOLDER}
 						value={title}
 					/>
 					<TextField
 						isMultiline
-						label="Content"
+						label={MESSAGES.NOTES.CONTENT_LABEL}
 						onChangeText={setContent}
-						placeholder="Write something useful..."
+						placeholder={MESSAGES.NOTES.CONTENT_PLACEHOLDER}
 						value={content}
 					/>
 					<FolderPicker
@@ -149,12 +152,12 @@ const NoteFormScreen = ({
 					{error ? <Notice message={error} tone="danger" /> : null}
 					<AppButton
 						isLoading={isSaving}
-						label="Save note"
+						label={MESSAGES.NOTES.SAVE_ACTION}
 						onPress={() => void handleSave()}
 					/>
 					{noteId ? (
 						<AppButton
-							label="Delete note"
+							label={MESSAGES.NOTES.DELETE_ACTION}
 							onPress={() => handleDelete(noteId)}
 							variant="danger"
 						/>

@@ -16,7 +16,11 @@ const ScreenList = <T,>({
 }: ScreenListProps<T>): ReactNode => {
 	return (
 		<LinearGradient
-			colors={[COLORS.background, "#0E1020", "#090B14"]}
+			colors={[
+				COLORS.background,
+				COLORS.backgroundMid,
+				COLORS.backgroundDeep,
+			]}
 			style={styles.gradient}
 		>
 			<SafeAreaView edges={["bottom"]} style={styles.safeArea}>

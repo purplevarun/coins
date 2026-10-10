@@ -13,6 +13,7 @@ import Notice from "@/components/Notice";
 import ScreenContainer from "@/components/ScreenContainer";
 import TextField from "@/components/TextField";
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useAttachment from "@/hooks/useAttachment";
@@ -100,9 +101,9 @@ const TodoFormScreen = ({
 
 	const handleDelete = (targetTodoId: string): void => {
 		dialog.confirm({
-			title: "Delete todo?",
-			message: "This action cannot be undone.",
-			confirmLabel: "Delete",
+			title: MESSAGES.TODOS.DELETE_TITLE,
+			message: MESSAGES.COMMON.IRREVERSIBLE,
+			confirmLabel: MESSAGES.COMMON.DELETE,
 			variant: "danger",
 			onConfirm: () => {
 				const processDelete = async (): Promise<void> => {
@@ -124,19 +125,21 @@ const TodoFormScreen = ({
 			<GlassCard>
 				<View style={styles.form}>
 					<CustomText style={styles.heading}>
-						{todoId ? "Edit todo" : "New todo"}
+						{todoId
+							? MESSAGES.TODOS.EDIT_TITLE
+							: MESSAGES.TODOS.NEW_TITLE}
 					</CustomText>
 					<TextField
-						label="Title"
+						label={MESSAGES.COMPONENTS.TITLE}
 						onChangeText={setTitle}
-						placeholder="What needs doing?"
+						placeholder={MESSAGES.TODOS.TITLE_PLACEHOLDER}
 						value={title}
 					/>
 					<TextField
 						isMultiline
-						label="Description"
+						label={MESSAGES.TODOS.DESCRIPTION_LABEL}
 						onChangeText={setDescription}
-						placeholder="Optional details"
+						placeholder={MESSAGES.TODOS.DESCRIPTION_PLACEHOLDER}
 						value={description}
 					/>
 					<FolderPicker
@@ -156,7 +159,7 @@ const TodoFormScreen = ({
 					</View>
 					{hasDueDate ? (
 						<DateField
-							label="Due"
+							label={MESSAGES.COMPONENTS.DUE}
 							onChange={setDueAt}
 							value={dueAt}
 						/>
@@ -179,12 +182,12 @@ const TodoFormScreen = ({
 					{error ? <Notice message={error} tone="danger" /> : null}
 					<AppButton
 						isLoading={isSaving}
-						label="Save todo"
+						label={MESSAGES.TODOS.SAVE_ACTION}
 						onPress={() => void handleSave()}
 					/>
 					{todoId ? (
 						<AppButton
-							label="Delete todo"
+							label={MESSAGES.TODOS.DELETE_ACTION}
 							onPress={() => handleDelete(todoId)}
 							variant="danger"
 						/>

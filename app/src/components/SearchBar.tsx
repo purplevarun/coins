@@ -3,13 +3,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, View } from "react-native";
 
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import type SearchBarProps from "@/types/SearchBarProps";
 
 const SearchBar = ({
 	value,
 	onChangeText,
-	placeholder = "Search...",
+	placeholder = MESSAGES.COMPONENTS.SEARCH_PLACEHOLDER,
 	autoFocus = true,
 }: SearchBarProps): React.JSX.Element => (
 	<View style={styles.container}>

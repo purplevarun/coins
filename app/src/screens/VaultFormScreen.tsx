@@ -12,6 +12,7 @@ import ScreenContainer from "@/components/ScreenContainer";
 import SelectField from "@/components/SelectField";
 import TextField from "@/components/TextField";
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useAttachment from "@/hooks/useAttachment";
@@ -155,9 +156,9 @@ const VaultFormScreen = ({
 
 	const handleDelete = (targetEntryId: string): void => {
 		dialog.confirm({
-			title: "Delete vault entry?",
-			message: "This action cannot be undone.",
-			confirmLabel: "Delete",
+			title: MESSAGES.VAULT_FORM.DELETE_TITLE,
+			message: MESSAGES.COMMON.IRREVERSIBLE,
+			confirmLabel: MESSAGES.COMMON.DELETE,
 			variant: "danger",
 			onConfirm: () => {
 				const processDelete = async (): Promise<void> => {
@@ -185,13 +186,20 @@ const VaultFormScreen = ({
 			<GlassCard>
 				<View style={styles.form}>
 					<CustomText style={styles.heading}>
-						{entryId ? "Edit" : "New"} {kind.toLowerCase()}
+						{entryId ? MESSAGES.COMMON.EDIT : MESSAGES.COMMON.NEW}{" "}
+						{kind.toLowerCase()}
 					</CustomText>
 					<TextField
-						label={kind === "CARD" ? "Card name" : "Title"}
+						label={
+							kind === "CARD"
+								? MESSAGES.VAULT_FORM.CARD_NAME
+								: "Title"
+						}
 						onChangeText={setTitle}
 						placeholder={
-							kind === "CARD" ? "Personal Visa" : "Entry title"
+							kind === "CARD"
+								? MESSAGES.VAULT_FORM.CARD_NAME_PLACEHOLDER
+								: MESSAGES.VAULT_FORM.ENTRY_TITLE
 						}
 						value={title}
 					/>
@@ -199,25 +207,31 @@ const VaultFormScreen = ({
 						<>
 							<TextField
 								autoCapitalize="none"
-								label="Username"
+								label={MESSAGES.VAULT_FORM.USERNAME}
 								onChangeText={setUsername}
-								placeholder="Username or email"
+								placeholder={
+									MESSAGES.VAULT_FORM.USERNAME_PLACEHOLDER
+								}
 								value={username}
 							/>
 							<TextField
 								autoCapitalize="none"
 								isSecure
-								label="Password"
+								label={MESSAGES.VAULT_FORM.PASSWORD}
 								onChangeText={setPassword}
-								placeholder="Password"
+								placeholder={
+									MESSAGES.VAULT_FORM.PASSWORD_PLACEHOLDER
+								}
 								value={password}
 							/>
 							<TextField
 								autoCapitalize="none"
 								keyboardType="url"
-								label="Website"
+								label={MESSAGES.VAULT_FORM.WEBSITE}
 								onChangeText={setWebsite}
-								placeholder="https://"
+								placeholder={
+									MESSAGES.VAULT_FORM.WEBSITE_PLACEHOLDER
+								}
 								value={website}
 							/>
 						</>
@@ -225,7 +239,7 @@ const VaultFormScreen = ({
 					{kind === "CARD" ? (
 						<>
 							<SelectField
-								label="Card type"
+								label={MESSAGES.VAULT_FORM.CARD_TYPE}
 								onChange={(v) =>
 									setCardType(
 										v as "CREDIT_CARD" | "DEBIT_CARD",
@@ -233,11 +247,11 @@ const VaultFormScreen = ({
 								}
 								options={[
 									{
-										label: "Credit card",
+										label: MESSAGES.VAULT.CREDIT_CARD,
 										value: "CREDIT_CARD",
 									},
 									{
-										label: "Debit card",
+										label: MESSAGES.VAULT.DEBIT_CARD,
 										value: "DEBIT_CARD",
 									},
 								]}
@@ -245,54 +259,62 @@ const VaultFormScreen = ({
 							/>
 							<TextField
 								keyboardType="number-pad"
-								label="Card number"
+								label={MESSAGES.VAULT.CARD_NUMBER}
 								onChangeText={setCardNumber}
-								placeholder="Card number"
+								placeholder={
+									MESSAGES.VAULT_FORM.CARD_NUMBER_PLACEHOLDER
+								}
 								value={cardNumber}
 							/>
 							<TextField
-								label="Network"
+								label={MESSAGES.VAULT_FORM.NETWORK}
 								onChangeText={setNetwork}
-								placeholder="Visa, Mastercard, RuPay..."
+								placeholder={
+									MESSAGES.VAULT_FORM.NETWORK_PLACEHOLDER
+								}
 								value={network}
 							/>
 							<TextField
-								label="Expiry"
+								label={MESSAGES.VAULT.EXPIRY}
 								onChangeText={setExpiry}
-								placeholder="MM/YY"
+								placeholder={
+									MESSAGES.VAULT_FORM.EXPIRY_PLACEHOLDER
+								}
 								value={expiry}
 							/>
 							<TextField
 								isSecure
 								keyboardType="number-pad"
-								label="CVV"
+								label={MESSAGES.COMPONENTS.CVV}
 								onChangeText={setCvv}
-								placeholder="CVV"
+								placeholder={MESSAGES.COMPONENTS.CVV}
 								value={cvv}
 							/>
 							<TextField
 								isSecure
 								keyboardType="number-pad"
-								label="PIN"
+								label={MESSAGES.COMPONENTS.PIN}
 								onChangeText={setPin}
-								placeholder="PIN"
+								placeholder={MESSAGES.COMPONENTS.PIN}
 								value={pin}
 							/>
 						</>
 					) : null}
 					{kind === "IDENTITY" ? (
 						<TextField
-							label="ID number"
+							label={MESSAGES.VAULT_FORM.ID_NUMBER}
 							onChangeText={setIdNumber}
-							placeholder="Document number"
+							placeholder={
+								MESSAGES.VAULT_FORM.ID_NUMBER_PLACEHOLDER
+							}
 							value={idNumber}
 						/>
 					) : null}
 					<TextField
 						isMultiline
-						label="Notes"
+						label={MESSAGES.VAULT_FORM.NOTES}
 						onChangeText={setNotes}
-						placeholder="Optional notes"
+						placeholder={MESSAGES.VAULT_FORM.NOTES_PLACEHOLDER}
 						value={notes}
 					/>
 					{kind !== "PASSWORD" ? (
@@ -309,12 +331,12 @@ const VaultFormScreen = ({
 					{error ? <Notice message={error} tone="danger" /> : null}
 					<AppButton
 						isLoading={isSaving}
-						label="Save entry"
+						label={MESSAGES.VAULT_FORM.SAVE_ACTION}
 						onPress={() => void handleSave()}
 					/>
 					{entryId ? (
 						<AppButton
-							label="Delete entry"
+							label={MESSAGES.VAULT_FORM.DELETE_ACTION}
 							onPress={() => handleDelete(entryId)}
 							variant="danger"
 						/>

@@ -1,4 +1,5 @@
 import SelectField from "@/components/SelectField";
+import MESSAGES from "@/constants/messageConstants";
 import type PlatformPickerProps from "@/types/PlatformPickerProps";
 import type React from "react";
 import { View } from "react-native";
@@ -12,11 +13,11 @@ const PlatformPicker = ({
 	return (
 		<View>
 			<SelectField
-				label="Platform"
+				label={MESSAGES.COMPONENTS.PLATFORM}
 				isOptional
 				value={value ?? ""}
 				onChange={(id) => onValueChange(id || null)}
-				placeholder={placeholder ?? "Select platform"}
+				placeholder={placeholder ?? MESSAGES.COMPONENTS.SELECT_PLATFORM}
 				options={platforms
 					.filter(
 						(platform) =>

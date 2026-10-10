@@ -1,6 +1,7 @@
 import AppButton from "@/components/AppButton";
 import Notice from "@/components/Notice";
 import TextField from "@/components/TextField";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import type SimpleEntityFormProps from "@/types/SimpleEntityFormProps";
 import getErrorMessage from "@/utils/error";
@@ -33,14 +34,14 @@ const SimpleEntityForm = ({
 	return (
 		<View style={{ gap: SPACING.S16 }}>
 			<TextField
-				label="Name"
+				label={MESSAGES.COMPONENTS.NAME}
 				value={name}
 				onChangeText={setName}
-				placeholder="Name"
+				placeholder={MESSAGES.COMPONENTS.NAME}
 			/>
 			{error ? <Notice message={error} tone="danger" /> : null}
 			<AppButton
-				label="Save"
+				label={MESSAGES.COMMON.SAVE}
 				isLoading={isSaving}
 				onPress={() => void handleSave()}
 			/>

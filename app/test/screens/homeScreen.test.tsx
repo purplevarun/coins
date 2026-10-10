@@ -51,8 +51,8 @@ vi.mock("@/components/ScreenContainer", () => ({
 	default: (props: any) => ({ type: "ScreenContainer", props }),
 }));
 
+import { HOME_MODE_OPTIONS } from "@/constants/homeModes";
 import HomeScreen, {
-	MODE_OPTIONS,
 	getModeLabel,
 	getPressableScaleStyle,
 	getTileIconBackgroundColor,
@@ -189,7 +189,7 @@ describe("HomeScreen", () => {
 
 		expect(navBar).toBeTruthy();
 		expect(navBar.props.activeMode).toBe("FINANCE");
-		expect(navBar.props.options).toEqual(MODE_OPTIONS);
+		expect(navBar.props.options).toEqual(HOME_MODE_OPTIONS);
 
 		navBar.props.onSelectMode("HEALTH");
 		expect(setMode).toHaveBeenCalledWith("HEALTH");
@@ -215,7 +215,7 @@ describe("HomeScreen", () => {
 	});
 
 	it("covers HomeScreen helper metadata directly", () => {
-		expect(MODE_OPTIONS).toHaveLength(3);
+		expect(HOME_MODE_OPTIONS).toHaveLength(3);
 		expect(getModeLabel("TOOLS")).toBe("Tools");
 		expect(getModeLabel("FINANCE")).toBe("Finance");
 		expect(getModeLabel("HEALTH")).toBe("Health");

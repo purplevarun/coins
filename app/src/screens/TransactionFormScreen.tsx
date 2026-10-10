@@ -15,6 +15,7 @@ import SelectField from "@/components/SelectField";
 import TextField from "@/components/TextField";
 import COLORS from "@/constants/colors";
 import financeConstants from "@/constants/financeConstants";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useAttachment from "@/hooks/useAttachment";
@@ -262,10 +263,9 @@ const TransactionFormScreen = ({
 		};
 		if (isExpense && !nextIsExpense && items.length > 1) {
 			dialog.confirm({
-				title: "Remove item breakdown?",
-				message:
-					"Keep the total as one amount and remove the individual expense items?",
-				confirmLabel: "Continue",
+				title: MESSAGES.TRANSACTION_FORM.REMOVE_ITEMS_TITLE,
+				message: MESSAGES.TRANSACTION_FORM.REMOVE_ITEMS_MESSAGE,
+				confirmLabel: MESSAGES.COMMON.CONTINUE,
 				onConfirm: applyChange,
 			});
 		} else {
@@ -354,9 +354,9 @@ const TransactionFormScreen = ({
 
 	const handleDelete = (targetTransactionId: string): void => {
 		dialog.confirm({
-			title: "Delete transaction?",
-			message: "This action cannot be undone.",
-			confirmLabel: "Delete",
+			title: MESSAGES.TRANSACTION_FORM.DELETE_TITLE,
+			message: MESSAGES.COMMON.IRREVERSIBLE,
+			confirmLabel: MESSAGES.COMMON.DELETE,
 			variant: "danger",
 			onConfirm: () => {
 				const processDelete = async (): Promise<void> => {
@@ -382,10 +382,10 @@ const TransactionFormScreen = ({
 				>
 					<CustomText style={styles.heading}>
 						{transactionId
-							? "Edit transaction"
+							? MESSAGES.TRANSACTION_FORM.EDIT_TITLE
 							: cloneFromTransactionId
-								? "Clone transaction"
-								: "New transaction"}
+								? MESSAGES.TRANSACTION_FORM.CLONE_TITLE
+								: MESSAGES.TRANSACTION_FORM.NEW_TITLE}
 					</CustomText>
 					<SegmentedControl
 						onChange={handleClassificationChange}
@@ -403,21 +403,25 @@ const TransactionFormScreen = ({
 					/>
 					<SelectField
 						label={
-							type === "CREDIT" ? "Destination source" : "Source"
+							type === "CREDIT"
+								? MESSAGES.TRANSACTION_FORM.DESTINATION_SOURCE
+								: "Source"
 						}
 						onChange={setSourceId}
 						options={sourceOptions}
-						placeholder="Select source"
+						placeholder={MESSAGES.TRANSACTION_FORM.SELECT_SOURCE}
 						value={sourceId}
 					/>
 					{isTransfer ? (
 						<SelectField
-							label="Destination source"
+							label={MESSAGES.TRANSACTION_FORM.DESTINATION_SOURCE}
 							onChange={setDestinationSourceId}
 							options={sourceOptions.filter(
 								(option) => option.value !== sourceId,
 							)}
-							placeholder="Select destination"
+							placeholder={
+								MESSAGES.TRANSACTION_FORM.SELECT_DESTINATION
+							}
 							value={destinationSourceId}
 						/>
 					) : null}
@@ -436,7 +440,7 @@ const TransactionFormScreen = ({
 						/>
 					) : null}
 					<DateField
-						label="Date"
+						label={MESSAGES.TRANSACTION_FORM.DATE_LABEL}
 						onChange={setTransactionAt}
 						value={transactionAt}
 					/>
@@ -477,8 +481,14 @@ const TransactionFormScreen = ({
 										}
 									/>
 									<SelectField
-										label="Category"
-										placeholder="Select category"
+										label={
+											MESSAGES.TRANSACTION_FORM
+												.CATEGORY_LABEL
+										}
+										placeholder={
+											MESSAGES.TRANSACTION_FORM
+												.SELECT_CATEGORY
+										}
 										value={item.categoryId}
 										onChange={(value) =>
 											updateItem(item.key, {
@@ -507,7 +517,7 @@ const TransactionFormScreen = ({
 								</View>
 							))}
 							<AppButton
-								label="Add item"
+								label={MESSAGES.TRANSACTION_FORM.ADD_ITEM}
 								icon="add"
 								variant="secondary"
 								isDisabled={isSaving}
@@ -551,42 +561,51 @@ const TransactionFormScreen = ({
 						<>
 							{!isExpense ? (
 								<SelectField
-									label="Category"
+									label={
+										MESSAGES.TRANSACTION_FORM.CATEGORY_LABEL
+									}
 									onChange={setCategoryId}
 									options={categoryOptions}
-									placeholder="Select category"
+									placeholder={
+										MESSAGES.TRANSACTION_FORM
+											.SELECT_CATEGORY
+									}
 									value={categoryId}
 								/>
 							) : null}
 							<SelectField
 								isOptional
-								label="Trip"
+								label={MESSAGES.TRANSACTION_FORM.TRIP_LABEL}
 								onChange={setTripId}
 								options={tripOptions}
-								placeholder="No trip"
+								placeholder={MESSAGES.COMPONENTS.NO_TRIP}
 								value={tripId}
 							/>
 						</>
 					) : null}
 					{classification === "INVESTMENT" ? (
 						<SelectField
-							label="Investment"
+							label={MESSAGES.TRANSACTION_FORM.INVESTMENT}
 							onChange={setInvestmentId}
 							options={investmentOptions}
-							placeholder="Select investment"
+							placeholder={
+								MESSAGES.TRANSACTION_FORM.SELECT_INVESTMENT
+							}
 							value={investmentId}
 						/>
 					) : null}
 					<TextField
 						isEditable={!isSaving}
-						label="Reason (optional)"
+						label={MESSAGES.TRANSACTION_FORM.REASON_LABEL}
 						onChangeText={setReason}
 						placeholder={
 							isTransfer
-								? "Defaults to Source A to Source B"
+								? MESSAGES.TRANSACTION_FORM.DEFAULTS_TO_TRANSFER
 								: isExpense && items.length > 1
-									? "Defaults to the item categories"
-									: "Defaults to the selected category"
+									? MESSAGES.TRANSACTION_FORM
+											.DEFAULTS_TO_ITEMS
+									: MESSAGES.TRANSACTION_FORM
+											.DEFAULTS_TO_CATEGORY
 						}
 						value={reason}
 					/>
@@ -601,7 +620,7 @@ const TransactionFormScreen = ({
 					/>
 					{sources.length === 0 ? (
 						<Notice
-							message="Create a source before adding transactions."
+							message={MESSAGES.TRANSACTION_FORM.NO_SOURCES}
 							tone="warning"
 						/>
 					) : null}
@@ -609,12 +628,12 @@ const TransactionFormScreen = ({
 					<AppButton
 						isDisabled={sources.length === 0}
 						isLoading={isSaving}
-						label="Save transaction"
+						label={MESSAGES.TRANSACTION_FORM.SAVE_ACTION}
 						onPress={() => void handleSave()}
 					/>
 					{transactionId ? (
 						<AppButton
-							label="Delete transaction"
+							label={MESSAGES.TRANSACTION_FORM.DELETE_ACTION}
 							onPress={() => handleDelete(transactionId)}
 							variant="danger"
 						/>

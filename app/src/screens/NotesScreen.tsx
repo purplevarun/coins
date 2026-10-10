@@ -15,6 +15,7 @@ import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
 import COLORS from "@/constants/colors";
 import folderConstants from "@/constants/folderConstants";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
@@ -99,7 +100,7 @@ const NotesScreen = ({ navigation }: NotesScreenProps): React.JSX.Element => {
 						</CustomText>
 					) : null}
 					<CustomText numberOfLines={3} style={styles.content}>
-						{note.content || "Empty note"}
+						{note.content || MESSAGES.NOTES.EMPTY_NOTE}
 					</CustomText>
 					<CustomText style={styles.date}>
 						Updated {formatDateTime(note.updatedAt)}
@@ -114,9 +115,8 @@ const NotesScreen = ({ navigation }: NotesScreenProps): React.JSX.Element => {
 		(folder: Pick<Folder, "id" | "name">): void => {
 			dialog.confirm({
 				title: `Delete "${folder.name}"?`,
-				message:
-					"Folders containing items cannot be deleted. Empty folders will be permanently removed.",
-				confirmLabel: "Delete",
+				message: MESSAGES.FOLDERS.DELETE_HINT,
+				confirmLabel: MESSAGES.COMMON.DELETE,
 				variant: "danger",
 				onConfirm: () => {
 					const processDelete = async (): Promise<void> => {
@@ -228,8 +228,8 @@ const NotesScreen = ({ navigation }: NotesScreenProps): React.JSX.Element => {
 		() => (
 			<EmptyState
 				icon="document-text-outline"
-				message="Capture a thought, detail or reference."
-				title="No notes found"
+				message={MESSAGES.NOTES.EMPTY_MESSAGE}
+				title={MESSAGES.NOTES.EMPTY_TITLE}
 			/>
 		),
 		[],

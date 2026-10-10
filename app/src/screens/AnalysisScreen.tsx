@@ -25,6 +25,7 @@ import appConstants from "@/constants/appConstants";
 import COLORS from "@/constants/colors";
 import dateConstants from "@/constants/dateConstants";
 import financeConstants from "@/constants/financeConstants";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import financeRepository from "@/repositories/financeRepository";
@@ -72,14 +73,14 @@ const { ALL_TIME_END, ALL_TIME_START, DEFAULT_FY_START_MONTH } = dateConstants;
 const { ANALYSIS_PERIOD_OPTIONS, DEFAULT_ANALYSIS_PERIOD } = financeConstants;
 
 const CHART_COLORS = [
-	"#A87CFF",
-	"#56D6A3",
-	"#60A5FA",
-	"#F5B95B",
-	"#FF6B86",
-	"#67E8F9",
-	"#C4B5FD",
-	"#FB923C",
+	COLORS.primary,
+	COLORS.mint,
+	COLORS.blue,
+	COLORS.warning,
+	COLORS.danger,
+	COLORS.aqua,
+	COLORS.periwinkle,
+	COLORS.orange,
 ] as const;
 
 const getSelectedDateRange = ({
@@ -116,12 +117,12 @@ const getPeriodTitle = (
 		return `FY ${fyStartYear}–${String(fyStartYear + 1).slice(2)}`;
 	}
 	if (period === "LAST_12M") {
-		return "Last 12 months";
+		return MESSAGES.ANALYSIS.LAST_12_MONTHS;
 	}
 	if (period === "ALL") {
-		return "All transactions";
+		return MESSAGES.ANALYSIS.ALL_TRANSACTIONS;
 	}
-	return "Custom period";
+	return MESSAGES.ANALYSIS.CUSTOM_PERIOD;
 };
 
 const formatSignedMoney = (amount: string): string => {
@@ -193,7 +194,7 @@ const getSummaryMetrics = (
 	netAfterInvestments: string,
 ): readonly SummaryMetricInput[] => [
 	{
-		label: "Income",
+		label: MESSAGES.FINANCIAL_METRICS.INCOME,
 		value: formatMoney(
 			summary?.totalIncome ?? ZERO_AMOUNT,
 			DEFAULT_CURRENCY_CODE,
@@ -202,7 +203,7 @@ const getSummaryMetrics = (
 		color: COLORS.success,
 	},
 	{
-		label: "Expenses",
+		label: MESSAGES.FINANCIAL_METRICS.EXPENSES,
 		value: formatMoney(
 			summary?.totalExpense ?? ZERO_AMOUNT,
 			DEFAULT_CURRENCY_CODE,
@@ -211,13 +212,13 @@ const getSummaryMetrics = (
 		color: COLORS.danger,
 	},
 	{
-		label: "Investments",
+		label: MESSAGES.ANALYSIS.INVESTMENTS_METRIC,
 		value: formatSignedMoney(investmentCashFlow),
 		accent: "warning",
 		color: getInvestmentColor(investmentNet),
 	},
 	{
-		label: "Net",
+		label: MESSAGES.FINANCIAL_METRICS.NET,
 		value: formatSignedMoney(summary?.netProfit ?? ZERO_AMOUNT),
 		accent:
 			compareMoney(summary?.netProfit ?? ZERO_AMOUNT, ZERO_AMOUNT) < 0
@@ -229,7 +230,7 @@ const getSummaryMetrics = (
 				: COLORS.success,
 	},
 	{
-		label: "Net after investments",
+		label: MESSAGES.ANALYSIS.NET_AFTER_INVESTMENTS_METRIC,
 		value: formatSignedMoney(netAfterInvestments),
 		accent:
 			compareMoney(netAfterInvestments, ZERO_AMOUNT) < 0
@@ -241,7 +242,7 @@ const getSummaryMetrics = (
 				: COLORS.success,
 	},
 	{
-		label: "Savings %",
+		label: MESSAGES.ANALYSIS.SAVINGS_METRIC,
 		value: formatMoneyPercentage(
 			summary?.netProfit ?? ZERO_AMOUNT,
 			summary?.totalIncome ?? ZERO_AMOUNT,
@@ -330,7 +331,7 @@ const AnalysisScreen = ({
 		navigation.setOptions({
 			headerRight: () => (
 				<HeaderIconButton
-					accessibilityLabel="Manage exchange rates"
+					accessibilityLabel={MESSAGES.ANALYSIS.MANAGE_EXCHANGE_RATES}
 					icon="swap-horizontal-outline"
 					onPress={() => navigation.navigate("ExchangeRates")}
 				/>
@@ -504,12 +505,12 @@ const AnalysisScreen = ({
 				<GlassCard>
 					<View style={styles.customDates}>
 						<DateField
-							label="From"
+							label={MESSAGES.COMPONENTS.FROM}
 							onChange={setCustomStartAt}
 							value={customStartAt}
 						/>
 						<DateField
-							label="To"
+							label={MESSAGES.COMPONENTS.TO}
 							onChange={setCustomEndAt}
 							value={customEndAt}
 						/>
@@ -536,7 +537,7 @@ const AnalysisScreen = ({
 						<AppButton
 							icon="list-outline"
 							isCompact
-							label="See all categories"
+							label={MESSAGES.ANALYSIS.SEE_ALL_CATEGORIES}
 							onPress={() =>
 								navigation.navigate("AnalysisDetails", {
 									mode: "CATEGORIES",
@@ -551,7 +552,7 @@ const AnalysisScreen = ({
 						<AppButton
 							icon="trending-up-outline"
 							isCompact
-							label="See all investments"
+							label={MESSAGES.ANALYSIS.SEE_ALL_INVESTMENTS}
 							onPress={() =>
 								navigation.navigate("AnalysisDetails", {
 									mode: "INVESTMENTS",
@@ -565,8 +566,8 @@ const AnalysisScreen = ({
 						/>
 					</View>
 					<SectionHeading
-						subtitle="Credits minus debits for every category. Classification decides the analysis bucket."
-						title="Category net"
+						subtitle={MESSAGES.ANALYSIS.CATEGORY_NET_DESCRIPTION}
+						title={MESSAGES.ANALYSIS.CATEGORY_NET_TITLE}
 					/>
 					{chartData.length ? (
 						<GlassCard>
@@ -580,13 +581,13 @@ const AnalysisScreen = ({
 					) : (
 						<EmptyState
 							icon="pie-chart-outline"
-							message="Add categorized transactions in this period."
-							title="Nothing to analyse"
+							message={MESSAGES.ANALYSIS.EMPTY_MESSAGE}
+							title={MESSAGES.ANALYSIS.EMPTY_TITLE}
 						/>
 					)}
 					<SectionHeading
-						subtitle="Income, expenses and net worth year by year, across every transaction regardless of the selected period."
-						title="Trends"
+						subtitle={MESSAGES.ANALYSIS.TREND_DESCRIPTION}
+						title={MESSAGES.ANALYSIS.TRENDS_TITLE}
 					/>
 					{missingTrendCurrencies.length ? (
 						<Notice
@@ -602,8 +603,8 @@ const AnalysisScreen = ({
 					) : (
 						<EmptyState
 							icon="stats-chart-outline"
-							message="Add transactions to see trends over time."
-							title="No trend data"
+							message={MESSAGES.ANALYSIS.TREND_EMPTY_MESSAGE}
+							title={MESSAGES.ANALYSIS.TREND_EMPTY_TITLE}
 						/>
 					)}
 				</>

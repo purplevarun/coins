@@ -24,6 +24,7 @@ import ScreenList from "@/components/ScreenList";
 import SearchBar from "@/components/SearchBar";
 import SegmentedControl from "@/components/SegmentedControl";
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
@@ -104,7 +105,9 @@ const TripsScreen = ({ navigation }: TripsScreenProps): React.JSX.Element => {
 			headerRight: () => (
 				<HeaderIconButton
 					accessibilityLabel={
-						searchVisible ? "Close search" : "Search"
+						searchVisible
+							? MESSAGES.COMMON.CLOSE_SEARCH
+							: MESSAGES.COMMON.SEARCH
 					}
 					icon={searchVisible ? "close-outline" : "search-outline"}
 					isActive={searchVisible}
@@ -126,7 +129,7 @@ const TripsScreen = ({ navigation }: TripsScreenProps): React.JSX.Element => {
 				await getScreenData();
 			} catch (caughtError: unknown) {
 				dialog.showMessage({
-					title: "Unable to archive",
+					title: MESSAGES.COMMON.UNABLE_TO_ARCHIVE,
 					message: getErrorMessage(caughtError),
 					variant: "danger",
 				});
@@ -139,9 +142,8 @@ const TripsScreen = ({ navigation }: TripsScreenProps): React.JSX.Element => {
 		(id: string, name: string): void => {
 			dialog.confirm({
 				title: `Archive "${name}"?`,
-				message:
-					"It will be hidden from lists and dropdowns everywhere. You can restore it anytime from Settings \u2192 Archived relations.",
-				confirmLabel: "Archive",
+				message: MESSAGES.COMMON.ARCHIVE_CONFIRM,
+				confirmLabel: MESSAGES.COMMON.ARCHIVE,
 				variant: "danger",
 				onConfirm: () => void handleArchive(id),
 			});
@@ -292,7 +294,7 @@ const TripsScreen = ({ navigation }: TripsScreenProps): React.JSX.Element => {
 						</View>
 						<View style={styles.actions}>
 							<Pressable
-								accessibilityLabel="Archive"
+								accessibilityLabel={MESSAGES.COMMON.ARCHIVE}
 								accessibilityRole="button"
 								hitSlop={8}
 								onPress={() =>
@@ -343,15 +345,21 @@ const TripsScreen = ({ navigation }: TripsScreenProps): React.JSX.Element => {
 				{searchVisible ? (
 					<SearchBar
 						onChangeText={setSearchQuery}
-						placeholder="Search trips..."
+						placeholder={MESSAGES.TRIPS.SEARCH_PLACEHOLDER}
 						value={searchQuery}
 					/>
 				) : null}
 				<SegmentedControl
 					onChange={(value) => setTab(value as "TRIPS" | "TYPES")}
 					options={[
-						{ label: "Trips", value: "TRIPS" },
-						{ label: "Types", value: "TYPES" },
+						{
+							label: MESSAGES.TRIPS.TAB_TRIPS,
+							value: "TRIPS",
+						},
+						{
+							label: MESSAGES.TRIPS.TAB_TYPES,
+							value: "TYPES",
+						},
 					]}
 					value={tab}
 				/>
@@ -368,19 +376,19 @@ const TripsScreen = ({ navigation }: TripsScreenProps): React.JSX.Element => {
 				icon={isFiltered ? "search-outline" : "add-circle-outline"}
 				message={
 					isFiltered
-						? "No results match your search."
+						? MESSAGES.COMMON.NO_SEARCH_RESULTS
 						: tab === "TYPES"
-							? "Add your first trip type to get started."
-							: "Add your first trip to get started."
+							? MESSAGES.TRIPS.TYPES_EMPTY_MESSAGE
+							: MESSAGES.TRIPS.EMPTY_MESSAGE
 				}
 				title={
 					isFiltered
 						? tab === "TYPES"
-							? "No matching trip types"
-							: "No matching trips"
+							? MESSAGES.TRIPS.TYPES_NO_MATCHES_TITLE
+							: MESSAGES.TRIPS.NO_MATCHES_TITLE
 						: tab === "TYPES"
-							? "No Trip Types yet"
-							: "No trips yet"
+							? MESSAGES.TRIPS.TYPES_EMPTY_TITLE
+							: MESSAGES.TRIPS.EMPTY_TITLE
 				}
 			/>
 		);

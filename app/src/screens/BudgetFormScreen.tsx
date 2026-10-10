@@ -13,6 +13,7 @@ import TextField from "@/components/TextField";
 import appConstants from "@/constants/appConstants";
 import COLORS from "@/constants/colors";
 import financeConstants from "@/constants/financeConstants";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import budgetService from "@/services/budgetService";
@@ -91,13 +92,15 @@ const BudgetFormScreen = ({
 			<GlassCard>
 				<View style={styles.form}>
 					<CustomText style={styles.heading}>
-						{budgetId ? "Edit budget" : "New budget"}
+						{budgetId
+							? MESSAGES.BUDGET_FORM.EDIT_TITLE
+							: MESSAGES.BUDGET_FORM.NEW_TITLE}
 					</CustomText>
 					<SelectField
-						label="Expense category"
+						label={MESSAGES.BUDGET_FORM.CATEGORY_LABEL}
 						onChange={setCategoryId}
 						options={categoryOptions}
-						placeholder="Select category"
+						placeholder={MESSAGES.BUDGET_FORM.SELECT_CATEGORY}
 						value={categoryId}
 					/>
 					<TextField
@@ -114,11 +117,11 @@ const BudgetFormScreen = ({
 						options={BUDGET_PERIOD_OPTIONS}
 						value={period}
 					/>
-					<Notice message="The period follows calendar boundaries, not a rolling window." />
+					<Notice message={MESSAGES.BUDGET_FORM.PERIOD_HINT} />
 					{error ? <Notice message={error} tone="danger" /> : null}
 					<AppButton
 						isLoading={isSaving}
-						label="Save budget"
+						label={MESSAGES.BUDGET_FORM.SAVE_ACTION}
 						onPress={() => void handleSave()}
 					/>
 				</View>

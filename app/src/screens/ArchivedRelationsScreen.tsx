@@ -19,6 +19,7 @@ import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
 import SearchBar from "@/components/SearchBar";
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
@@ -115,7 +116,7 @@ const ArchivedRelationsScreen = (
 				await getScreenData();
 			} catch (caughtError: unknown) {
 				dialog.showMessage({
-					title: "Unable to restore",
+					title: MESSAGES.ARCHIVED.UNABLE_TO_RESTORE,
 					message: getErrorMessage(caughtError),
 					variant: "danger",
 				});
@@ -128,9 +129,8 @@ const ArchivedRelationsScreen = (
 		(kind: RelationKind, id: string, name: string): void => {
 			dialog.confirm({
 				title: `Restore "${name}"?`,
-				message:
-					"It will be visible again in lists and dropdowns everywhere.",
-				confirmLabel: "Restore",
+				message: MESSAGES.ARCHIVED.RESTORE_CONFIRM,
+				confirmLabel: MESSAGES.COMMON.RESTORE,
 				variant: "success",
 				onConfirm: () => void handleRestore(kind, id),
 			});
@@ -233,7 +233,7 @@ const ArchivedRelationsScreen = (
 				<SearchBar
 					autoFocus={false}
 					onChangeText={setSearchQuery}
-					placeholder="Search archived relations..."
+					placeholder={MESSAGES.ARCHIVED.SEARCH_PLACEHOLDER}
 					value={searchQuery}
 				/>
 				{error ? <Notice message={error} tone="danger" /> : null}
@@ -248,10 +248,10 @@ const ArchivedRelationsScreen = (
 				icon="archive-outline"
 				message={
 					searchDebounced.trim()
-						? "No archived relations match your search."
-						: "Anything you archive from Sources, Categories, Trips or Investments will show up here."
+						? MESSAGES.ARCHIVED.NO_MATCHES_MESSAGE
+						: MESSAGES.ARCHIVED.EMPTY_MESSAGE
 				}
-				title="No archived relations"
+				title={MESSAGES.ARCHIVED.EMPTY_TITLE}
 			/>
 		),
 		[searchDebounced],

@@ -11,6 +11,7 @@ import ScreenContainer from "@/components/ScreenContainer";
 import SelectField from "@/components/SelectField";
 import TextField from "@/components/TextField";
 import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import investmentService from "@/services/investmentService";
@@ -104,12 +105,14 @@ const InvestmentFormScreen = ({
 			<GlassCard>
 				<View style={styles.form}>
 					<CustomText style={styles.heading}>
-						{entityId ? "Edit investment" : "New investment"}
+						{entityId
+							? MESSAGES.RELATION_FORMS.EDIT_INVESTMENT
+							: MESSAGES.RELATION_FORMS.NEW_INVESTMENT}
 					</CustomText>
 					<TextField
-						label="Name"
+						label={MESSAGES.COMPONENTS.NAME}
 						onChangeText={setName}
-						placeholder="Investment name"
+						placeholder={MESSAGES.RELATION_FORMS.INVESTMENT_NAME}
 						value={name}
 					/>
 					<PlatformPicker
@@ -118,9 +121,9 @@ const InvestmentFormScreen = ({
 						onValueChange={(value) => setPlatformId(value ?? "")}
 					/>
 					<SelectField
-						label="Investment type"
+						label={MESSAGES.RELATION_FORMS.INVESTMENT_TYPE}
 						isOptional
-						placeholder="No type"
+						placeholder={MESSAGES.INVESTMENTS.NO_TYPE}
 						options={investmentTypes.map((type) => ({
 							label: type.name,
 							value: type.id,
@@ -131,7 +134,7 @@ const InvestmentFormScreen = ({
 					{error ? <Notice message={error} tone="danger" /> : null}
 					<AppButton
 						isLoading={isSaving}
-						label="Save"
+						label={MESSAGES.COMMON.SAVE}
 						onPress={() => void handleSave()}
 					/>
 				</View>

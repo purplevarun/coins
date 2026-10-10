@@ -15,6 +15,7 @@ import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
 import COLORS from "@/constants/colors";
 import folderConstants from "@/constants/folderConstants";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
@@ -123,7 +124,7 @@ const TodosScreen = ({ navigation }: TodosScreenProps): React.JSX.Element => {
 								</CustomText>
 							) : null}
 							<CustomText style={styles.meta}>
-								{todo.folderName ?? "No folder"}
+								{todo.folderName ?? MESSAGES.TODOS.NO_FOLDER}
 								{todo.dueAt
 									? ` · Due ${formatDate(todo.dueAt)}`
 									: ""}
@@ -154,9 +155,8 @@ const TodosScreen = ({ navigation }: TodosScreenProps): React.JSX.Element => {
 		(folder: Pick<Folder, "id" | "name">): void => {
 			dialog.confirm({
 				title: `Delete "${folder.name}"?`,
-				message:
-					"Folders containing items cannot be deleted. Empty folders will be permanently removed.",
-				confirmLabel: "Delete",
+				message: MESSAGES.FOLDERS.DELETE_HINT,
+				confirmLabel: MESSAGES.COMMON.DELETE,
 				variant: "danger",
 				onConfirm: () => {
 					const processDelete = async (): Promise<void> => {
@@ -268,8 +268,8 @@ const TodosScreen = ({ navigation }: TodosScreenProps): React.JSX.Element => {
 		() => (
 			<EmptyState
 				icon="checkbox-outline"
-				message="Add something you need to remember."
-				title="No todos yet"
+				message={MESSAGES.TODOS.EMPTY_MESSAGE}
+				title={MESSAGES.TODOS.EMPTY_TITLE}
 			/>
 		),
 		[],

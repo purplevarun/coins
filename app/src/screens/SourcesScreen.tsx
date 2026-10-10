@@ -24,6 +24,7 @@ import SearchBar from "@/components/SearchBar";
 import SegmentedControl from "@/components/SegmentedControl";
 import COLORS from "@/constants/colors";
 import financeConstants from "@/constants/financeConstants";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
@@ -96,7 +97,9 @@ const SourcesScreen = ({
 			headerRight: () => (
 				<HeaderIconButton
 					accessibilityLabel={
-						searchVisible ? "Close search" : "Search"
+						searchVisible
+							? MESSAGES.COMMON.CLOSE_SEARCH
+							: MESSAGES.COMMON.SEARCH
 					}
 					icon={searchVisible ? "close-outline" : "search-outline"}
 					isActive={searchVisible}
@@ -120,7 +123,7 @@ const SourcesScreen = ({
 				await getScreenData();
 			} catch (caughtError: unknown) {
 				dialog.showMessage({
-					title: "Unable to validate",
+					title: MESSAGES.SOURCES.UNABLE_TO_VALIDATE,
 					message: getErrorMessage(caughtError),
 					variant: "danger",
 				});
@@ -139,7 +142,7 @@ const SourcesScreen = ({
 				await getScreenData();
 			} catch (caughtError: unknown) {
 				dialog.showMessage({
-					title: "Unable to archive",
+					title: MESSAGES.COMMON.UNABLE_TO_ARCHIVE,
 					message: getErrorMessage(caughtError),
 					variant: "danger",
 				});
@@ -152,9 +155,8 @@ const SourcesScreen = ({
 		(id: string, name: string): void => {
 			dialog.confirm({
 				title: `Archive "${name}"?`,
-				message:
-					"It will be hidden from lists and dropdowns everywhere. You can restore it anytime from Settings \u2192 Archived relations.",
-				confirmLabel: "Archive",
+				message: MESSAGES.COMMON.ARCHIVE_CONFIRM,
+				confirmLabel: MESSAGES.COMMON.ARCHIVE,
 				variant: "danger",
 				onConfirm: () => void handleArchive(id),
 			});
@@ -274,7 +276,7 @@ const SourcesScreen = ({
 						</View>
 						<View style={styles.actions}>
 							<Pressable
-								accessibilityLabel="Validate"
+								accessibilityLabel={MESSAGES.COMMON.VALIDATE}
 								accessibilityRole="button"
 								hitSlop={8}
 								onPress={() => void handleValidate(source.id)}
@@ -291,7 +293,7 @@ const SourcesScreen = ({
 								/>
 							</Pressable>
 							<Pressable
-								accessibilityLabel="Archive"
+								accessibilityLabel={MESSAGES.COMMON.ARCHIVE}
 								accessibilityRole="button"
 								hitSlop={8}
 								onPress={() =>
@@ -334,7 +336,7 @@ const SourcesScreen = ({
 				{searchVisible ? (
 					<SearchBar
 						onChangeText={setSearchQuery}
-						placeholder="Search sources..."
+						placeholder={MESSAGES.SOURCES.SEARCH_PLACEHOLDER}
 						value={searchQuery}
 					/>
 				) : null}
@@ -351,10 +353,14 @@ const SourcesScreen = ({
 				icon={isFiltered ? "filter-outline" : "add-circle-outline"}
 				message={
 					isFiltered
-						? "No sources match the selected filters."
-						: "Add your first source to get started."
+						? MESSAGES.SOURCES.FILTERED_MESSAGE
+						: MESSAGES.SOURCES.EMPTY_MESSAGE
 				}
-				title={isFiltered ? "No matching sources" : "No sources yet"}
+				title={
+					isFiltered
+						? MESSAGES.SOURCES.NO_MATCHES_TITLE
+						: MESSAGES.SOURCES.EMPTY_TITLE
+				}
 			/>
 		);
 	}, [searchDebounced, sourceFilter]);

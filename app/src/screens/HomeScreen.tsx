@@ -12,9 +12,14 @@ import GlassCard from "@/components/GlassCard";
 import HeaderIconButton from "@/components/HeaderIconButton";
 import ScreenContainer from "@/components/ScreenContainer";
 import COLORS from "@/constants/colors";
+import {
+	DEFAULT_HOME_MODE,
+	HEALTH,
+	HOME_MODE_OPTIONS,
+} from "@/constants/homeModes";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import type HomeMode from "@/types/HomeMode";
-import type HomeModeOption from "@/types/HomeModeOption";
 import type HomeScreenProps from "@/types/HomeScreenProps";
 import type HomeTile from "@/types/HomeTile";
 import type { ViewStyle } from "react-native";
@@ -32,14 +37,9 @@ const {
 	SPACING,
 } = styleConstants;
 
-const MODE_OPTIONS: readonly HomeModeOption[] = [
-	{ mode: "TOOLS", label: "Tools", icon: "construct-outline" },
-	{ mode: "FINANCE", label: "Finance", icon: "wallet-outline" },
-	{ mode: "HEALTH", label: "Health", icon: "fitness-outline" },
-];
-
 const getModeLabel = (mode: HomeMode): string =>
-	MODE_OPTIONS.find((option) => option.mode === mode)?.label ?? "Tools";
+	HOME_MODE_OPTIONS.find((option) => option.mode === mode)?.label ??
+	MESSAGES.HOME.DEFAULT_MODE_LABEL;
 
 const getPressableScaleStyle = (
 	pressed: boolean,
@@ -48,51 +48,51 @@ const getPressableScaleStyle = (
 const getTileIconBackgroundColor = (color: string): string => `${color}20`;
 
 const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
-	const [mode, setMode] = useState<HomeMode>("FINANCE");
+	const [mode, setMode] = useState<HomeMode>(DEFAULT_HOME_MODE);
 
 	const tilesByMode = useMemo(
 		(): Readonly<Record<HomeMode, readonly HomeTile[]>> => ({
 			TOOLS: [
 				{
-					label: "Notes",
-					subtitle: "Capture details",
+					label: MESSAGES.HOME.NOTES_LABEL,
+					subtitle: MESSAGES.HOME.NOTES_SUBTITLE,
 					icon: "document-text-outline",
-					color: "#73B7FF",
+					color: COLORS.skyBlue,
 					handlePress: () => navigation.navigate("Notes"),
 				},
 				{
-					label: "Todos",
-					subtitle: "Things to finish",
+					label: MESSAGES.HOME.TODOS_LABEL,
+					subtitle: MESSAGES.HOME.TODOS_SUBTITLE,
 					icon: "checkbox-outline",
 					color: COLORS.success,
 					handlePress: () => navigation.navigate("Todos"),
 				},
 				{
-					label: "Documents",
-					subtitle: "Files & attachments",
+					label: MESSAGES.HOME.DOCUMENTS_LABEL,
+					subtitle: MESSAGES.HOME.DOCUMENTS_SUBTITLE,
 					icon: "documents-outline",
 					color: COLORS.primary,
 					handlePress: () => navigation.navigate("Documents"),
 				},
 				{
-					label: "Passwords",
-					subtitle: "Local credentials",
+					label: MESSAGES.HOME.PASSWORDS_LABEL,
+					subtitle: MESSAGES.HOME.PASSWORDS_SUBTITLE,
 					icon: "key-outline",
 					color: COLORS.warning,
 					handlePress: () =>
 						navigation.navigate("Vault", { kind: "PASSWORD" }),
 				},
 				{
-					label: "Cards",
-					subtitle: "Payment details",
+					label: MESSAGES.HOME.CARDS_LABEL,
+					subtitle: MESSAGES.HOME.CARDS_SUBTITLE,
 					icon: "card-outline",
-					color: "#FF8FA3",
+					color: COLORS.pink,
 					handlePress: () =>
 						navigation.navigate("Vault", { kind: "CARD" }),
 				},
 				{
-					label: "Identity",
-					subtitle: "Personal records",
+					label: MESSAGES.HOME.IDENTITY_LABEL,
+					subtitle: MESSAGES.HOME.IDENTITY_SUBTITLE,
 					icon: "person-circle-outline",
 					color: COLORS.blue,
 					handlePress: () =>
@@ -101,45 +101,45 @@ const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
 			],
 			FINANCE: [
 				{
-					label: "Transactions",
-					subtitle: "Money movements",
+					label: MESSAGES.HOME.TRANSACTIONS_LABEL,
+					subtitle: MESSAGES.HOME.TRANSACTIONS_SUBTITLE,
 					icon: "swap-horizontal",
 					color: COLORS.primary,
 					handlePress: () => navigation.navigate("Transactions"),
 				},
 				{
-					label: "Sources",
-					subtitle: "Accounts & cards",
+					label: MESSAGES.HOME.SOURCES_LABEL,
+					subtitle: MESSAGES.HOME.SOURCES_SUBTITLE,
 					icon: "wallet-outline",
 					color: COLORS.blue,
 					handlePress: () => navigation.navigate("Sources"),
 				},
 				{
-					label: "Categories",
-					subtitle: "Income & expense",
+					label: MESSAGES.HOME.CATEGORIES_LABEL,
+					subtitle: MESSAGES.HOME.CATEGORIES_SUBTITLE,
 					icon: "pricetags-outline",
 					color: COLORS.warning,
 					handlePress: () => navigation.navigate("Categories"),
 				},
 				{
-					label: "Trips",
-					subtitle: "Travel spending",
+					label: MESSAGES.HOME.TRIPS_LABEL,
+					subtitle: MESSAGES.HOME.TRIPS_SUBTITLE,
 					icon: "airplane-outline",
-					color: "#68D5FF",
+					color: COLORS.cyan,
 					handlePress: () => navigation.navigate("Trips"),
 				},
 				{
-					label: "Investments",
-					subtitle: "Invested & redeemed",
+					label: MESSAGES.HOME.INVESTMENTS_LABEL,
+					subtitle: MESSAGES.HOME.INVESTMENTS_SUBTITLE,
 					icon: "trending-up",
 					color: COLORS.success,
 					handlePress: () => navigation.navigate("Investments"),
 				},
 				{
-					label: "Analysis",
-					subtitle: "Category-driven",
+					label: MESSAGES.HOME.ANALYSIS_LABEL,
+					subtitle: MESSAGES.HOME.ANALYSIS_SUBTITLE,
 					icon: "pie-chart-outline",
-					color: "#C9A7FF",
+					color: COLORS.lavender,
 					handlePress: () => navigation.navigate("Analysis"),
 				},
 			],
@@ -193,7 +193,11 @@ const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
 
 	return (
 		<LinearGradient
-			colors={[COLORS.background, "#171029", COLORS.background]}
+			colors={[
+				COLORS.background,
+				COLORS.backgroundTint,
+				COLORS.background,
+			]}
 			style={styles.background}
 		>
 			<SafeAreaView style={styles.safeArea}>
@@ -207,24 +211,24 @@ const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
 						</CustomText>
 						<View style={styles.headerActions}>
 							<HeaderIconButton
-								accessibilityLabel="Search"
+								accessibilityLabel={MESSAGES.COMMON.SEARCH}
 								icon="search-outline"
 								onPress={() =>
 									navigation.navigate("GlobalSearch")
 								}
 							/>
 							<HeaderIconButton
-								accessibilityLabel="Settings"
+								accessibilityLabel={MESSAGES.HOME.SETTINGS}
 								icon="settings-outline"
 								onPress={() => navigation.navigate("Settings")}
 							/>
 						</View>
 					</View>
-					{mode === "HEALTH" ? (
+					{mode === HEALTH ? (
 						<EmptyState
 							icon="fitness-outline"
-							message="Health tracking is on the way."
-							title="Coming soon"
+							message={MESSAGES.HOME.HEALTH_PLACEHOLDER}
+							title={MESSAGES.HOME.COMING_SOON}
 						/>
 					) : (
 						renderTiles(tilesByMode[mode])
@@ -234,7 +238,7 @@ const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
 					<BottomNavBar
 						activeMode={mode}
 						onSelectMode={setMode}
-						options={MODE_OPTIONS}
+						options={HOME_MODE_OPTIONS}
 					/>
 				</View>
 			</SafeAreaView>
@@ -315,9 +319,4 @@ const styles = StyleSheet.create({
 
 export default HomeScreen;
 
-export {
-	getModeLabel,
-	getPressableScaleStyle,
-	getTileIconBackgroundColor,
-	MODE_OPTIONS,
-};
+export { getModeLabel, getPressableScaleStyle, getTileIconBackgroundColor };
