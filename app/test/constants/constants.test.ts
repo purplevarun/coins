@@ -48,6 +48,6 @@ describe("constants", () => {
 	it("exposes folder/home constants", () => {
 		expect(folderConstants.FOLDER_FILTER_ALL).toBe("__ALL_FOLDERS__");
 		expect(folderConstants.FOLDER_FILTER_NONE).toBe("__NO_FOLDER__");
-		expect(HOME_MODES).toEqual(["TOOLS", "FINANCE", "HEALTH"]);
+		expect(HOME_MODES).toEqual(["FINANCE", "TOOLS"]);
 	});
 });

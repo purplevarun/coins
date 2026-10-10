@@ -153,27 +153,6 @@ describe("HomeScreen", () => {
 		});
 	});
 
-	it("renders health mode as a coming soon state", () => {
-		const navigation = { navigate: vi.fn() };
-		reactMocks.useState.mockImplementation(() => ["HEALTH", vi.fn()]);
-
-		const tree = HomeScreen({ navigation } as any);
-
-		const comingSoon = findByPredicate(
-			tree,
-			(node) => node?.props?.title === "Coming soon",
-		);
-		expect(comingSoon).not.toHaveLength(0);
-		expect(comingSoon[0].props.icon).toBe("fitness-outline");
-
-		findByPredicate(
-			tree,
-			(node) => typeof node?.props?.onPress === "function",
-		).forEach((node) => node.props.onPress());
-		expect(navigation.navigate).toHaveBeenCalledWith("GlobalSearch");
-		expect(navigation.navigate).toHaveBeenCalledWith("Settings");
-	});
-
 	it("passes mode state to the bottom nav and applies selection", () => {
 		const navigation = { navigate: vi.fn() };
 		const setMode = vi.fn();
@@ -190,9 +169,12 @@ describe("HomeScreen", () => {
 		expect(navBar).toBeTruthy();
 		expect(navBar.props.activeMode).toBe("FINANCE");
 		expect(navBar.props.options).toEqual(HOME_MODE_OPTIONS);
+		expect(navBar.props.options.map((option: any) => option.label)).toEqual(
+			["Finance", "Tools"],
+		);
 
-		navBar.props.onSelectMode("HEALTH");
-		expect(setMode).toHaveBeenCalledWith("HEALTH");
+		navBar.props.onSelectMode("TOOLS");
+		expect(setMode).toHaveBeenCalledWith("TOOLS");
 	});
 
 	it("executes tile style callbacks", () => {
@@ -215,10 +197,9 @@ describe("HomeScreen", () => {
 	});
 
 	it("covers HomeScreen helper metadata directly", () => {
-		expect(HOME_MODE_OPTIONS).toHaveLength(3);
+		expect(HOME_MODE_OPTIONS).toHaveLength(2);
 		expect(getModeLabel("TOOLS")).toBe("Tools");
 		expect(getModeLabel("FINANCE")).toBe("Finance");
-		expect(getModeLabel("HEALTH")).toBe("Health");
 		expect(getModeLabel("UNKNOWN" as any)).toBe("Tools");
 		expect(getPressableScaleStyle(true)).toEqual([
 			{ transform: [{ scale: 0.98 }] },

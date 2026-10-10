@@ -7,16 +7,11 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import BottomNavBar from "@/components/BottomNavBar";
-import EmptyState from "@/components/EmptyState";
 import GlassCard from "@/components/GlassCard";
 import HeaderIconButton from "@/components/HeaderIconButton";
 import ScreenContainer from "@/components/ScreenContainer";
 import COLORS from "@/constants/colors";
-import {
-	DEFAULT_HOME_MODE,
-	HEALTH,
-	HOME_MODE_OPTIONS,
-} from "@/constants/homeModes";
+import { DEFAULT_HOME_MODE, HOME_MODE_OPTIONS } from "@/constants/homeModes";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import type HomeMode from "@/types/HomeMode";
@@ -143,7 +138,6 @@ const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
 					handlePress: () => navigation.navigate("Analysis"),
 				},
 			],
-			HEALTH: [],
 		}),
 		[navigation],
 	);
@@ -224,15 +218,7 @@ const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
 							/>
 						</View>
 					</View>
-					{mode === HEALTH ? (
-						<EmptyState
-							icon="fitness-outline"
-							message={MESSAGES.HOME.HEALTH_PLACEHOLDER}
-							title={MESSAGES.HOME.COMING_SOON}
-						/>
-					) : (
-						renderTiles(tilesByMode[mode])
-					)}
+					{renderTiles(tilesByMode[mode])}
 				</ScreenContainer>
 				<View style={styles.navDock}>
 					<BottomNavBar

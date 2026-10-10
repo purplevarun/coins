@@ -482,9 +482,6 @@ run_avd_backup_test() {
     adb shell input keyevent 4
   done
 
-  visit_ui_label "Health"
-  assert_ui_label "Coming soon"
-
   visit_ui_label "Finance"
   if ! tap_ui_label "Settings" 1; then
     SIZE=$(adb shell wm size | sed -n 's/.*Physical size: \([0-9][0-9]*\)x\([0-9][0-9]*\).*/\1 \2/p')
