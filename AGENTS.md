@@ -1,28 +1,8 @@
 # Command Execution Policy (Highest Priority)
 
-1. Use only the `./run` script for command execution.
-
-2. Never invent commands.
-
-3. Never execute commands directly using:
-    - npm
-    - npx
-    - yarn
-    - pnpm
-    - gradle
-    - vite
-    - jest
-    - tsc
-    - or any other executable
-
-4. Always use an equivalent `./run` command.
-
-Examples:
-
-- Build:
-    ```bash
-    ./run build
-    ```
+1. For build, always use `./run build`.
+2. For testing, always use `./run test`.
+3. For uploading github release, always use `./run release`.
 
 # Database Rules
 
@@ -30,7 +10,6 @@ Examples:
 2. No Constraints, No Checks
 3. DDL will be very simple - just the tables and indexes
 4. Any new migration will be added to migrations file and also in the default schema for new installs!
-5. 
 
 # Scope Control
 
