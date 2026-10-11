@@ -273,6 +273,9 @@ describe("presentational components", () => {
 		expect(warning.props.style[1].borderColor).toBeTruthy();
 		const defaultCard = GlassCard({ children: "x" }) as any;
 		expect(defaultCard.props.style[1].borderColor).toBeTruthy();
+		expect(defaultCard.props.children.props.style).not.toHaveProperty(
+			"flex",
+		);
 	});
 
 	it("covers ScreenContainer and ScreenList branches", () => {

@@ -6,7 +6,7 @@ import COLORS from "@/constants/colors";
 import styleConstants from "@/constants/styleConstants";
 import type GlassCardProps from "@/types/GlassCardProps";
 
-const { BORDER, FLEX, OVERFLOW, RADIUS, SHADOW, SPACING } = styleConstants;
+const { BORDER, OVERFLOW, RADIUS, SHADOW, SPACING } = styleConstants;
 
 const getAccentColor = (accent: GlassCardProps["accent"]): string => {
 	if (accent === "success") {
@@ -48,7 +48,6 @@ const styles = StyleSheet.create({
 		elevation: SHADOW.ELEVATION_LOW,
 	},
 	blur: {
-		flex: FLEX.FILL,
 		backgroundColor: COLORS.glass,
 	},
 	content: {
