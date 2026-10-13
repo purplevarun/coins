@@ -12,6 +12,7 @@ const {
 	getArchivedCategoryRows,
 	getCategoryRow,
 	getCategoryRows,
+	mergeCategoryRows,
 	setCategoryArchivedRow,
 	upsertCategoryRow,
 } = financeRepository;
@@ -98,11 +99,47 @@ const deleteCategory = async (
 	await deleteCategoryRow(database, id);
 };
 
+const mergeCategories = async (
+	database: SQLiteDatabase,
+	sourceId: string,
+	targetId: string,
+): Promise<void> => {
+	if (!sourceId || !targetId) {
+		throw new AppError("CATEGORY_REQUIRED", "Select a category.");
+	}
+	if (sourceId === targetId) {
+		throw new AppError(
+			"CATEGORY_MERGE_SAME",
+			"Choose a different category to merge into.",
+		);
+	}
+	await database.withTransactionAsync(async (): Promise<void> => {
+		const [source, target] = await Promise.all([
+			getCategoryRow(database, sourceId),
+			getCategoryRow(database, targetId),
+		]);
+		if (!source || !target) {
+			throw new AppError(
+				"CATEGORY_NOT_FOUND",
+				"The selected category no longer exists.",
+			);
+		}
+		if (source.kind !== target.kind) {
+			throw new AppError(
+				"CATEGORY_KIND_MISMATCH",
+				"Only categories of the same kind can be merged.",
+			);
+		}
+		await mergeCategoryRows(database, sourceId, targetId, Date.now());
+	});
+};
+
 const categoryService = {
 	deleteCategory,
 	getArchivedCategories,
 	getCategories,
 	getCategory,
+	mergeCategories,
 	saveCategory,
 	setCategoryArchived,
 };

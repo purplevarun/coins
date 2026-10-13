@@ -49,6 +49,12 @@ vi.mock("react-native", () => ({
 vi.mock("@/components/AppButton", () => ({
 	default: (props: any) => ({ type: "AppButton", props }),
 }));
+vi.mock("@/components/CategoryConversionModal", () => ({
+	default: (props: any) => ({ type: "CategoryConversionModal", props }),
+}));
+vi.mock("@/components/InvestmentConversionModal", () => ({
+	default: (props: any) => ({ type: "InvestmentConversionModal", props }),
+}));
 vi.mock("@/components/CustomText", () => ({
 	default: (props: any) => ({ type: "CustomText", props }),
 }));
@@ -266,6 +272,80 @@ describe("LinkedTransactionsScreen", () => {
 					transactionId: "tx9",
 				},
 			);
+		},
+	);
+
+	it.each([
+		{ kind: "CATEGORY" as const, relation: "category" },
+		{ kind: "INVESTMENT" as const, relation: "investment" },
+	])(
+		"converts a $relation from beside Edit and Delete",
+		async ({ kind, relation }) => {
+			const navigation = { navigate: vi.fn(), goBack: vi.fn() };
+			const setIsConvertOpen = vi.fn();
+			let call = 0;
+			reactMocks.useState.mockImplementation((initial: any) => {
+				call += 1;
+				if (call === 3) return [true, setIsConvertOpen];
+				return [initial, vi.fn()];
+			});
+			const tree = LinkedTransactionsScreen({
+				navigation,
+				route: {
+					key: "convert",
+					name: "LinkedTransactions",
+					params: { entityId: "pf", entityName: "PF", kind },
+				},
+			} as unknown as LinkedTransactionsScreenProps);
+			await flush();
+			const labels = findByPredicate(
+				tree,
+				(node) => typeof node?.props?.label === "string",
+			).map((node) => node.props.label);
+			expect(labels).toEqual(
+				expect.arrayContaining(["Edit", "Convert", "Delete"]),
+			);
+			findByPredicate(
+				tree,
+				(node) => node?.props?.label === "Convert",
+			)[0]?.props.onPress();
+			expect(setIsConvertOpen).toHaveBeenCalledWith(true);
+			const [popup] = findByPredicate(
+				tree,
+				(node) => typeof node?.props?.onCompleted === "function",
+			);
+			expect(popup.props).toMatchObject({
+				isVisible: true,
+				[relation]: { id: "pf", name: "PF" },
+			});
+			popup.props.onClose();
+			expect(setIsConvertOpen).toHaveBeenLastCalledWith(false);
+			popup.props.onCompleted();
+			expect(hookMocks.refreshData).toHaveBeenCalledOnce();
+			expect(navigation.goBack).toHaveBeenCalledOnce();
+		},
+	);
+
+	it.each(["SOURCE", "TRIP"] as const)(
+		"does not offer conversion for a %s",
+		async (kind) => {
+			const tree = LinkedTransactionsScreen({
+				navigation: { navigate: vi.fn(), goBack: vi.fn() },
+				route: {
+					key: "no-convert",
+					name: "LinkedTransactions",
+					params: { entityId: "e1", entityName: "Entity", kind },
+				},
+			} as unknown as LinkedTransactionsScreenProps);
+			await flush();
+			expect(
+				findByPredicate(
+					tree,
+					(node) =>
+						node?.props?.label === "Convert" ||
+						typeof node?.props?.onCompleted === "function",
+				),
+			).toHaveLength(0);
 		},
 	);
 

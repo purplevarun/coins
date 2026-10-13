@@ -8,6 +8,7 @@ import type ExchangeRate from "@/types/ExchangeRate";
 import type Investment from "@/types/Investment";
 import type InvestmentAnalysisRow from "@/types/InvestmentAnalysisRow";
 import type InvestmentType from "@/types/InvestmentType";
+import type RelationKind from "@/types/RelationKind";
 import type SimpleEntity from "@/types/SimpleEntity";
 import type Source from "@/types/Source";
 import type Transaction from "@/types/Transaction";
@@ -339,6 +340,49 @@ const deleteCategoryRow = async (
 	id: string,
 ): Promise<void> => {
 	await database.runAsync("DELETE FROM categories WHERE id = ?;", id);
+};
+
+const deleteCategoryBudgetRows = async (
+	database: SQLiteDatabase,
+	categoryId: string,
+): Promise<void> => {
+	await database.runAsync(
+		"DELETE FROM budgets WHERE category_id = ?;",
+		categoryId,
+	);
+};
+
+const mergeCategoryRows = async (
+	database: SQLiteDatabase,
+	sourceId: string,
+	targetId: string,
+	updatedAt: number,
+): Promise<void> => {
+	await database.runAsync(
+		"UPDATE transactions SET category_id = ?, updated_at = ? WHERE category_id = ?;",
+		targetId,
+		updatedAt,
+		sourceId,
+	);
+	await database.runAsync(
+		"UPDATE transaction_items SET category_id = ?, updated_at = ? WHERE category_id = ?;",
+		targetId,
+		updatedAt,
+		sourceId,
+	);
+	await database.runAsync(
+		`DELETE FROM budgets WHERE category_id = ?
+			AND period IN (SELECT period FROM budgets WHERE category_id = ?);`,
+		sourceId,
+		targetId,
+	);
+	await database.runAsync(
+		"UPDATE budgets SET category_id = ?, updated_at = ? WHERE category_id = ?;",
+		targetId,
+		updatedAt,
+		sourceId,
+	);
+	await deleteCategoryRow(database, sourceId);
 };
 
 const categoryInUseRow = async (
@@ -937,6 +981,56 @@ const createTransactionItemRow = async (
 	);
 };
 
+const deleteTransactionItemRow = async (
+	database: SQLiteDatabase,
+	id: string,
+): Promise<void> => {
+	await database.runAsync("DELETE FROM transaction_items WHERE id = ?;", id);
+};
+
+const getLinkedTransactionIdRows = async (
+	database: SQLiteDatabase,
+	kind: Extract<RelationKind, "CATEGORY" | "INVESTMENT">,
+	id: string,
+): Promise<readonly string[]> => {
+	const rows = await database.getAllAsync<Pick<SimpleEntity, "id">>(
+		kind === "CATEGORY"
+			? `SELECT id FROM transactions WHERE category_id = ?
+				UNION SELECT transaction_id AS id FROM transaction_items WHERE category_id = ?;`
+			: "SELECT id FROM transactions WHERE investment_id = ?;",
+		...(kind === "CATEGORY" ? [id, id] : [id]),
+	);
+	return rows.map((row) => row.id);
+};
+
+const updateTransactionRelationRow = async (
+	database: SQLiteDatabase,
+	id: string,
+	transaction: Pick<
+		TransactionInput,
+		| "classification"
+		| "amount"
+		| "categoryId"
+		| "tripId"
+		| "investmentId"
+		| "reason"
+	>,
+	updatedAt: number,
+): Promise<void> => {
+	await database.runAsync(
+		`UPDATE transactions SET classification = ?, amount = ?, category_id = ?,
+			trip_id = ?, investment_id = ?, reason = ?, updated_at = ? WHERE id = ?;`,
+		transaction.classification,
+		transaction.amount,
+		transaction.categoryId ?? null,
+		transaction.tripId ?? null,
+		transaction.investmentId ?? null,
+		transaction.reason,
+		updatedAt,
+		id,
+	);
+};
+
 const deleteTransactionItemRows = async (
 	database: SQLiteDatabase,
 	id: string,
@@ -961,7 +1055,7 @@ const invalidateTransactionSources = async (
 	);
 };
 
-const createTransactionRow = async (
+const insertTransactionRow = async (
 	database: SQLiteDatabase,
 	transaction: TransactionInput,
 	id: string,
@@ -990,6 +1084,15 @@ const createTransactionRow = async (
 		now,
 		now,
 	);
+};
+
+const createTransactionRow = async (
+	database: SQLiteDatabase,
+	transaction: TransactionInput,
+	id: string,
+	now: number,
+): Promise<void> => {
+	await insertTransactionRow(database, transaction, id, now);
 	await invalidateTransactionSources(database, id);
 };
 
@@ -1194,10 +1297,12 @@ const financeRepository = {
 	createTransactionRow,
 	createTransactionItemRow,
 	deleteBudgetRow,
+	deleteCategoryBudgetRows,
 	deleteCategoryRow,
 	deleteSimpleEntityRow,
 	deleteSourceRow,
 	deleteTransactionRow,
+	deleteTransactionItemRow,
 	deleteTransactionItemRows,
 	getArchivedCategoryRows,
 	getArchivedInvestmentRows,
@@ -1214,6 +1319,7 @@ const financeRepository = {
 	getInvestmentRow,
 	getInvestmentRows,
 	getInvestmentTypeRows,
+	getLinkedTransactionIdRows,
 	getSourceRow,
 	getSourceRows,
 	getTransactionCurrencyRows,
@@ -1228,6 +1334,8 @@ const financeRepository = {
 	tripInUseRow,
 	investmentInUseRow,
 	investmentTypeNameExistsRow,
+	insertTransactionRow,
+	mergeCategoryRows,
 	setCategoryArchivedRow,
 	setSimpleEntityArchivedRow,
 	setSourceArchivedRow,
@@ -1236,6 +1344,7 @@ const financeRepository = {
 	sourceNameExistsRow,
 	updateSourceNameRow,
 	updateTransactionRow,
+	updateTransactionRelationRow,
 	upsertBudgetRow,
 	upsertCategoryRow,
 	upsertExchangeRateRow,

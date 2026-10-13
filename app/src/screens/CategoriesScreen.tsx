@@ -13,6 +13,7 @@ import {
 } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
+import CategoryMergeModal from "@/components/CategoryMergeModal";
 import EmptyState from "@/components/EmptyState";
 import FloatingAddButton from "@/components/FloatingAddButton";
 import GlassCard from "@/components/GlassCard";
@@ -84,6 +85,7 @@ const CategoriesScreen = ({
 	const [searchVisible, setSearchVisible] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [searchDebounced, setSearchDebounced] = useState("");
+	const [isMergeOpen, setIsMergeOpen] = useState(false);
 
 	const getScreenData = useCallback(async (): Promise<void> => {
 		try {
@@ -138,6 +140,13 @@ const CategoriesScreen = ({
 							setSearchQuery("");
 							setSearchDebounced("");
 						}}
+					/>
+					<HeaderIconButton
+						accessibilityLabel={
+							MESSAGES.RELATION_ACTIONS.MERGE_CATEGORIES
+						}
+						icon="git-merge-outline"
+						onPress={() => setIsMergeOpen(true)}
 					/>
 					<HeaderIconButton
 						accessibilityLabel={MESSAGES.BUDGETS.TITLE}
@@ -400,6 +409,16 @@ const CategoriesScreen = ({
 			/>
 			<FloatingAddButton
 				onPress={() => navigation.navigate("CategoryForm")}
+			/>
+			<CategoryMergeModal
+				isVisible={isMergeOpen}
+				kind={categoryFilter}
+				onClose={() => setIsMergeOpen(false)}
+				onCompleted={() => {
+					setIsMergeOpen(false);
+					refreshData();
+					void getScreenData();
+				}}
 			/>
 		</View>
 	);

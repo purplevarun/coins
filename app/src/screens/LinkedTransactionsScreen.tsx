@@ -6,10 +6,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import AppButton from "@/components/AppButton";
+import CategoryConversionModal from "@/components/CategoryConversionModal";
 import CustomText from "@/components/CustomText";
 import EmptyState from "@/components/EmptyState";
 import FloatingAddButton from "@/components/FloatingAddButton";
 import GlassCard from "@/components/GlassCard";
+import InvestmentConversionModal from "@/components/InvestmentConversionModal";
 import ListHeader from "@/components/ListHeader";
 import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
@@ -81,7 +83,9 @@ const LinkedTransactionsScreen = ({
 		[],
 	);
 	const [error, setError] = useState("");
+	const [isConvertOpen, setIsConvertOpen] = useState(false);
 	const relationLabels = getRelationLabels(kind);
+	const isConvertible = kind === "CATEGORY" || kind === "INVESTMENT";
 
 	const getScreenData = useCallback(async (): Promise<void> => {
 		try {
@@ -147,6 +151,12 @@ const LinkedTransactionsScreen = ({
 		});
 	}, [dialog, entityName, processDelete, relationLabels.singular]);
 
+	const handleConverted = (): void => {
+		setIsConvertOpen(false);
+		refreshData();
+		navigation.goBack();
+	};
+
 	const handleEdit = useCallback((): void => {
 		if (kind === "SOURCE") {
 			navigation.navigate("SourceForm", { entityId });
@@ -207,6 +217,15 @@ const LinkedTransactionsScreen = ({
 							onPress={handleEdit}
 							variant="secondary"
 						/>
+						{isConvertible ? (
+							<AppButton
+								icon="swap-horizontal-outline"
+								isCompact
+								label={MESSAGES.RELATION_ACTIONS.CONVERT}
+								onPress={() => setIsConvertOpen(true)}
+								variant="secondary"
+							/>
+						) : null}
 						<AppButton
 							icon="trash-outline"
 							isCompact
@@ -225,6 +244,7 @@ const LinkedTransactionsScreen = ({
 			error,
 			handleDelete,
 			handleEdit,
+			isConvertible,
 			kind,
 			transactions.length,
 		],
@@ -277,6 +297,22 @@ const LinkedTransactionsScreen = ({
 								: { initialCategoryId: entityId },
 						)
 					}
+				/>
+			) : null}
+			{kind === "CATEGORY" ? (
+				<CategoryConversionModal
+					category={{ id: entityId, name: entityName }}
+					isVisible={isConvertOpen}
+					onClose={() => setIsConvertOpen(false)}
+					onCompleted={handleConverted}
+				/>
+			) : null}
+			{kind === "INVESTMENT" ? (
+				<InvestmentConversionModal
+					investment={{ id: entityId, name: entityName }}
+					isVisible={isConvertOpen}
+					onClose={() => setIsConvertOpen(false)}
+					onCompleted={handleConverted}
 				/>
 			) : null}
 		</View>

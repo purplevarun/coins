@@ -133,6 +133,15 @@ vi.mock("@/components/CustomText", () => ({
 vi.mock("@/components/EmptyState", () => ({
 	default: (props: any) => ({ type: "EmptyState", props }),
 }));
+vi.mock("@/components/CategoryMergeModal", () => ({
+	default: (props: unknown) => ({ type: "CategoryMergeModal", props }),
+}));
+vi.mock("@/components/CategoryConversionModal", () => ({
+	default: (props: unknown) => ({ type: "CategoryConversionModal", props }),
+}));
+vi.mock("@/components/InvestmentConversionModal", () => ({
+	default: (props: unknown) => ({ type: "InvestmentConversionModal", props }),
+}));
 vi.mock("@/components/FloatingAddButton", () => ({
 	default: (props: any) => ({ type: "FloatingAddButton", props }),
 }));
@@ -1735,6 +1744,50 @@ describe("list screens", () => {
 			).not.toHaveBeenCalled();
 		},
 	);
+
+	it("merges categories from the Categories header branch action", async () => {
+		const navigation = {
+			navigate: vi.fn(),
+			setOptions: vi.fn<(options: HeaderOptions) => void>(),
+		};
+		const setIsMergeOpen = vi.fn();
+		let call = 0;
+		reactMocks.useState.mockImplementation((initial: unknown) => {
+			call += 1;
+			if (call === 2) return ["INCOME", vi.fn()];
+			if (call === 10) return [true, setIsMergeOpen];
+			return [initial, vi.fn()];
+		});
+		const tree = (CategoriesScreen as (props: unknown) => ReactElement)({
+			navigation,
+		});
+		await flush();
+		reactMocks.useLayoutEffect.mock.calls.forEach(([effect]) => effect());
+		const header = navigation.setOptions.mock.calls[0]?.[0].headerRight();
+		const mergeButton = findElement<HeaderIconButtonProps>(
+			header,
+			(props) => props.accessibilityLabel === "Merge categories",
+		);
+		expect(mergeButton.props.icon).toBe("git-merge-outline");
+		mergeButton.props.onPress();
+		expect(setIsMergeOpen).toHaveBeenCalledWith(true);
+		const popup = findElement<{
+			isVisible: boolean;
+			kind: string;
+			onClose: () => void;
+			onCompleted: () => void;
+		}>(tree, (props) => typeof props.onCompleted === "function");
+		expect(popup.props).toMatchObject({ isVisible: true, kind: "INCOME" });
+		popup.props.onClose();
+		expect(setIsMergeOpen).toHaveBeenLastCalledWith(false);
+		const loads = serviceMocks.getCategories.mock.calls.length;
+		popup.props.onCompleted();
+		await flush();
+		expect(hookMocks.refreshData).toHaveBeenCalled();
+		expect(serviceMocks.getCategories.mock.calls.length).toBeGreaterThan(
+			loads,
+		);
+	});
 
 	it("opens Budgets from the Categories header", async () => {
 		const navigation = {

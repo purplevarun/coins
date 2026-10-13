@@ -370,6 +370,35 @@ const LINKED_TRANSACTIONS = {
 	EMPTY_TITLE: "No linked transactions",
 } as const;
 
+const RELATION_ACTIONS = {
+	CATEGORY_CONVERTED_MESSAGE:
+		"Category history now belongs to the selected investment.",
+	CONVERT: "Convert",
+	CONVERTED_TITLE: "Conversion complete",
+	CONVERT_TO_CATEGORY: "Convert to category",
+	CONVERT_TO_INVESTMENT: "Convert to investment",
+	INTO_CATEGORY: "Into category",
+	INVESTMENT_CONVERTED_MESSAGE:
+		"Investment history now belongs to the selected category.",
+	MERGE: "Merge",
+	MERGE_CATEGORIES: "Merge categories",
+	MERGE_CATEGORY: "Merge category",
+	MERGED_MESSAGE: "Category history now belongs to the selected category.",
+	MERGED_TITLE: "Categories merged",
+	MERGE_MESSAGE:
+		"Transactions, expense items and budgets move into the second category, then the first category is deleted. Budgets already on the second category are kept. Source balances stay the same.",
+	NEW_CATEGORY: "New category",
+	NEW_INVESTMENT: "New investment",
+	NO_MERGE_TARGETS: "No other category of this kind",
+	SELECT_CATEGORY: "Select category",
+	TARGET_CATEGORY: "Target category",
+	TARGET_INVESTMENT: "Target investment",
+	TO_CATEGORY_MESSAGE:
+		"Invested amounts become expense items and redemptions become credits. This investment is then deleted. Source balances stay the same.",
+	TO_INVESTMENT_MESSAGE:
+		"Debits become invested amounts and credits become redemptions. Mixed expenses are split, trip tags and this category's budgets are removed, then this category is deleted. Source balances stay the same.",
+} as const;
+
 const COMPONENTS = {
 	ATTACHMENT: "Attachment",
 	CHOOSE_DOCUMENT: "Choose document",
@@ -421,6 +450,7 @@ const MESSAGES = {
 	LINKED_TRANSACTIONS,
 	NOTES,
 	RELATION_DETAILS,
+	RELATION_ACTIONS,
 	RELATION_FORMS,
 	SETTINGS,
 	SOURCES,
