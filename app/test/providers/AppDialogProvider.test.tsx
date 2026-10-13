@@ -22,6 +22,8 @@ vi.mock("@expo/vector-icons", () => ({
 	Ionicons: (props: any) => ({ type: "Ionicons", props }),
 }));
 
+vi.mock("expo-blur", () => ({ BlurView: "BlurView" }));
+
 vi.mock("react-native", () => ({
 	Modal: (props: any) => ({ type: "Modal", props }),
 	Pressable: (props: any) => ({ type: "Pressable", props }),
@@ -53,8 +55,13 @@ vi.mock("@/providers/AppDialogContext", () => ({
 	},
 }));
 
+import GlassCard from "@/components/GlassCard";
 import COLORS from "@/constants/colors";
 import AppDialogProvider from "@/providers/AppDialogProvider";
+import type AppButtonProps from "@/types/AppButtonProps";
+import type GlassCardProps from "@/types/GlassCardProps";
+import { isValidElement, type ReactElement } from "react";
+import type { ViewProps } from "react-native";
 
 const setupState = (activeDialog: any): void => {
 	reactMocks.useState.mockReset();
@@ -153,6 +160,53 @@ describe("AppDialogProvider", () => {
 		confirmButton?.props.onPress();
 		expect(setActiveDialog).toHaveBeenCalledWith(null);
 		expect(onConfirm).toHaveBeenCalledTimes(1);
+	});
+
+	it("keeps the update confirmation card content-sized and actionable", async () => {
+		const onConfirm = vi.fn();
+		setupState({
+			mode: "CONFIRM",
+			options: {
+				title: "Update available",
+				message: "Version 2026.10.13 is ready to download and install.",
+				confirmLabel: "Update",
+				onConfirm,
+			},
+		});
+
+		const element = AppDialogProvider({ children: null });
+		const cards = collectNodesByPredicate(
+			element,
+			(node: unknown) => isValidElement(node) && node.type === GlassCard,
+		) as ReactElement<GlassCardProps>[];
+		expect(cards).toHaveLength(1);
+		const card = cards[0];
+		if (!card) throw new Error("Update confirmation card missing");
+		expect(card.props.accent).toBe("warning");
+		const { default: renderGlassCard } = await vi.importActual<
+			typeof import("@/components/GlassCard")
+		>("@/components/GlassCard");
+		const renderedCard = renderGlassCard(card.props);
+		expect(isValidElement<ViewProps>(renderedCard)).toBe(true);
+		if (!isValidElement<ViewProps>(renderedCard)) {
+			throw new Error("Update confirmation card not rendered");
+		}
+		const blur = renderedCard.props.children;
+		expect(isValidElement<ViewProps>(blur)).toBe(true);
+		if (!isValidElement<ViewProps>(blur)) {
+			throw new Error("Update confirmation content missing");
+		}
+		expect(blur.props.style).not.toHaveProperty("flex");
+		const buttons = collectNodesByPredicate(
+			element,
+			(node: unknown) =>
+				isValidElement<AppButtonProps>(node) &&
+				node.props.label === "Update",
+		) as ReactElement<AppButtonProps>[];
+		expect(buttons).toHaveLength(1);
+		buttons[0]?.props.onPress();
+		expect(onConfirm).toHaveBeenCalledOnce();
+		expect(setActiveDialog).toHaveBeenCalledWith(null);
 	});
 
 	it("renders message branch", () => {

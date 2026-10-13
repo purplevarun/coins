@@ -333,13 +333,13 @@ describe("AnalysisScreen", () => {
 			tree,
 			(node) =>
 				typeof node?.props?.onPress === "function" &&
-				JSON.stringify(node).includes("See all categories"),
+				node?.props?.label === "Categories",
 		)[0]?.props?.onPress();
 		findByPredicate(
 			tree,
 			(node) =>
 				typeof node?.props?.onPress === "function" &&
-				JSON.stringify(node).includes("See all investments"),
+				node?.props?.label === "Investments",
 		)[0]?.props?.onPress();
 		await flush();
 
@@ -460,13 +460,15 @@ describe("AnalysisScreen", () => {
 			),
 		).toHaveLength(0);
 		expect(
-			findByPredicate(tree, (node) =>
-				String(JSON.stringify(node)).includes("See all categories"),
+			findByPredicate(
+				tree,
+				(node) => node?.props?.label === "Categories",
 			),
 		).not.toHaveLength(0);
 		expect(
-			findByPredicate(tree, (node) =>
-				String(JSON.stringify(node)).includes("See all investments"),
+			findByPredicate(
+				tree,
+				(node) => node?.props?.label === "Investments",
 			),
 		).not.toHaveLength(0);
 		expect(

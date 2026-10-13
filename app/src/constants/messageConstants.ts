@@ -202,8 +202,8 @@ const ANALYSIS = {
 	MANAGE_EXCHANGE_RATES: "Manage exchange rates",
 	NET_AFTER_INVESTMENTS_METRIC: "Net after investments",
 	SAVINGS_METRIC: "Savings %",
-	SEE_ALL_CATEGORIES: "See all categories",
-	SEE_ALL_INVESTMENTS: "See all investments",
+	SEE_ALL_CATEGORIES: "Categories",
+	SEE_ALL_INVESTMENTS: "Investments",
 	TREND_DESCRIPTION:
 		"Income, expenses and net worth year by year, across every transaction regardless of the selected period.",
 	TREND_EMPTY_MESSAGE: "Add transactions to see trends over time.",
