@@ -9,7 +9,6 @@ node_modules/
 .expo/
 .expo-export-test/
 dist/
-web-build/
 expo-env.d.ts
 
 # Native
@@ -40,8 +39,8 @@ yarn-error.*
 *.tsbuildinfo
 
 # generated native folders
-/app/ios
-/app/android
+/ios
+/android
 
 .npmrc
 data/
@@ -64,10 +63,6 @@ store/
 
 .claude/
 
-app/bun.lock
-app/package-lock.json
-app/yarn.lock
-
-web/bun.lock
-web/package-lock.json
-web/yarn.lock
+/bun.lock
+/package-lock.json
+/yarn.lock

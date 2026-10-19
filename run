@@ -99,31 +99,21 @@ ensure_gradle_dist() {
 }
 
 run_format() {
-  for PROJECT_DIR in "$ROOT_DIR/app" "$ROOT_DIR/web"; do
-    echo "Formatting $PROJECT_DIR..."
-    (
-      cd "$PROJECT_DIR"
-      if command -v bun >/dev/null 2>&1; then
-        bun run format
-      else
-        npm run format
-      fi
-    )
-  done
+  echo "Formatting Android app..."
+  if command -v bun >/dev/null 2>&1; then
+    bun run format
+  else
+    npm run format
+  fi
 }
 
 run_setup() {
-  for PROJECT_DIR in "$ROOT_DIR/app" "$ROOT_DIR/web"; do
-    echo "Installing dependencies in $PROJECT_DIR..."
-    (
-      cd "$PROJECT_DIR"
-      if command -v bun >/dev/null 2>&1; then
-        bun install
-      else
-        npm install
-      fi
-    )
-  done
+  echo "Installing Android app dependencies..."
+  if command -v bun >/dev/null 2>&1; then
+    bun install
+  else
+    npm install
+  fi
 }
 
 run_test() {
@@ -336,7 +326,7 @@ run_avd_restore_test() {
     exit 1
   fi
 
-  ARTIFACT_DIR="$ROOT_DIR/app/logs/avd-backup-validation"
+  ARTIFACT_DIR="$ROOT_DIR/logs/avd-backup-validation"
   rm -rf "$ARTIFACT_DIR"
   mkdir -p "$ARTIFACT_DIR"
   echo "Generating raw SQLite backup fixture..."
@@ -606,9 +596,9 @@ show_help() {
 Usage: ./run <command>
 
 Commands:
-  format   Run prettier in app and web
-  setup    Install dependencies in app and web
-  test     Run typecheck, then unit tests with coverage (app)
+  format   Run prettier
+  setup    Install Android app dependencies
+  test     Run typecheck, unit tests with coverage, and lint
   apply    Apply .version to app.json and package.json, and compute versionCode
   build    Clean prebuild Android and assemble release APK with Gradle
   avd      Start the first configured Android Virtual Device
@@ -621,6 +611,8 @@ Commands:
 HELP
 }
 
+cd "$ROOT_DIR"
+
 case "${1:-}" in
   format)
     run_format
@@ -629,43 +621,33 @@ case "${1:-}" in
     run_setup
     ;;
   test)
-    cd "$ROOT_DIR/app"
     run_test
     ;;
   apply)
-    cd "$ROOT_DIR/app"
     run_apply
     ;;
   build)
-    cd "$ROOT_DIR/app"
     run_build
     ;;
   avd)
-    cd "$ROOT_DIR/app"
     run_avd "$@"
     ;;
   install)
-    cd "$ROOT_DIR/app"
     run_install
     ;;
   avd-backups)
-    cd "$ROOT_DIR/app"
     run_avd_backups
     ;;
   avd-ui)
-    cd "$ROOT_DIR/app"
     run_avd_ui
     ;;
   avd-restore-test)
-    cd "$ROOT_DIR/app"
     run_avd_restore_test
     ;;
   avd-backup-test)
-    cd "$ROOT_DIR/app"
     run_avd_backup_test "$@"
     ;;
   release)
-    cd "$ROOT_DIR/app"
     run_release
     ;;
   *)

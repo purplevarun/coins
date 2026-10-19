@@ -3,7 +3,7 @@
 1. Create 3 sources (Source 1, Source 2, Source 3)
 2. Rename each source and delete them, then create them again to test complete CRUD.
 3. Create 3 categories (Category 1, Category 2, Category 3)
-4. Rename each Category  and delete them, then create them again to test complete CRUD.
+4. Rename each Category and delete them, then create them again to test complete CRUD.
 5. Create 3 Investments (Investment 1, Investment 2, Investment 3)
 6. Rename each Investment and delete them, then create them again to test complete CRUD.
 7. Create 3 Trips (Trip 1, Trip 2, Trip 3)

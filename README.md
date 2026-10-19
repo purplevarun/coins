@@ -73,12 +73,12 @@ Repositories
 Expo SQLite
 ```
 
-Shared domain types live in `app/src/types`. Database access is contained in
+Shared domain types live in `src/types`. Database access is contained in
 repositories, business rules live in services, and screens focus on
 presentation and interaction.
 
 Keep named types and object type definitions in dedicated type files. Test-only
-types live in `app/test/types`, and download-site types live in `web/src/types`.
+types live in `test/types`.
 Reuse library prop types or existing domain types with `Pick`/`Omit` where suitable.
 Native ESLint rejects local type declarations outside the type directories.
 
