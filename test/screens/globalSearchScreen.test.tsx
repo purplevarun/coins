@@ -9,7 +9,6 @@ const reactMocks = vi.hoisted(() => ({
 }));
 
 const serviceMocks = vi.hoisted(() => ({
-	getAttachments: vi.fn(),
 	getBudgets: vi.fn(),
 	getCards: vi.fn(),
 	getCategories: vi.fn(),
@@ -71,10 +70,6 @@ vi.mock("@/components/TextField", () => ({
 vi.mock("@/hooks/useDatabaseContext", () => ({
 	default: () => ({ database: { id: "db" }, dataVersion: 1 }),
 }));
-
-vi.mock("@/services/attachmentService", () => ({
-	default: { getAttachments: serviceMocks.getAttachments },
-}));
 vi.mock("@/services/budgetService", () => ({
 	default: { getBudgets: serviceMocks.getBudgets },
 }));
@@ -113,11 +108,6 @@ vi.mock("@/services/transactionService", () => ({
 }));
 vi.mock("@/services/tripService", () => ({
 	default: { getTrips: serviceMocks.getTrips },
-}));
-
-vi.mock("@/utils/attachment", () => ({
-	getAttachmentOwnerLabel: (ownerType: string) =>
-		ownerType.charAt(0) + ownerType.slice(1).toLowerCase(),
 }));
 vi.mock("@/utils/date", () => ({
 	default: {
@@ -237,14 +227,6 @@ describe("GlobalSearchScreen", () => {
 		serviceMocks.getIdentities.mockResolvedValue([
 			{ id: "id1", title: "Passport", idNumber: "P1" },
 		]);
-		serviceMocks.getAttachments.mockResolvedValue([
-			{
-				id: "d1",
-				fileName: "report.pdf",
-				ownerType: "DOCUMENT",
-				sizeBytes: 10,
-			},
-		]);
 	});
 
 	it("loads TOOLS mode and opens NOTE and TODO results", async () => {
@@ -308,7 +290,6 @@ describe("GlobalSearchScreen", () => {
 
 		expect(serviceMocks.getNotes).toHaveBeenCalledWith({ id: "db" });
 		expect(serviceMocks.getTodos).toHaveBeenCalledWith({ id: "db" });
-		expect(serviceMocks.getAttachments).toHaveBeenCalledWith({ id: "db" });
 		expect(navigation.navigate).toHaveBeenCalledWith("NoteForm", {
 			noteId: "n1",
 		});
@@ -446,7 +427,7 @@ describe("GlobalSearchScreen", () => {
 		expect(navigation.navigate).not.toHaveBeenCalledWith("ExchangeRates");
 	});
 
-	it("loads TOOLS vault and document results and opens them", async () => {
+	it("loads and opens vault results", async () => {
 		const navigation = { navigate: vi.fn() };
 		const toolsResults = [
 			{
@@ -472,14 +453,6 @@ describe("GlobalSearchScreen", () => {
 				subtitle: "P1",
 				icon: "person-circle-outline",
 				color: "#3",
-			},
-			{
-				id: "d1",
-				kind: "DOCUMENT",
-				title: "report.pdf",
-				subtitle: "Document",
-				icon: "document-attach-outline",
-				color: "#4",
 			},
 		];
 
@@ -531,7 +504,7 @@ describe("GlobalSearchScreen", () => {
 			kind: "IDENTITY",
 			entryId: "id1",
 		});
-		expect(navigation.navigate).toHaveBeenCalledWith("Documents");
+		expect(navigation.navigate).not.toHaveBeenCalledWith("Documents");
 	});
 
 	it("loads results across all dashboards in global search", async () => {
@@ -561,12 +534,10 @@ describe("GlobalSearchScreen", () => {
 
 		expect(serviceMocks.getNotes).toHaveBeenCalledWith({ id: "db" });
 		expect(serviceMocks.getTransactions).toHaveBeenCalledWith({ id: "db" });
-		expect(serviceMocks.getAttachments).toHaveBeenCalledWith({ id: "db" });
 		expect(setResults).toHaveBeenCalledWith(
 			expect.arrayContaining([
 				expect.objectContaining({ kind: "NOTE" }),
 				expect.objectContaining({ kind: "TRANSACTION" }),
-				expect.objectContaining({ kind: "DOCUMENT" }),
 				expect.objectContaining({ kind: "PASSWORD" }),
 			]),
 		);

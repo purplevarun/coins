@@ -59,11 +59,6 @@ const serviceMocks = vi.hoisted(() => ({
 const hookMocks = vi.hoisted(() => ({
 	refreshData: vi.fn(),
 	confirm: vi.fn(),
-	processAttachment: vi.fn(),
-	handleOpen: vi.fn(),
-	handleSend: vi.fn(),
-	handlePick: vi.fn(),
-	handleRemove: vi.fn(),
 	handleCreateFolder: vi.fn(),
 }));
 
@@ -88,9 +83,6 @@ vi.mock("react-native", () => ({
 
 vi.mock("@/components/AppButton", () => ({
 	default: (props: any) => ({ type: "AppButton", props }),
-}));
-vi.mock("@/components/AttachmentField", () => ({
-	default: (props: any) => ({ type: "AttachmentField", props }),
 }));
 vi.mock("@/components/CustomText", () => ({
 	default: (props: any) => ({ type: "CustomText", props }),
@@ -139,18 +131,6 @@ vi.mock("@/hooks/useFolders", () => ({
 	default: () => ({
 		folders: [{ id: "f1", name: "Home" }],
 		handleCreateFolder: hookMocks.handleCreateFolder,
-	}),
-}));
-vi.mock("@/hooks/useAttachment", () => ({
-	default: () => ({
-		existingAttachment: null,
-		isRemoved: false,
-		pendingAttachment: null,
-		processAttachment: hookMocks.processAttachment,
-		handleOpen: hookMocks.handleOpen,
-		handleSend: hookMocks.handleSend,
-		handlePick: hookMocks.handlePick,
-		handleRemove: hookMocks.handleRemove,
 	}),
 }));
 
@@ -279,24 +259,6 @@ const findByPredicate = (
 };
 
 describe("form screens", () => {
-	it("delegates attachment send to the attachment hook", async () => {
-		for (const Screen of [
-			NoteFormScreen,
-			TodoFormScreen,
-			VaultFormScreen,
-		]) {
-			const tree = (Screen as (props: unknown) => ReactElement)({
-				navigation: { goBack: vi.fn() },
-				route: { params: { kind: "CARD" } },
-			});
-			const field = findByPredicate(
-				tree,
-				(node) => typeof node?.props?.onSend === "function",
-			)[0];
-			await field.props.onSend();
-		}
-		expect(hookMocks.handleSend).toHaveBeenCalledTimes(3);
-	});
 	beforeEach(() => {
 		reactMocks.useEffect.mockReset();
 		reactMocks.useState.mockReset();
@@ -371,8 +333,6 @@ describe("form screens", () => {
 			notes: "n",
 		});
 		serviceMocks.savePassword.mockResolvedValue("pw1");
-
-		hookMocks.processAttachment.mockResolvedValue(undefined);
 	});
 
 	describe("finance forms", () => {
@@ -924,8 +884,6 @@ describe("form screens", () => {
 			{ id: "db" },
 			"id1",
 		);
-		expect(hookMocks.processAttachment).toHaveBeenCalledWith("card1");
-		expect(hookMocks.processAttachment).toHaveBeenCalledWith("id1");
 	});
 
 	it("covers VaultFormScreen error and callback wrapper branches", async () => {
@@ -974,18 +932,15 @@ describe("form screens", () => {
 				node?.props?.label === "Card type" &&
 				typeof node?.props?.onChange === "function",
 		)[0]?.props?.onChange("DEBIT_CARD");
-
-		const attachment = findByPredicate(
-			cardTree,
-			(node) =>
-				typeof node?.props?.onSend === "function" &&
-				typeof node?.props?.onPick === "function" &&
-				typeof node?.props?.onRemove === "function",
-		)[0];
-		await attachment?.props?.onView();
-		await attachment?.props?.onSend();
-		await attachment?.props?.onPick();
-		attachment?.props?.onRemove();
+		expect(
+			findByPredicate(
+				cardTree,
+				(node) =>
+					typeof node?.props?.onSend === "function" &&
+					typeof node?.props?.onPick === "function" &&
+					typeof node?.props?.onRemove === "function",
+			),
+		).toHaveLength(0);
 
 		findByPredicate(
 			cardTree,
@@ -1002,10 +957,6 @@ describe("form screens", () => {
 				typeof node?.props?.onPress === "function",
 		)[0]?.props?.onPress();
 		await flush();
-
-		expect(hookMocks.handleOpen).toHaveBeenCalled();
-		expect(hookMocks.handlePick).toHaveBeenCalled();
-		expect(hookMocks.handleRemove).toHaveBeenCalled();
 		expect(setError).toHaveBeenCalledWith("save card failed");
 		expect(setError).toHaveBeenCalledWith("delete card failed");
 	});
@@ -1062,7 +1013,6 @@ describe("form screens", () => {
 				notes: "",
 			},
 		);
-		expect(hookMocks.processAttachment).not.toHaveBeenCalledWith("pw1");
 		expect(
 			findByPredicate(
 				passwordTree,
@@ -1179,64 +1129,6 @@ describe("form screens", () => {
 		expect(serviceMocks.saveBudget).toHaveBeenCalled();
 		expect(hookMocks.refreshData).toHaveBeenCalled();
 		expect(navigation.goBack).toHaveBeenCalled();
-	});
-
-	it("saves forms in database transactions when available", async () => {
-		const withTransactionAsync = vi.fn(
-			async (operation: () => Promise<void>) => operation(),
-		);
-		databaseState.database = { id: "transaction-db", withTransactionAsync };
-		reactMocks.useState.mockImplementation((initial: any) => [
-			initial === ""
-				? "Valid value"
-				: typeof initial === "function"
-					? initial()
-					: initial,
-			vi.fn(),
-		]);
-
-		const screens = [
-			{
-				tree: NoteFormScreen({
-					navigation: { goBack: vi.fn() },
-					route: { key: "note-legacy", name: "NoteForm", params: {} },
-				} as any),
-				label: "Save note",
-			},
-			{
-				tree: TodoFormScreen({
-					navigation: { goBack: vi.fn() },
-					route: { key: "todo-legacy", name: "TodoForm", params: {} },
-				} as any),
-				label: "Save todo",
-			},
-			{
-				tree: VaultFormScreen({
-					navigation: { goBack: vi.fn() },
-					route: {
-						key: "vault-legacy",
-						name: "VaultForm",
-						params: { kind: "PASSWORD" },
-					},
-				} as any),
-				label: "Save entry",
-			},
-		];
-
-		for (const { tree, label } of screens) {
-			findByPredicate(
-				tree,
-				(node) =>
-					node?.props?.label === label &&
-					typeof node?.props?.onPress === "function",
-			)[0]?.props?.onPress();
-		}
-		await flush();
-
-		expect(serviceMocks.saveNote).toHaveBeenCalled();
-		expect(serviceMocks.saveTodo).toHaveBeenCalled();
-		expect(serviceMocks.savePassword).toHaveBeenCalled();
-		expect(withTransactionAsync).toHaveBeenCalledTimes(3);
 	});
 
 	it("covers BudgetFormScreen load and save error branches", async () => {
@@ -1370,21 +1262,15 @@ describe("form screens", () => {
 
 		expect(serviceMocks.getNote).toHaveBeenCalledWith({ id: "db" }, "n1");
 		expect(serviceMocks.saveNote).toHaveBeenCalled();
-		expect(hookMocks.processAttachment).toHaveBeenCalledWith("n1");
-		const attachmentNode = findByPredicate(
-			tree,
-			(node) =>
-				typeof node?.props?.onSend === "function" &&
-				typeof node?.props?.onPick === "function" &&
-				typeof node?.props?.onRemove === "function",
-		)[0];
-		await attachmentNode?.props?.onView();
-		await attachmentNode?.props?.onSend();
-		await attachmentNode?.props?.onPick();
-		attachmentNode?.props?.onRemove();
-		expect(hookMocks.handleOpen).toHaveBeenCalled();
-		expect(hookMocks.handlePick).toHaveBeenCalled();
-		expect(hookMocks.handleRemove).toHaveBeenCalled();
+		expect(
+			findByPredicate(
+				tree,
+				(node) =>
+					typeof node?.props?.onSend === "function" &&
+					typeof node?.props?.onPick === "function" &&
+					typeof node?.props?.onRemove === "function",
+			),
+		).toHaveLength(0);
 		expect(hookMocks.confirm).toHaveBeenCalled();
 		expect(serviceMocks.deleteNote).toHaveBeenCalledWith(
 			{ id: "db" },
@@ -1452,7 +1338,6 @@ describe("form screens", () => {
 			title: "Loaded",
 			content: "Body",
 			folderId: undefined,
-			hasAttachment: false,
 			updatedAt: 1,
 		});
 
@@ -1570,20 +1455,15 @@ describe("form screens", () => {
 			{ id: "db" },
 			"t1",
 		);
-		const attachmentNode = findByPredicate(
-			tree,
-			(node) =>
-				typeof node?.props?.onSend === "function" &&
-				typeof node?.props?.onPick === "function" &&
-				typeof node?.props?.onRemove === "function",
-		)[0];
-		await attachmentNode?.props?.onView();
-		await attachmentNode?.props?.onSend();
-		await attachmentNode?.props?.onPick();
-		attachmentNode?.props?.onRemove();
-		expect(hookMocks.handleOpen).toHaveBeenCalled();
-		expect(hookMocks.handlePick).toHaveBeenCalled();
-		expect(hookMocks.handleRemove).toHaveBeenCalled();
+		expect(
+			findByPredicate(
+				tree,
+				(node) =>
+					typeof node?.props?.onSend === "function" &&
+					typeof node?.props?.onPick === "function" &&
+					typeof node?.props?.onRemove === "function",
+			),
+		).toHaveLength(0);
 		expect(navigation.goBack).toHaveBeenCalled();
 	});
 
@@ -1646,7 +1526,6 @@ describe("form screens", () => {
 			title: "Todo",
 			description: "Desc",
 			folderId: undefined,
-			hasAttachment: false,
 			isDone: false,
 			dueAt: null,
 			updatedAt: 1,

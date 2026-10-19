@@ -50,7 +50,7 @@ const savePassword = async (
 const deletePassword = async (
 	database: SQLiteDatabase,
 	id: string,
-): Promise<void> => deleteContentRow(database, "passwords", null, id);
+): Promise<void> => deleteContentRow(database, "passwords", id);
 
 const passwordService = {
 	deletePassword,

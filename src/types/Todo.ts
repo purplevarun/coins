@@ -8,7 +8,6 @@ type Todo = Readonly<{
 	dueAt: number | null;
 	createdAt: number;
 	updatedAt: number;
-	hasAttachment: boolean;
 }>;
 
 export type { Todo as default };

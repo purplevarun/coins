@@ -81,12 +81,7 @@ const getNoteRows = async (
 			note.title,
 			note.content,
 			note.created_at AS createdAt,
-			note.updated_at AS updatedAt,
-			EXISTS(
-				SELECT 1 FROM attachments attachment
-				WHERE attachment.owner_type = 'NOTE'
-					AND attachment.owner_id = note.id
-			) AS hasAttachment
+			note.updated_at AS updatedAt
 		FROM notes note
 		LEFT JOIN folders folder ON folder.id = note.folder_id
 		ORDER BY note.updated_at DESC;
@@ -105,12 +100,7 @@ const getNoteRow = async (
 				note.title,
 				note.content,
 				note.created_at AS createdAt,
-				note.updated_at AS updatedAt,
-				EXISTS(
-					SELECT 1 FROM attachments attachment
-					WHERE attachment.owner_type = 'NOTE'
-						AND attachment.owner_id = note.id
-				) AS hasAttachment
+				note.updated_at AS updatedAt
 			FROM notes note
 			LEFT JOIN folders folder ON folder.id = note.folder_id
 			WHERE note.id = ?;
@@ -159,12 +149,7 @@ const getTodoRows = async (
 			todo.is_done AS isDone,
 			todo.due_at AS dueAt,
 			todo.created_at AS createdAt,
-			todo.updated_at AS updatedAt,
-			EXISTS(
-				SELECT 1 FROM attachments attachment
-				WHERE attachment.owner_type = 'TODO'
-					AND attachment.owner_id = todo.id
-			) AS hasAttachment
+			todo.updated_at AS updatedAt
 		FROM todos todo
 		LEFT JOIN folders folder ON folder.id = todo.folder_id
 		ORDER BY todo.is_done, todo.due_at IS NULL, todo.due_at, todo.updated_at DESC;
@@ -185,12 +170,7 @@ const getTodoRow = async (
 				todo.is_done AS isDone,
 				todo.due_at AS dueAt,
 				todo.created_at AS createdAt,
-				todo.updated_at AS updatedAt,
-				EXISTS(
-					SELECT 1 FROM attachments attachment
-					WHERE attachment.owner_type = 'TODO'
-						AND attachment.owner_id = todo.id
-				) AS hasAttachment
+				todo.updated_at AS updatedAt
 			FROM todos todo
 			LEFT JOIN folders folder ON folder.id = todo.folder_id
 			WHERE todo.id = ?;
@@ -321,12 +301,7 @@ const getCardRows = async (
 			card.network,
 			card.notes,
 			card.created_at AS createdAt,
-			card.updated_at AS updatedAt,
-			EXISTS(
-				SELECT 1 FROM attachments attachment
-				WHERE attachment.owner_type = 'CARD'
-					AND attachment.owner_id = card.id
-			) AS hasAttachment
+			card.updated_at AS updatedAt
 		FROM cards card
 		ORDER BY lower(card.name);
 	`);
@@ -348,12 +323,7 @@ const getCardRow = async (
 				card.network,
 				card.notes,
 				card.created_at AS createdAt,
-				card.updated_at AS updatedAt,
-				EXISTS(
-					SELECT 1 FROM attachments attachment
-					WHERE attachment.owner_type = 'CARD'
-						AND attachment.owner_id = card.id
-				) AS hasAttachment
+				card.updated_at AS updatedAt
 			FROM cards card
 			WHERE card.id = ?;
 		`,
@@ -414,12 +384,7 @@ const getIdentityRows = async (
 			identity.id_number AS idNumber,
 			identity.notes,
 			identity.created_at AS createdAt,
-			identity.updated_at AS updatedAt,
-			EXISTS(
-				SELECT 1 FROM attachments attachment
-				WHERE attachment.owner_type = 'IDENTITY'
-					AND attachment.owner_id = identity.id
-			) AS hasAttachment
+			identity.updated_at AS updatedAt
 		FROM identities identity
 		ORDER BY lower(identity.title);
 	`);
@@ -436,12 +401,7 @@ const getIdentityRow = async (
 				identity.id_number AS idNumber,
 				identity.notes,
 				identity.created_at AS createdAt,
-				identity.updated_at AS updatedAt,
-				EXISTS(
-					SELECT 1 FROM attachments attachment
-					WHERE attachment.owner_type = 'IDENTITY'
-						AND attachment.owner_id = identity.id
-				) AS hasAttachment
+				identity.updated_at AS updatedAt
 			FROM identities identity
 			WHERE identity.id = ?;
 		`,
@@ -479,19 +439,9 @@ const upsertIdentityRow = async (
 const deleteContentRow = async (
 	database: SQLiteDatabase,
 	tableName: "notes" | "todos" | "passwords" | "cards" | "identities",
-	ownerType: "NOTE" | "TODO" | "CARD" | "IDENTITY" | null,
 	id: string,
 ): Promise<void> => {
-	await database.withTransactionAsync(async (): Promise<void> => {
-		if (ownerType) {
-			await database.runAsync(
-				"DELETE FROM attachments WHERE owner_type = ? AND owner_id = ?;",
-				ownerType,
-				id,
-			);
-		}
-		await database.runAsync(`DELETE FROM ${tableName} WHERE id = ?;`, id);
-	});
+	await database.runAsync(`DELETE FROM ${tableName} WHERE id = ?;`, id);
 };
 
 const contentRepository = {

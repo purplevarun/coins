@@ -1,11 +1,9 @@
 import CustomText from "@/components/CustomText";
 
-import type { SQLiteDatabase } from "expo-sqlite";
 import { useEffect, useState } from "react";
 import { StyleSheet, Switch, View } from "react-native";
 
 import AppButton from "@/components/AppButton";
-import AttachmentField from "@/components/AttachmentField";
 import DateField from "@/components/DateField";
 import FolderPicker from "@/components/FolderPicker";
 import GlassCard from "@/components/GlassCard";
@@ -16,24 +14,12 @@ import COLORS from "@/constants/colors";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
-import useAttachment from "@/hooks/useAttachment";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import useFolders from "@/hooks/useFolders";
 import todoService from "@/services/todoService";
 import type TodoFormScreenProps from "@/types/TodoFormScreenProps";
 import getErrorMessage from "@/utils/error";
 const { deleteTodo, getTodo, saveTodo } = todoService;
-
-const runInTransaction = async (
-	database: SQLiteDatabase,
-	operation: () => Promise<void>,
-): Promise<void> => {
-	if (typeof database.withTransactionAsync === "function") {
-		await database.withTransactionAsync(operation);
-		return;
-	}
-	await operation();
-};
 
 const TodoFormScreen = ({
 	navigation,
@@ -43,7 +29,6 @@ const TodoFormScreen = ({
 	const { database, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
 	const { folders, handleCreateFolder } = useFolders("TODO");
-	const attachment = useAttachment("TODO", todoId);
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
 	const [folderId, setFolderId] = useState("");
@@ -79,16 +64,13 @@ const TodoFormScreen = ({
 		setIsSaving(true);
 		setError("");
 		try {
-			await runInTransaction(database, async () => {
-				const savedId = await saveTodo(database, {
-					id: todoId,
-					title,
-					description,
-					folderId: folderId || undefined,
-					dueAt: hasDueDate ? dueAt : undefined,
-					isDone,
-				});
-				await attachment.processAttachment(savedId);
+			await saveTodo(database, {
+				id: todoId,
+				title,
+				description,
+				folderId: folderId || undefined,
+				dueAt: hasDueDate ? dueAt : undefined,
+				isDone,
 			});
 			refreshData();
 			navigation.goBack();
@@ -170,15 +152,7 @@ const TodoFormScreen = ({
 						</CustomText>
 						<Switch onValueChange={setIsDone} value={isDone} />
 					</View>
-					<AttachmentField
-						existingAttachment={attachment.existingAttachment}
-						isRemoved={attachment.isRemoved}
-						onSend={() => void attachment.handleSend()}
-						onView={attachment.handleOpen}
-						onPick={() => void attachment.handlePick()}
-						onRemove={attachment.handleRemove}
-						pendingAttachment={attachment.pendingAttachment}
-					/>
+
 					{error ? <Notice message={error} tone="danger" /> : null}
 					<AppButton
 						isLoading={isSaving}

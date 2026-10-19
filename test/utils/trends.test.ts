@@ -26,7 +26,6 @@ const buildTransaction = (
 	categoryName: "Category",
 	tripName: null,
 	investmentName: null,
-	hasAttachment: false,
 	items: [],
 	...overrides,
 });

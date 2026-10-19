@@ -45,12 +45,7 @@ const TRANSACTION_SELECT = `
 		trip.name AS tripName,
 		investment.name AS investmentName,
 		platform.name AS platformName,
-		trip_type.name AS tripTypeName,
-		EXISTS(
-			SELECT 1 FROM attachments attachment
-			WHERE attachment.owner_type = 'TRANSACTION'
-				AND attachment.owner_id = t.id
-		) AS hasAttachment
+		trip_type.name AS tripTypeName
 	FROM transactions t
 	INNER JOIN sources source ON source.id = t.source_id
 	LEFT JOIN sources destination ON destination.id = t.destination_source_id
@@ -1143,10 +1138,6 @@ const deleteTransactionRow = async (
 ): Promise<void> => {
 	await database.withTransactionAsync(async (): Promise<void> => {
 		await invalidateTransactionSources(database, id);
-		await database.runAsync(
-			"DELETE FROM attachments WHERE owner_type = 'TRANSACTION' AND owner_id = ?;",
-			id,
-		);
 		await database.runAsync(
 			"DELETE FROM transaction_items WHERE transaction_id = ?;",
 			id,

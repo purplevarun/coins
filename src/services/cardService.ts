@@ -8,25 +8,14 @@ import type { SQLiteDatabase } from "expo-sqlite";
 const { deleteContentRow, getCardRow, getCardRows, upsertCardRow } =
 	contentRepository;
 
-const mapCard = (card: CardEntry): CardEntry => ({
-	...card,
-	hasAttachment: Boolean(card.hasAttachment),
-});
-
 const getCards = async (
 	database: SQLiteDatabase,
-): Promise<readonly CardEntry[]> => {
-	const cards = await getCardRows(database);
-	return cards.map(mapCard);
-};
+): Promise<readonly CardEntry[]> => getCardRows(database);
 
 const getCard = async (
 	database: SQLiteDatabase,
 	id: string,
-): Promise<CardEntry | null> => {
-	const card = await getCardRow(database, id);
-	return card ? mapCard(card) : null;
-};
+): Promise<CardEntry | null> => getCardRow(database, id);
 
 const saveCard = async (
 	database: SQLiteDatabase,
@@ -54,7 +43,6 @@ const saveCard = async (
 		notes: entry.notes.trim(),
 		createdAt: existing?.createdAt ?? now,
 		updatedAt: now,
-		hasAttachment: existing?.hasAttachment ?? false,
 	});
 	return id;
 };
@@ -62,7 +50,7 @@ const saveCard = async (
 const deleteCard = async (
 	database: SQLiteDatabase,
 	id: string,
-): Promise<void> => deleteContentRow(database, "cards", "CARD", id);
+): Promise<void> => deleteContentRow(database, "cards", id);
 
 const cardService = {
 	deleteCard,

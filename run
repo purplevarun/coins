@@ -379,11 +379,8 @@ run_avd_restore_test() {
     echo "Restored fixture transaction was not visible."
     exit 1
   fi
-  if ! scroll_to_ui_label "receipt.txt"; then
-    echo "Restored fixture attachment was not visible."
-    exit 1
-  fi
-  echo "Verified restored transaction and attachment in the release app UI."
+  assert_ui_label_absent "Attachment"
+  echo "Verified restored transaction without attachment controls in the release app UI."
   echo "AVD .purplecoins restore passed."
 }
 
@@ -412,7 +409,7 @@ visit_ui_label() {
 assert_ui_label_absent() {
   LABEL="$1"
   if [ -n "$(get_ui_label_center "$LABEL" || true)" ]; then
-    echo "Unexpected empty-state label: $LABEL"
+    echo "Unexpected UI label: $LABEL"
     exit 1
   fi
 }
@@ -458,10 +455,10 @@ run_avd_backup_test() {
   done
 
   visit_ui_label "Tools"
+  assert_ui_label_absent "Documents"
   for TILE_STATE in \
     "Notes|No notes found" \
     "Todos|No todos yet" \
-    "Documents|No documents yet" \
     "Passwords|Nothing here yet" \
     "Cards|Nothing here yet" \
     "Identity|Nothing here yet"; do
@@ -509,8 +506,7 @@ run_avd_backup_test() {
   assert_ui_label_absent "No investments yet"
   adb shell input keyevent 4
   visit_ui_label "Tools"
-  visit_ui_label "Documents"
-  assert_ui_label_absent "No documents yet"
+  assert_ui_label_absent "Documents"
 
   echo "No-data screens passed; Downloads/$BACKUP_NAME restored and populated screens passed."
 }

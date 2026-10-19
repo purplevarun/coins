@@ -1,11 +1,9 @@
 import CustomText from "@/components/CustomText";
 
-import type { SQLiteDatabase } from "expo-sqlite";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import AppButton from "@/components/AppButton";
-import AttachmentField from "@/components/AttachmentField";
 import GlassCard from "@/components/GlassCard";
 import Notice from "@/components/Notice";
 import ScreenContainer from "@/components/ScreenContainer";
@@ -15,7 +13,6 @@ import COLORS from "@/constants/colors";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
-import useAttachment from "@/hooks/useAttachment";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import cardService from "@/services/cardService";
 import identityService from "@/services/identityService";
@@ -26,17 +23,6 @@ const { deleteCard, getCard, saveCard } = cardService;
 const { deleteIdentity, getIdentity, saveIdentity } = identityService;
 const { deletePassword, getPassword, savePassword } = passwordService;
 
-const runInTransaction = async (
-	database: SQLiteDatabase,
-	operation: () => Promise<void>,
-): Promise<void> => {
-	if (typeof database.withTransactionAsync === "function") {
-		await database.withTransactionAsync(operation);
-		return;
-	}
-	await operation();
-};
-
 const VaultFormScreen = ({
 	navigation,
 	route,
@@ -44,8 +30,6 @@ const VaultFormScreen = ({
 	const { kind, entryId } = route.params;
 	const { database, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
-	const attachmentOwnerType = kind === "CARD" ? "CARD" : "IDENTITY";
-	const attachment = useAttachment(attachmentOwnerType, entryId);
 	const [title, setTitle] = useState("");
 	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
@@ -111,40 +95,35 @@ const VaultFormScreen = ({
 		setIsSaving(true);
 		setError("");
 		try {
-			await runInTransaction(database, async () => {
-				let savedId = "";
-				if (kind === "PASSWORD") {
-					savedId = await savePassword(database, {
-						id: entryId,
-						title,
-						username,
-						password,
-						website,
-						notes,
-					});
-				} else if (kind === "CARD") {
-					savedId = await saveCard(database, {
-						id: entryId,
-						name: title,
-						cardType,
-						cardNumber,
-						expiry,
-						cvv,
-						pin,
-						network,
-						notes,
-					});
-					await attachment.processAttachment(savedId);
-				} else {
-					savedId = await saveIdentity(database, {
-						id: entryId,
-						title,
-						idNumber,
-						notes,
-					});
-					await attachment.processAttachment(savedId);
-				}
-			});
+			if (kind === "PASSWORD") {
+				await savePassword(database, {
+					id: entryId,
+					title,
+					username,
+					password,
+					website,
+					notes,
+				});
+			} else if (kind === "CARD") {
+				await saveCard(database, {
+					id: entryId,
+					name: title,
+					cardType,
+					cardNumber,
+					expiry,
+					cvv,
+					pin,
+					network,
+					notes,
+				});
+			} else {
+				await saveIdentity(database, {
+					id: entryId,
+					title,
+					idNumber,
+					notes,
+				});
+			}
 			refreshData();
 			navigation.goBack();
 		} catch (caughtError: unknown) {
@@ -317,17 +296,7 @@ const VaultFormScreen = ({
 						placeholder={MESSAGES.VAULT_FORM.NOTES_PLACEHOLDER}
 						value={notes}
 					/>
-					{kind !== "PASSWORD" ? (
-						<AttachmentField
-							existingAttachment={attachment.existingAttachment}
-							isRemoved={attachment.isRemoved}
-							onSend={() => void attachment.handleSend()}
-							onView={attachment.handleOpen}
-							onPick={() => void attachment.handlePick()}
-							onRemove={attachment.handleRemove}
-							pendingAttachment={attachment.pendingAttachment}
-						/>
-					) : null}
+
 					{error ? <Notice message={error} tone="danger" /> : null}
 					<AppButton
 						isLoading={isSaving}

@@ -37,8 +37,6 @@ const HOME = {
 	CATEGORIES_LABEL: "Categories",
 	CATEGORIES_SUBTITLE: "Income & expense",
 	DEFAULT_MODE_LABEL: "Tools",
-	DOCUMENTS_LABEL: "Documents",
-	DOCUMENTS_SUBTITLE: "Files & attachments",
 	IDENTITY_LABEL: "Identity",
 	IDENTITY_SUBTITLE: "Personal records",
 	INVESTMENTS_LABEL: "Investments",
@@ -300,12 +298,6 @@ const FOLDERS = {
 		"Folders containing items cannot be deleted. Empty folders will be permanently removed.",
 } as const;
 
-const DOCUMENTS = {
-	DELETE_MESSAGE: "This removes the file from its linked record.",
-	EMPTY_MESSAGE: "Attach a file or add one anywhere in the app.",
-	EMPTY_TITLE: "No documents yet",
-} as const;
-
 const EXCHANGE_RATES = {
 	DESCRIPTION:
 		"Rates are master values used only for converted category and analysis totals. Transfers always use their stored from and to amounts.",
@@ -400,9 +392,6 @@ const RELATION_ACTIONS = {
 } as const;
 
 const COMPONENTS = {
-	ATTACHMENT: "Attachment",
-	CHOOSE_DOCUMENT: "Choose document",
-	CLOSE_PREVIEW: "Close preview",
 	CURRENCY: "Currency",
 	DATE: "Date",
 	DUE: "Due",
@@ -423,7 +412,6 @@ const COMPONENTS = {
 	SEARCH: "Search...",
 	SEARCH_PLACEHOLDER: "Search...",
 	SELECT_PLATFORM: "Select platform",
-	ATTACHMENT_SIZE_HINT: "One file, maximum 2 MB.",
 	TYPE: "Type",
 	TYPE_NAME: "Type name",
 	TO: "To",
@@ -440,7 +428,6 @@ const MESSAGES = {
 	CATEGORIES,
 	COMMON,
 	COMPONENTS,
-	DOCUMENTS,
 	EXCHANGE_RATES,
 	FINANCIAL_METRICS,
 	FOLDERS,

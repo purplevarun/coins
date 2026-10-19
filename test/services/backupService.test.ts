@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
 	fileDelete: vi.fn<TestCallback>().mockReturnValue(undefined),
 	tempFileStartsExisting: true,
 	tempFileExistsAfterCreate: true,
+	cachedFileExists: true,
 }));
 
 vi.mock("@/constants/appConstants", () => ({
@@ -59,6 +60,8 @@ vi.mock("expo-file-system", () => {
 			if (this.uri.includes("restore-temp.db")) {
 				this.exists = mocks.tempFileStartsExisting;
 			}
+			if (this.uri.startsWith("cache-dir/"))
+				this.exists = mocks.cachedFileExists;
 		}
 
 		async bytes(): Promise<Uint8Array> {
@@ -82,7 +85,10 @@ vi.mock("expo-file-system", () => {
 
 	return {
 		File: MockFile,
-		Paths: { cache: "cache-dir", document: "doc-dir" },
+		Paths: {
+			cache: { uri: "cache-dir/", toString: () => "cache-dir" },
+			document: "doc-dir",
+		},
 	};
 });
 
@@ -107,7 +113,7 @@ const validTempDatabase = (): any => ({
 			{ name: "categories" },
 			{ name: "restore_only" },
 		]),
-	getFirstAsync: vi.fn(async () => ({ count: 5 })),
+	getFirstAsync: vi.fn(async () => ({ count: 4 })),
 	execAsync: vi.fn<TestAsyncFunction>().mockResolvedValue(undefined),
 });
 
@@ -172,6 +178,7 @@ describe("backupService", () => {
 		database.withTransactionAsync.mockClear();
 		mocks.tempFileStartsExisting = true;
 		mocks.tempFileExistsAfterCreate = true;
+		mocks.cachedFileExists = true;
 		vi.useFakeTimers();
 		vi.setSystemTime(new Date("2026-08-25T10:00:00.000Z"));
 	});
@@ -243,6 +250,20 @@ describe("backupService", () => {
 			mocks.openDatabaseAsync.mockResolvedValueOnce(tempDatabase);
 			selectBackup(name);
 			expect(await backupService.restoreBackup(database)).toBe(true);
+		},
+	);
+
+	it.each([true, false])(
+		"removes only existing app-owned import copies: exists=%s",
+		async (exists) => {
+			mocks.cachedFileExists = exists;
+			mocks.openDatabaseAsync.mockResolvedValueOnce(validTempDatabase());
+			mocks.getDocumentAsync.mockResolvedValueOnce({
+				canceled: false,
+				assets: [{ uri: "cache-dir/import.pc", name: "import.pc" }],
+			});
+			expect(await backupService.restoreBackup(database)).toBe(true);
+			expect(mocks.fileDelete).toHaveBeenCalledTimes(exists ? 3 : 2);
 		},
 	);
 

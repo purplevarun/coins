@@ -1,11 +1,9 @@
 import CustomText from "@/components/CustomText";
 
-import type { SQLiteDatabase } from "expo-sqlite";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import AppButton from "@/components/AppButton";
-import AttachmentField from "@/components/AttachmentField";
 import FolderPicker from "@/components/FolderPicker";
 import GlassCard from "@/components/GlassCard";
 import Notice from "@/components/Notice";
@@ -15,24 +13,12 @@ import COLORS from "@/constants/colors";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
-import useAttachment from "@/hooks/useAttachment";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import useFolders from "@/hooks/useFolders";
 import noteService from "@/services/noteService";
 import type NoteFormScreenProps from "@/types/NoteFormScreenProps";
 import getErrorMessage from "@/utils/error";
 const { deleteNote, getNote, saveNote } = noteService;
-
-const runInTransaction = async (
-	database: SQLiteDatabase,
-	operation: () => Promise<void>,
-): Promise<void> => {
-	if (typeof database.withTransactionAsync === "function") {
-		await database.withTransactionAsync(operation);
-		return;
-	}
-	await operation();
-};
 
 const NoteFormScreen = ({
 	navigation,
@@ -42,7 +28,6 @@ const NoteFormScreen = ({
 	const { database, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
 	const { folders, handleCreateFolder } = useFolders("NOTE");
-	const attachment = useAttachment("NOTE", noteId);
 	const [title, setTitle] = useState("");
 	const [content, setContent] = useState("");
 	const [folderId, setFolderId] = useState("");
@@ -72,16 +57,13 @@ const NoteFormScreen = ({
 		setIsSaving(true);
 		setError("");
 		try {
-			await runInTransaction(database, async () => {
-				const savedId = await saveNote(
-					database,
-					noteId,
-					title,
-					content,
-					folderId || undefined,
-				);
-				await attachment.processAttachment(savedId);
-			});
+			await saveNote(
+				database,
+				noteId,
+				title,
+				content,
+				folderId || undefined,
+			);
 			refreshData();
 			navigation.goBack();
 		} catch (caughtError: unknown) {
@@ -140,15 +122,7 @@ const NoteFormScreen = ({
 						onCreateFolder={handleCreateFolder}
 						value={folderId}
 					/>
-					<AttachmentField
-						existingAttachment={attachment.existingAttachment}
-						isRemoved={attachment.isRemoved}
-						onSend={() => void attachment.handleSend()}
-						onView={attachment.handleOpen}
-						onPick={() => void attachment.handlePick()}
-						onRemove={attachment.handleRemove}
-						pendingAttachment={attachment.pendingAttachment}
-					/>
+
 					{error ? <Notice message={error} tone="danger" /> : null}
 					<AppButton
 						isLoading={isSaving}

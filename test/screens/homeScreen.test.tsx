@@ -128,7 +128,7 @@ describe("HomeScreen", () => {
 		expect(JSON.stringify(tree)).not.toContain("Exchange rates");
 	});
 
-	it("renders tools mode tiles including vault and documents entries", () => {
+	it("renders tools and vault tiles without Documents", () => {
 		const navigation = { navigate: vi.fn() };
 		reactMocks.useState.mockImplementation(() => ["TOOLS", vi.fn()]);
 
@@ -141,7 +141,7 @@ describe("HomeScreen", () => {
 
 		expect(navigation.navigate).toHaveBeenCalledWith("Notes");
 		expect(navigation.navigate).toHaveBeenCalledWith("Todos");
-		expect(navigation.navigate).toHaveBeenCalledWith("Documents");
+		expect(navigation.navigate).not.toHaveBeenCalledWith("Documents");
 		expect(navigation.navigate).toHaveBeenCalledWith("Vault", {
 			kind: "PASSWORD",
 		});

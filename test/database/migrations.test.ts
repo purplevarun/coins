@@ -6,8 +6,38 @@ import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 describe("migration baseline", () => {
-	it("has no pending migrations for the current customer schema", () => {
-		expect(SCHEMA_MIGRATIONS).toEqual([]);
+	it("removes legacy attachment data and its index without changing records", async () => {
+		const { database, sqlite } = createTestDatabase();
+		await database.execAsync(SCHEMA_SQL);
+		sqlite.exec(`
+			CREATE TABLE attachments (id TEXT, owner_type TEXT, owner_id TEXT, content BLOB);
+			CREATE INDEX idx_attachments_owner ON attachments(owner_type, owner_id);
+		`);
+		sqlite
+			.prepare("INSERT INTO attachments (id, content) VALUES (?, ?)")
+			.run(randomUUID(), new Uint8Array([1, 2, 3]));
+		const categoryId = randomUUID();
+		sqlite
+			.prepare(
+				"INSERT INTO categories (id, name, kind) VALUES (?, 'Kept category', 'EXPENSE')",
+			)
+			.run(categoryId);
+		for (const migration of SCHEMA_MIGRATIONS)
+			await database.execAsync(migration);
+		for (const migration of SCHEMA_MIGRATIONS)
+			await database.execAsync(migration);
+		expect(
+			sqlite
+				.prepare(
+					"SELECT name FROM sqlite_master WHERE name IN ('attachments', 'idx_attachments_owner')",
+				)
+				.all(),
+		).toEqual([]);
+		expect(
+			sqlite.prepare("SELECT id, name, kind FROM categories").all(),
+		).toEqual([{ id: categoryId, name: "Kept category", kind: "EXPENSE" }]);
+		expect(SCHEMA_MIGRATIONS.join("\n")).not.toContain("PRAGMA");
+		await database.closeAsync();
 	});
 
 	it.each(financeConstants.CATEGORY_KINDS)(

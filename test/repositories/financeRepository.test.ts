@@ -709,10 +709,6 @@ describe("financeRepository", () => {
 		await deleteTransactionRow(database, "tx1");
 		expect(database.withTransactionAsync).toHaveBeenCalledTimes(1);
 		expect(database.runAsync).toHaveBeenCalledWith(
-			"DELETE FROM attachments WHERE owner_type = 'TRANSACTION' AND owner_id = ?;",
-			"tx1",
-		);
-		expect(database.runAsync).toHaveBeenCalledWith(
 			"DELETE FROM transactions WHERE id = ?;",
 			"tx1",
 		);

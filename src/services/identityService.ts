@@ -8,25 +8,14 @@ import type { SQLiteDatabase } from "expo-sqlite";
 const { deleteContentRow, getIdentityRow, getIdentityRows, upsertIdentityRow } =
 	contentRepository;
 
-const mapIdentity = (identity: IdentityEntry): IdentityEntry => ({
-	...identity,
-	hasAttachment: Boolean(identity.hasAttachment),
-});
-
 const getIdentities = async (
 	database: SQLiteDatabase,
-): Promise<readonly IdentityEntry[]> => {
-	const identities = await getIdentityRows(database);
-	return identities.map(mapIdentity);
-};
+): Promise<readonly IdentityEntry[]> => getIdentityRows(database);
 
 const getIdentity = async (
 	database: SQLiteDatabase,
 	id: string,
-): Promise<IdentityEntry | null> => {
-	const identity = await getIdentityRow(database, id);
-	return identity ? mapIdentity(identity) : null;
-};
+): Promise<IdentityEntry | null> => getIdentityRow(database, id);
 
 const saveIdentity = async (
 	database: SQLiteDatabase,
@@ -49,7 +38,6 @@ const saveIdentity = async (
 		notes: entry.notes.trim(),
 		createdAt: existing?.createdAt ?? now,
 		updatedAt: now,
-		hasAttachment: existing?.hasAttachment ?? false,
 	});
 	return id;
 };
@@ -57,7 +45,7 @@ const saveIdentity = async (
 const deleteIdentity = async (
 	database: SQLiteDatabase,
 	id: string,
-): Promise<void> => deleteContentRow(database, "identities", "IDENTITY", id);
+): Promise<void> => deleteContentRow(database, "identities", id);
 
 const identityService = {
 	deleteIdentity,

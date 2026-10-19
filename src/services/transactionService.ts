@@ -1,8 +1,6 @@
 import appConstants from "@/constants/appConstants";
 import AppError from "@/errors/AppError";
 import financeRepository from "@/repositories/financeRepository";
-import attachmentService from "@/services/attachmentService";
-import type AttachmentInput from "@/types/AttachmentInput";
 import type DateRange from "@/types/DateRange";
 import type LinkedTransactionFilter from "@/types/LinkedTransactionFilter";
 import type Transaction from "@/types/Transaction";
@@ -29,23 +27,15 @@ const {
 	updateTransactionRow,
 } = financeRepository;
 const { normalizeMoney, sumMoney } = moneyUtils;
-const { saveAttachment, deleteAttachment } = attachmentService;
 const { TRANSACTION_PAGE_SIZE } = appConstants;
-
-const mapTransaction = (transaction: Transaction): Transaction => ({
-	...transaction,
-	hasAttachment: Boolean(transaction.hasAttachment),
-});
 
 const getTransactions = async (
 	database: SQLiteDatabase,
 	dateRange?: DateRange,
-): Promise<readonly Transaction[]> => {
-	const transactions = dateRange
-		? await getTransactionRows(database, dateRange.start, dateRange.end)
-		: await getTransactionRows(database);
-	return transactions.map(mapTransaction);
-};
+): Promise<readonly Transaction[]> =>
+	dateRange
+		? getTransactionRows(database, dateRange.start, dateRange.end)
+		: getTransactionRows(database);
 
 const getTransactionPage = async (
 	database: SQLiteDatabase,
@@ -59,7 +49,7 @@ const getTransactionPage = async (
 		classification,
 	);
 	return {
-		transactions: rows.slice(0, TRANSACTION_PAGE_SIZE).map(mapTransaction),
+		transactions: rows.slice(0, TRANSACTION_PAGE_SIZE),
 		hasMore: rows.length > TRANSACTION_PAGE_SIZE,
 	};
 };
@@ -101,10 +91,7 @@ const getLinkedTransactions = async (
 const getTransaction = async (
 	database: SQLiteDatabase,
 	id: string,
-): Promise<Transaction | null> => {
-	const transaction = await getTransactionRow(database, id);
-	return transaction ? mapTransaction(transaction) : null;
-};
+): Promise<Transaction | null> => getTransactionRow(database, id);
 
 const validateRequiredInvestmentReason = (reason: string): string => {
 	const normalizedReason = reason.trim();
@@ -284,7 +271,6 @@ const prepareTransactionInput = async (
 const saveTransaction = async (
 	database: SQLiteDatabase,
 	input: TransactionInput,
-	attachment?: AttachmentInput | null,
 ): Promise<string> => {
 	if (!input.sourceId) {
 		throw new AppError("SOURCE_REQUIRED", "Select a source.");
@@ -345,11 +331,6 @@ const saveTransaction = async (
 				createdAt: previousItems.get(item.id ?? "")?.createdAt ?? now,
 				updatedAt: now,
 			});
-		}
-		if (attachment === null) {
-			await deleteAttachment(transaction, "TRANSACTION", id);
-		} else if (attachment !== undefined) {
-			await saveAttachment(transaction, "TRANSACTION", id, attachment);
 		}
 	});
 	return id;

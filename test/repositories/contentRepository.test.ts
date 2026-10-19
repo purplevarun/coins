@@ -91,7 +91,6 @@ describe("contentRepository", () => {
 			content: "C",
 			createdAt: 1,
 			updatedAt: 2,
-			hasAttachment: false,
 		});
 		expect(database.runAsync).toHaveBeenCalledWith(
 			expect.stringContaining("INSERT INTO notes"),
@@ -113,7 +112,6 @@ describe("contentRepository", () => {
 			dueAt: 10,
 			createdAt: 1,
 			updatedAt: 2,
-			hasAttachment: false,
 		});
 		expect(database.runAsync).toHaveBeenCalledWith(
 			expect.stringContaining("INSERT INTO todos"),
@@ -161,7 +159,6 @@ describe("contentRepository", () => {
 			notes: "note",
 			createdAt: 1,
 			updatedAt: 2,
-			hasAttachment: false,
 		});
 		expect(database.runAsync).toHaveBeenCalledWith(
 			expect.stringContaining("INSERT INTO cards"),
@@ -185,7 +182,6 @@ describe("contentRepository", () => {
 			notes: "n",
 			createdAt: 1,
 			updatedAt: 2,
-			hasAttachment: false,
 		});
 		expect(database.runAsync).toHaveBeenCalledWith(
 			expect.stringContaining("INSERT INTO identities"),
@@ -227,7 +223,6 @@ describe("contentRepository", () => {
 			content: "C",
 			createdAt: 1,
 			updatedAt: 2,
-			hasAttachment: false,
 		});
 		expect(database.runAsync).toHaveBeenCalledWith(
 			expect.stringContaining("UPDATE notes"),
@@ -248,7 +243,6 @@ describe("contentRepository", () => {
 			dueAt: 10,
 			createdAt: 1,
 			updatedAt: 2,
-			hasAttachment: false,
 		});
 		expect(database.runAsync).toHaveBeenCalledWith(
 			expect.stringContaining("UPDATE todos"),
@@ -294,7 +288,6 @@ describe("contentRepository", () => {
 			notes: "note",
 			createdAt: 1,
 			updatedAt: 2,
-			hasAttachment: false,
 		});
 		expect(database.runAsync).toHaveBeenCalledWith(
 			expect.stringContaining("UPDATE cards"),
@@ -317,7 +310,6 @@ describe("contentRepository", () => {
 			notes: "n",
 			createdAt: 1,
 			updatedAt: 2,
-			hasAttachment: false,
 		});
 		expect(database.runAsync).toHaveBeenCalledWith(
 			expect.stringContaining("UPDATE identities"),
@@ -348,7 +340,6 @@ describe("contentRepository", () => {
 			dueAt: null,
 			createdAt: 10,
 			updatedAt: 20,
-			hasAttachment: false,
 		});
 
 		expect(database.runAsync).toHaveBeenCalledWith(
@@ -364,14 +355,9 @@ describe("contentRepository", () => {
 		);
 	});
 
-	it("deletes folder and deletes content rows with and without attachments", async () => {
+	it("deletes folders and content rows", async () => {
 		const database = {
 			runAsync: vi.fn<TestAsyncFunction>().mockResolvedValue(undefined),
-			withTransactionAsync: vi.fn(
-				async (callback: () => Promise<void>) => {
-					await callback();
-				},
-			),
 		} as any;
 
 		await deleteFolderRow(database, "f1");
@@ -380,19 +366,13 @@ describe("contentRepository", () => {
 			"f1",
 		);
 
-		await deleteContentRow(database, "notes", "NOTE", "n1");
-		expect(database.withTransactionAsync).toHaveBeenCalledTimes(1);
-		expect(database.runAsync).toHaveBeenCalledWith(
-			"DELETE FROM attachments WHERE owner_type = ? AND owner_id = ?;",
-			"NOTE",
-			"n1",
-		);
+		await deleteContentRow(database, "notes", "n1");
 		expect(database.runAsync).toHaveBeenCalledWith(
 			"DELETE FROM notes WHERE id = ?;",
 			"n1",
 		);
 
-		await deleteContentRow(database, "passwords", null, "p1");
+		await deleteContentRow(database, "passwords", "p1");
 		expect(database.runAsync).toHaveBeenCalledWith(
 			"DELETE FROM passwords WHERE id = ?;",
 			"p1",

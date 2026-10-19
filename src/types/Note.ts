@@ -6,7 +6,6 @@ type Note = Readonly<{
 	content: string;
 	createdAt: number;
 	updatedAt: number;
-	hasAttachment: boolean;
 }>;
 
 export type { Note as default };

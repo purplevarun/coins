@@ -117,7 +117,6 @@ describe("passwordService", () => {
 		expect(mocks.deleteContentRow).toHaveBeenCalledWith(
 			database,
 			"passwords",
-			null,
 			"p1",
 		);
 	});

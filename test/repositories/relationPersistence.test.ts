@@ -1,6 +1,5 @@
 import SCHEMA_MIGRATIONS from "@/database/migrations";
 import SCHEMA_SQL from "@/database/schema";
-import attachmentRepository from "@/repositories/attachmentRepository";
 import financeRepository from "@/repositories/financeRepository";
 import platformRepository from "@/repositories/platformRepository";
 import investmentTypeService from "@/services/investmentTypeService";
@@ -12,8 +11,8 @@ import { expect, it, vi } from "vitest";
 
 vi.mock("@/utils/id", () => ({ default: () => randomUUID() }));
 
-it("replaces receipts and handles optional relation updates", async () => {
-	const { database } = createTestDatabase();
+it("handles optional relation updates", async () => {
+	const { database, sqlite } = createTestDatabase();
 	await database.execAsync(SCHEMA_SQL);
 	for (const migration of SCHEMA_MIGRATIONS)
 		await database.execAsync(migration);
@@ -39,35 +38,16 @@ it("replaces receipts and handles optional relation updates", async () => {
 	});
 	await financeRepository.upsertSimpleEntityRow(database, "trips", entity);
 	await financeRepository.upsertSimpleEntityRow(database, "trips", entity);
-	const attachment = {
-		fileName: "receipt",
-		mimeType: "text/plain",
-		sizeBytes: 1,
-		content: new Uint8Array([1]),
-	};
-	await attachmentRepository.upsertAttachmentRow(
-		database,
-		"receipt",
-		"TRANSACTION",
-		"payment",
-		attachment,
-		1,
-	);
-	await attachmentRepository.upsertAttachmentRow(
-		database,
-		"other",
-		"TRANSACTION",
-		"payment",
-		{ ...attachment, content: new Uint8Array([2]) },
-		2,
-	);
 	expect(
-		await attachmentRepository.getAttachmentContentRow(
-			database,
-			"TRANSACTION",
-			"payment",
-		),
-	).toEqual(new Uint8Array([2]));
+		sqlite
+			.prepare(
+				"SELECT id, investment_type_id, platform_id FROM investments ORDER BY id",
+			)
+			.all(),
+	).toEqual([
+		{ id: "id", investment_type_id: null, platform_id: null },
+		{ id: "new", investment_type_id: null, platform_id: null },
+	]);
 });
 
 it("validates relation names and protects relations in use", async () => {

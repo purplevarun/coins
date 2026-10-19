@@ -12,7 +12,7 @@ describe("schema", () => {
 	it("contains core tables without database constraints", () => {
 		expect(SCHEMA_SQL).toContain("CREATE TABLE IF NOT EXISTS sources");
 		expect(SCHEMA_SQL).toContain("CREATE TABLE IF NOT EXISTS transactions");
-		expect(SCHEMA_SQL).toContain("CREATE TABLE IF NOT EXISTS attachments");
+		expect(SCHEMA_SQL).not.toContain("attachments");
 		expect(SCHEMA_SQL).not.toMatch(
 			/\b(CHECK|FOREIGN KEY|REFERENCES|PRIMARY KEY|UNIQUE|NOT NULL|DEFAULT|ON CONFLICT)\b/,
 		);

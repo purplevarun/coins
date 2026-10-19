@@ -63,13 +63,6 @@ const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
 					handlePress: () => navigation.navigate("Todos"),
 				},
 				{
-					label: MESSAGES.HOME.DOCUMENTS_LABEL,
-					subtitle: MESSAGES.HOME.DOCUMENTS_SUBTITLE,
-					icon: "documents-outline",
-					color: COLORS.primary,
-					handlePress: () => navigation.navigate("Documents"),
-				},
-				{
 					label: MESSAGES.HOME.PASSWORDS_LABEL,
 					subtitle: MESSAGES.HOME.PASSWORDS_SUBTITLE,
 					icon: "key-outline",

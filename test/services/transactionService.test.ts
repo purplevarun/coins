@@ -15,10 +15,6 @@ const mocks = vi.hoisted(() => {
 		deleteTransactionItemRows: vi
 			.fn<TestAsyncFunction>()
 			.mockResolvedValue(undefined),
-		saveAttachment: vi.fn<TestAsyncFunction>().mockResolvedValue(undefined),
-		deleteAttachment: vi
-			.fn<TestAsyncFunction>()
-			.mockResolvedValue(undefined),
 		deleteTransactionRow: vi
 			.fn<TestAsyncFunction>()
 			.mockResolvedValue(undefined),
@@ -61,13 +57,6 @@ vi.mock("@/repositories/financeRepository", () => ({
 
 vi.mock("@/utils/id", () => ({
 	default: mocks.createId,
-}));
-
-vi.mock("@/services/attachmentService", () => ({
-	default: {
-		saveAttachment: mocks.saveAttachment,
-		deleteAttachment: mocks.deleteAttachment,
-	},
 }));
 
 import transactionService from "@/services/transactionService";
@@ -136,7 +125,6 @@ describe("transactionService", () => {
 					categoryName: "Food",
 					tripName: null,
 					investmentName: null,
-					hasAttachment: index % 2 === 0,
 					items: [],
 				}),
 			);
@@ -190,7 +178,7 @@ describe("transactionService", () => {
 		).rejects.toThrow("page failed");
 	});
 
-	it("maps hasAttachment in getTransactions and getTransaction", async () => {
+	it("returns transaction records and handles a missing transaction", async () => {
 		mocks.getTransactionRows.mockResolvedValueOnce([
 			{
 				id: "t1",
@@ -214,7 +202,6 @@ describe("transactionService", () => {
 				categoryName: null,
 				tripName: null,
 				investmentName: null,
-				hasAttachment: 1,
 			},
 		]);
 		mocks.getTransactionRow.mockResolvedValueOnce({
@@ -239,14 +226,17 @@ describe("transactionService", () => {
 			categoryName: null,
 			tripName: null,
 			investmentName: null,
-			hasAttachment: 0,
 		});
 
 		const list = await transactionService.getTransactions(database);
-		expect(list[0]?.hasAttachment).toBe(true);
+		expect(list).toEqual(
+			await mocks.getTransactionRows.mock.results[0]?.value,
+		);
 
 		const one = await transactionService.getTransaction(database, "t2");
-		expect(one?.hasAttachment).toBe(false);
+		expect(one).toEqual(
+			await mocks.getTransactionRow.mock.results[0]?.value,
+		);
 		expect(
 			await transactionService.getTransaction(database, "missing"),
 		).toBeNull();
@@ -261,7 +251,6 @@ describe("transactionService", () => {
 				categoryId: "c1",
 				tripId: "tr1",
 				investmentId: "i1",
-				hasAttachment: 0,
 				items: [],
 			},
 			{
@@ -271,7 +260,6 @@ describe("transactionService", () => {
 				categoryId: "c2",
 				tripId: "tr2",
 				investmentId: "i2",
-				hasAttachment: 1,
 			},
 		]);
 

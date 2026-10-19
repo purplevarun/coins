@@ -4,9 +4,6 @@ import { randomUUID } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/utils/id", () => ({ default: () => randomUUID() }));
-vi.mock("expo-document-picker", () => ({}));
-vi.mock("expo-file-system", () => ({}));
-vi.mock("expo-sharing", () => ({}));
 
 import SCHEMA_MIGRATIONS from "@/database/migrations";
 import SCHEMA_SQL from "@/database/schema";
@@ -46,12 +43,6 @@ const expense: TransactionInput = {
 		{ categoryId: "food", amount: "100" },
 		{ categoryId: "grocery", amount: "100" },
 	],
-};
-const receipt = {
-	fileName: "receipt.txt",
-	mimeType: "text/plain",
-	sizeBytes: 3,
-	content: new Uint8Array([1, 2, 3]),
 };
 
 describe("split expense persistence", () => {
@@ -307,20 +298,15 @@ describe("split expense persistence", () => {
 		lookup.mockRestore();
 		expect(sqlite.prepare("SELECT * FROM transactions").all()).toEqual([]);
 	});
-	it("saves one payment, two items, and one receipt without double counting", async () => {
+	it("saves one payment and two items without double counting", async () => {
 		const { sqlite, database } = await createFixture();
-		const id = await transactionService.saveTransaction(
-			database,
-			expense,
-			receipt,
-		);
+		const id = await transactionService.saveTransaction(database, expense);
 		const saved = await transactionService.getTransaction(database, id);
 		expect(saved).toMatchObject({
 			id,
 			amount: "200",
 			reason: "Supermart shopping",
 			categoryId: null,
-			hasAttachment: true,
 		});
 		expect(
 			saved?.items.map((item) => [
@@ -361,17 +347,17 @@ describe("split expense persistence", () => {
 			}),
 		).toHaveLength(1);
 		expect(
-			sqlite.prepare("SELECT owner_id, content FROM attachments").all(),
-		).toEqual([{ owner_id: id, content: receipt.content }]);
+			sqlite
+				.prepare(
+					"SELECT name FROM sqlite_master WHERE name = 'attachments'",
+				)
+				.all(),
+		).toEqual([]);
 	});
 
-	it("keeps retained item IDs through reordering and deletes the payment and receipt together", async () => {
+	it("keeps retained item IDs through reordering and deletes the payment and items together", async () => {
 		const { sqlite, database } = await createFixture();
-		const id = await transactionService.saveTransaction(
-			database,
-			expense,
-			receipt,
-		);
+		const id = await transactionService.saveTransaction(database, expense);
 		const saved = await transactionService.getTransaction(database, id);
 		const items = saved?.items;
 		if (!items) throw new Error("Missing saved items");
@@ -390,15 +376,14 @@ describe("split expense persistence", () => {
 		expect(updated?.items.map((item) => item.createdAt)).toEqual(
 			[...items].reverse().map((item) => item.createdAt),
 		);
-		await transactionService.saveTransaction(
-			database,
-			{ ...expense, id, items: updated?.items.slice(0, 1) },
-			null,
-		);
+		await transactionService.saveTransaction(database, {
+			...expense,
+			id,
+			items: updated?.items.slice(0, 1),
+		});
 		expect(
 			(await transactionService.getTransaction(database, id))?.items,
 		).toHaveLength(1);
-		expect(sqlite.prepare("SELECT * FROM attachments").all()).toEqual([]);
 		await transactionService.deleteTransaction(database, id);
 		expect(sqlite.prepare("SELECT * FROM transaction_items").all()).toEqual(
 			[],
@@ -408,62 +393,41 @@ describe("split expense persistence", () => {
 		]);
 	});
 
-	it("rolls back new payments if an item or receipt write fails", async () => {
+	it("rolls back new payments if an item write fails", async () => {
 		const { sqlite, database } = await createFixture();
 		sqlite.exec(
 			"CREATE TRIGGER fail_item BEFORE INSERT ON transaction_items WHEN NEW.position = 1 BEGIN SELECT RAISE(ABORT, 'item failure'); END;",
 		);
 		await expect(
-			transactionService.saveTransaction(database, expense, receipt),
+			transactionService.saveTransaction(database, expense),
 		).rejects.toThrow("item failure");
-		expect(sqlite.prepare("SELECT * FROM transactions").all()).toEqual([]);
-		expect(sqlite.prepare("SELECT * FROM transaction_items").all()).toEqual(
-			[],
-		);
-		sqlite.exec(
-			"DROP TRIGGER fail_item; CREATE TRIGGER fail_receipt BEFORE INSERT ON attachments BEGIN SELECT RAISE(ABORT, 'receipt failure'); END;",
-		);
-		await expect(
-			transactionService.saveTransaction(database, expense, receipt),
-		).rejects.toThrow("receipt failure");
 		expect(sqlite.prepare("SELECT * FROM transactions").all()).toEqual([]);
 		expect(sqlite.prepare("SELECT * FROM transaction_items").all()).toEqual(
 			[],
 		);
 	});
 
-	it("restores the original split and receipt when an edit fails", async () => {
+	it("restores the original split and source validation when an edit fails", async () => {
 		const { sqlite, database } = await createFixture();
-		const id = await transactionService.saveTransaction(
-			database,
-			expense,
-			receipt,
-		);
+		const id = await transactionService.saveTransaction(database, expense);
 		const original = await transactionService.getTransaction(database, id);
 		await sourceService.validateSource(database, "bank");
 		const originalSources = await sourceService.getSources(database);
 		sqlite.exec(
-			"CREATE TRIGGER fail_receipt BEFORE UPDATE ON attachments BEGIN SELECT RAISE(ABORT, 'receipt failure'); END;",
+			"CREATE TRIGGER fail_item_edit BEFORE INSERT ON transaction_items BEGIN SELECT RAISE(ABORT, 'item failure'); END;",
 		);
 		await expect(
-			transactionService.saveTransaction(
-				database,
-				{
-					...expense,
-					id,
-					items: [{ categoryId: "food", amount: "1" }],
-				},
-				receipt,
-			),
-		).rejects.toThrow("receipt failure");
+			transactionService.saveTransaction(database, {
+				...expense,
+				id,
+				items: [{ categoryId: "food", amount: "1" }],
+			}),
+		).rejects.toThrow("item failure");
 		expect(await transactionService.getTransaction(database, id)).toEqual(
 			original,
 		);
 		expect(await sourceService.getSources(database)).toEqual(
 			originalSources,
-		);
-		expect(sqlite.prepare("SELECT content FROM attachments").get()).toEqual(
-			{ content: receipt.content },
 		);
 	});
 

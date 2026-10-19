@@ -2,7 +2,6 @@ import CustomText from "@/components/CustomText";
 import type Folder from "@/types/Folder";
 import type ListItemProps from "@/types/ListItemProps";
 
-import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
@@ -86,13 +85,6 @@ const NotesScreen = ({ navigation }: NotesScreenProps): React.JSX.Element => {
 						<CustomText style={styles.title}>
 							{note.title}
 						</CustomText>
-						{note.hasAttachment ? (
-							<Ionicons
-								color={COLORS.primaryBright}
-								name="attach"
-								size={16}
-							/>
-						) : null}
 					</View>
 					{note.folderName ? (
 						<CustomText style={styles.folder}>

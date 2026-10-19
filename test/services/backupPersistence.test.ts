@@ -54,6 +54,7 @@ vi.mock("expo-file-system", () => {
 	return {
 		File: MockFile,
 		Paths: {
+			cache: { uri: "file:///purplecoins-test-cache/" },
 			get document(): string {
 				return native.directoryUri;
 			},
@@ -95,24 +96,15 @@ const addExpense = async (
 			"INSERT INTO categories (id, name, kind, created_at, updated_at) VALUES (?, 'Fixture category', 'EXPENSE', 1, 1);",
 		)
 		.run(categoryId);
-	await transactionService.saveTransaction(
-		fixture.database,
-		{
-			classification: "GENERAL",
-			type: "DEBIT",
-			sourceId,
-			amount: "0",
-			reason: "Fixture expense",
-			transactionAt: new Date(2026, 0, 15).getTime(),
-			items: [{ categoryId, amount }],
-		},
-		{
-			fileName: "receipt.txt",
-			mimeType: "text/plain",
-			sizeBytes: 3,
-			content: new Uint8Array([1, 2, 3]),
-		},
-	);
+	await transactionService.saveTransaction(fixture.database, {
+		classification: "GENERAL",
+		type: "DEBIT",
+		sourceId,
+		amount: "0",
+		reason: "Fixture expense",
+		transactionAt: new Date(2026, 0, 15).getTime(),
+		items: [{ categoryId, amount }],
+	});
 };
 
 const setupRestore = (): string => {
@@ -241,10 +233,12 @@ describe("real SQLite backup restore", () => {
 					.get(),
 			).toEqual({ count: populated ? 1 : 0 });
 			expect(
-				live.sqlite.prepare("SELECT content FROM attachments;").all(),
-			).toEqual(
-				populated ? [{ content: new Uint8Array([1, 2, 3]) }] : [],
-			);
+				live.sqlite
+					.prepare(
+						"SELECT name FROM sqlite_master WHERE name = 'attachments'",
+					)
+					.all(),
+			).toEqual([]);
 			expect(
 				existsSync(join(directory, "SQLite", "restore-temp.db")),
 			).toBe(false);
@@ -338,18 +332,24 @@ describe("real SQLite backup restore", () => {
 			writeFileSync(pickedPath, originalBytes);
 			const referencePath = join(directory, "reference.db");
 			writeFileSync(referencePath, originalBytes);
-			const reference = await initializeFixture(referencePath);
+			const reference = createTestDatabase(referencePath);
+			const upgraded = await initializeFixture(pickedPath);
 			expect(
-				createHash("sha256")
-					.update(readFileSync(referencePath))
-					.digest("hex"),
-			).toBe(originalHash);
+				upgraded.sqlite
+					.prepare(
+						"SELECT name FROM sqlite_master WHERE name IN ('attachments', 'idx_attachments_owner')",
+					)
+					.all(),
+			).toEqual([]);
+			await upgraded.database.closeAsync();
+			writeFileSync(pickedPath, originalBytes);
 			const live = await initializeFixture();
 			selectBackup(pickedPath);
 			expect(await backupService.restoreBackup(live.database)).toBe(true);
 			const tables = await live.database.getAllAsync<SqliteTableRow>(
 				"SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';",
 			);
+			expect(tables.map(({ name }) => name)).not.toContain("attachments");
 			for (const { name } of tables) {
 				const quotedTable = `"${name.replace(/"/g, '""')}"`;
 				const columns = live.sqlite

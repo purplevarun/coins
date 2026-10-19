@@ -15,20 +15,19 @@ and private vault records. SQLite is the source of truth.
 - INR analysis backed by persisted manual and API-fetched exchange rates
 - Source validation invalidated by linked payment changes
 - Notes, todos, folders, passwords, cards, and identity records
-- One SQLite-backed attachment per supported record, limited to 2 MB
-- Compressed `.pc` SQLite backup export; restore accepts `.pc` and `.purplecoins`
+- Raw `.pc` SQLite backup export; restore accepts `.pc` and `.purplecoins`
 
 ## Finance Rules
 
 - Credits include income, reimbursements, refunds, and redemptions.
 - Debits include expenses and invested amounts.
 - A general debit has one or more amount/category items, with a shared source,
-  date, reason, optional trip, and receipt. Its total is the sum of its items.
+  date, reason, and optional trip. Its total is the sum of its items.
 - A general credit has exactly one category and may have one trip.
 - Source balances and transaction counts include each payment once. Category
   analysis and budgets allocate expense amounts using the individual items.
 - A blank expense reason defaults to the distinct item category names.
-- Creating, editing, or deleting an expense keeps its items and receipt atomic.
+- Creating, editing, or deleting an expense keeps its payment and items atomic.
 - An investment transaction has one source and one investment only.
 - Transfers have a source, destination, from amount, and to amount.
 - Transfers are excluded from category analysis.
@@ -118,17 +117,23 @@ or deleted, including both sides of transfers.
 
 ## Backups
 
-Settings can export the live database as
-`YYYYMMDD.pc`, a gzip-compressed complete SQLite snapshot
-including attachment BLOBs. Restore accepts `.pc` and older `.purplecoins`
-files, and checks the picked file before replacing local data.
+Settings can export the live database as `purplecoins-YYYY-MM-DD.pc`, a raw SQLite
+snapshot. Restore accepts `.pc` and older `.purplecoins` files and checks the
+picked file before replacing local data. Documents and record attachments are no
+longer supported or included in new backups.
 
 ### Database Setup
 
 The app creates any missing current-schema tables automatically using the fully
 migrated 2026.10.13 schema as its baseline. Completed migrations have been retired.
-`SCHEMA_MIGRATIONS` is currently empty and remains available for future changes,
-which run after schema creation for fresh databases and temporary restore databases.
+`SCHEMA_MIGRATIONS` runs after schema creation for fresh databases and temporary
+restore databases. The current migration drops the retired attachment table and
+its index. Upgrading an existing installation also removes legacy app-owned preview
+and picker cache files once. The database is compacted on the first app start or
+foreground return of each local calendar day. The last successful compaction day
+is stored in settings; failed attempts are retried on a later open. Importing an older backup
+discards its attachments while preserving other records and the original backup
+file outside the app cache.
 Older, unmigrated databases and backups are no longer automatically upgraded.
 
 Backups must contain every live table, including transaction items. After applying

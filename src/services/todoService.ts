@@ -11,7 +11,6 @@ const { deleteContentRow, getTodoRow, getTodoRows, upsertTodoRow } =
 const mapTodo = (todo: Todo): Todo => ({
 	...todo,
 	isDone: Boolean(todo.isDone),
-	hasAttachment: Boolean(todo.hasAttachment),
 });
 
 const getTodos = async (database: SQLiteDatabase): Promise<readonly Todo[]> => {
@@ -48,7 +47,6 @@ const saveTodo = async (
 		dueAt: todo.dueAt ?? null,
 		createdAt: existingTodo?.createdAt ?? now,
 		updatedAt: now,
-		hasAttachment: existingTodo?.hasAttachment ?? false,
 	});
 	return todoId;
 };
@@ -74,7 +72,7 @@ const toggleTodo = async (
 const deleteTodo = async (
 	database: SQLiteDatabase,
 	id: string,
-): Promise<void> => deleteContentRow(database, "todos", "TODO", id);
+): Promise<void> => deleteContentRow(database, "todos", id);
 
 const todoService = {
 	deleteTodo,

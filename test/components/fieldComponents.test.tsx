@@ -1,3 +1,6 @@
+import DateField from "@/components/DateField";
+import FolderPicker from "@/components/FolderPicker";
+import InvestmentTypePicker from "@/components/InvestmentTypePicker";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const reactMocks = vi.hoisted(() => ({
@@ -26,10 +29,6 @@ vi.mock("@expo/vector-icons", () => ({
 vi.mock("@react-native-community/datetimepicker", () => ({
 	default: "DateTimePicker",
 }));
-
-vi.mock("@/components/AttachmentViewer", () => ({
-	default: "AttachmentViewer",
-}));
 vi.mock("@/components/CustomText", () => ({
 	default: "CustomText",
 }));
@@ -48,11 +47,6 @@ vi.mock("@/utils/date", () => ({
 		formatDate: vi.fn(() => "2026-08-25"),
 	},
 }));
-
-import AttachmentField from "@/components/AttachmentField";
-import DateField from "@/components/DateField";
-import FolderPicker from "@/components/FolderPicker";
-import InvestmentTypePicker from "@/components/InvestmentTypePicker";
 
 import { Platform } from "react-native";
 
@@ -74,108 +68,6 @@ const findAllByType = (node: any, type: string, acc: any[] = []): any[] => {
 describe("field components", () => {
 	beforeEach(() => {
 		reactMocks.useState.mockReset();
-	});
-
-	it("covers AttachmentField choose/view/send/delete branches", async () => {
-		reactMocks.useState.mockImplementation((initial: any) => [
-			typeof initial === "function" ? initial() : initial,
-			vi.fn(),
-		]);
-		const handlers = {
-			onPick: vi.fn(),
-			onView: vi.fn(async (): Promise<string | null> => "cache/doc.pdf"),
-			onSend: vi.fn(),
-			onRemove: vi.fn(),
-		};
-
-		const empty = AttachmentField({
-			existingAttachment: null,
-			pendingAttachment: null,
-			isRemoved: false,
-			...handlers,
-		});
-		const emptyButtons = findAllByType(empty, "AppButton");
-		expect(emptyButtons).toHaveLength(1);
-		expect(emptyButtons[0]?.props.label).toBe("Choose document");
-		emptyButtons[0]?.props.onPress();
-		expect(handlers.onPick).toHaveBeenCalledTimes(1);
-
-		const existing = AttachmentField({
-			existingAttachment: {
-				id: "a1",
-				ownerId: "n1",
-				ownerType: "NOTE",
-				fileName: "doc.pdf",
-				sizeBytes: 1100,
-				mimeType: "application/pdf",
-				createdAt: 1,
-				updatedAt: 1,
-			},
-			pendingAttachment: null,
-			isRemoved: false,
-			...handlers,
-		} as any);
-		const existingButtons = findAllByType(existing, "AppButton");
-		expect(existingButtons.map((button) => button.props.label)).toEqual([
-			"View",
-			"Send",
-			"Delete",
-		]);
-		handlers.onView.mockResolvedValueOnce(null);
-		await existingButtons[0]?.props.onPress();
-		await existingButtons[0]?.props.onPress();
-		existingButtons[1]?.props.onPress();
-		existingButtons[2]?.props.onPress();
-		expect(handlers.onView).toHaveBeenCalledTimes(2);
-		expect(handlers.onSend).toHaveBeenCalledTimes(1);
-		expect(handlers.onRemove).toHaveBeenCalledTimes(1);
-
-		const viewer = findAllByType(existing, "AttachmentViewer")[0];
-		viewer?.props.onClose();
-
-		const pending = AttachmentField({
-			existingAttachment: {
-				id: "a1",
-				ownerId: "n1",
-				ownerType: "NOTE",
-				fileName: "old.pdf",
-				sizeBytes: 1100,
-				mimeType: "application/pdf",
-				createdAt: 1,
-				updatedAt: 1,
-			},
-			pendingAttachment: {
-				fileName: "new.bin",
-				mimeType: "application/octet-stream",
-				sizeBytes: 2 * 1024 * 1024,
-				content: new Uint8Array([1]),
-			},
-			isRemoved: false,
-			...handlers,
-		} as any);
-		const pendingButtons = findAllByType(pending, "AppButton");
-		expect(pendingButtons.map((button) => button.props.label)).toEqual([
-			"Delete",
-		]);
-
-		const removedExisting = AttachmentField({
-			existingAttachment: {
-				id: "a1",
-				ownerId: "n1",
-				ownerType: "NOTE",
-				fileName: "doc.pdf",
-				sizeBytes: 1100,
-				mimeType: "application/pdf",
-				createdAt: 1,
-				updatedAt: 1,
-			},
-			pendingAttachment: null,
-			isRemoved: true,
-			...handlers,
-		} as any);
-		const removedButtons = findAllByType(removedExisting, "AppButton");
-		expect(removedButtons).toHaveLength(1);
-		expect(removedButtons[0]?.props.label).toBe("Choose document");
 	});
 
 	it("covers DateField picker visibility and platform behavior", () => {

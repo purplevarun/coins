@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import AppButton from "@/components/AppButton";
-import AttachmentField from "@/components/AttachmentField";
 import DateField from "@/components/DateField";
 import GlassCard from "@/components/GlassCard";
 import HeaderIconButton from "@/components/HeaderIconButton";
@@ -18,7 +17,6 @@ import financeConstants from "@/constants/financeConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
-import useAttachment from "@/hooks/useAttachment";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import categoryService from "@/services/categoryService";
 import investmentService from "@/services/investmentService";
@@ -72,7 +70,6 @@ const TransactionFormScreen = ({
 	const initialCategoryId = route.params?.initialCategoryId;
 	const { database, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
-	const attachment = useAttachment("TRANSACTION", transactionId);
 	const [classification, setClassification] =
 		useState<TransactionClassification>(DEFAULT_TRANSACTION_CLASSIFICATION);
 	const [type, setType] = useState<TransactionType>(DEFAULT_TRANSACTION_TYPE);
@@ -297,51 +294,46 @@ const TransactionFormScreen = ({
 		setIsSaving(true);
 		setError("");
 		try {
-			await saveTransaction(
-				database,
-				{
-					id: transactionId,
-					classification,
-					type,
-					sourceId,
-					destinationSourceId:
-						isTransfer && destinationSourceId
-							? destinationSourceId
-							: undefined,
-					amount: isExpense ? (expenseTotal ?? "0") : amount,
-					items: isExpense
-						? items.map((item) => ({
-								id: item.id,
-								amount: item.amount,
-								categoryId: item.categoryId,
-							}))
+			await saveTransaction(database, {
+				id: transactionId,
+				classification,
+				type,
+				sourceId,
+				destinationSourceId:
+					isTransfer && destinationSourceId
+						? destinationSourceId
 						: undefined,
-					toAmount:
-						isTransfer && effectiveToAmount
-							? effectiveToAmount
-							: undefined,
-					categoryId:
-						classification === "GENERAL" &&
-						type === "CREDIT" &&
-						categoryId
-							? categoryId
-							: undefined,
-					tripId:
-						classification === "GENERAL" &&
-						type !== "TRANSFER" &&
-						tripId
-							? tripId
-							: undefined,
-					investmentId:
-						classification === "INVESTMENT" && investmentId
-							? investmentId
-							: undefined,
-					reason,
-					transactionAt,
-				},
-				attachment.pendingAttachment ??
-					(attachment.isRemoved ? null : undefined),
-			);
+				amount: isExpense ? (expenseTotal ?? "0") : amount,
+				items: isExpense
+					? items.map((item) => ({
+							id: item.id,
+							amount: item.amount,
+							categoryId: item.categoryId,
+						}))
+					: undefined,
+				toAmount:
+					isTransfer && effectiveToAmount
+						? effectiveToAmount
+						: undefined,
+				categoryId:
+					classification === "GENERAL" &&
+					type === "CREDIT" &&
+					categoryId
+						? categoryId
+						: undefined,
+				tripId:
+					classification === "GENERAL" &&
+					type !== "TRANSFER" &&
+					tripId
+						? tripId
+						: undefined,
+				investmentId:
+					classification === "INVESTMENT" && investmentId
+						? investmentId
+						: undefined,
+				reason,
+				transactionAt,
+			});
 			refreshData();
 			navigation.goBack();
 		} catch (caughtError: unknown) {
@@ -609,15 +601,7 @@ const TransactionFormScreen = ({
 						}
 						value={reason}
 					/>
-					<AttachmentField
-						existingAttachment={attachment.existingAttachment}
-						isRemoved={attachment.isRemoved}
-						onSend={() => void attachment.handleSend()}
-						onView={attachment.handleOpen}
-						onPick={() => void attachment.handlePick()}
-						onRemove={attachment.handleRemove}
-						pendingAttachment={attachment.pendingAttachment}
-					/>
+
 					{sources.length === 0 ? (
 						<Notice
 							message={MESSAGES.TRANSACTION_FORM.NO_SOURCES}

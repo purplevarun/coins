@@ -260,7 +260,6 @@ describe("TransactionsScreen", () => {
 			categoryName: null,
 			tripName: null,
 			investmentName: null,
-			hasAttachment: false,
 		};
 		const older: Transaction = {
 			...recent,

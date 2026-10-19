@@ -276,7 +276,6 @@ describe("VaultScreen", () => {
 					cvv: "111",
 					pin: "0000",
 					network: "VISA",
-					hasAttachment: true,
 				},
 			},
 		});
@@ -304,7 +303,6 @@ describe("VaultScreen", () => {
 					id: "i1",
 					title: "Passport",
 					idNumber: "P1",
-					hasAttachment: false,
 				},
 			},
 		});
@@ -344,7 +342,6 @@ describe("VaultScreen", () => {
 							cvv: "111",
 							pin: "0000",
 							network: "VISA",
-							hasAttachment: true,
 						},
 					],
 					vi.fn(),
@@ -378,7 +375,6 @@ describe("VaultScreen", () => {
 					cvv: "111",
 					pin: "0000",
 					network: "VISA",
-					hasAttachment: true,
 				},
 			},
 		});
@@ -535,7 +531,6 @@ describe("VaultScreen", () => {
 							id: "i1",
 							title: "Passport",
 							idNumber: "P1",
-							hasAttachment: false,
 						},
 					],
 					vi.fn(),
@@ -600,7 +595,6 @@ describe("VaultScreen", () => {
 					id: "i1",
 					title: "Passport",
 					idNumber: "P1",
-					hasAttachment: false,
 				},
 			},
 		});
@@ -705,7 +699,7 @@ describe("VaultScreen", () => {
 		expect(setError).toHaveBeenCalledWith("vault delete failed");
 	});
 
-	it("covers VaultScreen attachment and header notice render branches", async () => {
+	it("renders vault notices without attachment indicators", async () => {
 		const navigation = { navigate: vi.fn() };
 		let call = 0;
 		reactMocks.useState.mockImplementation((initial: any) => {
@@ -722,7 +716,6 @@ describe("VaultScreen", () => {
 							cvv: "",
 							pin: "",
 							network: "",
-							hasAttachment: false,
 						},
 					],
 					vi.fn(),
@@ -735,7 +728,6 @@ describe("VaultScreen", () => {
 							id: "i2",
 							title: "License",
 							idNumber: "L1",
-							hasAttachment: true,
 						},
 					],
 					vi.fn(),
@@ -786,7 +778,6 @@ describe("VaultScreen", () => {
 					cvv: "",
 					pin: "",
 					network: "",
-					hasAttachment: false,
 				},
 			},
 		});
@@ -810,11 +801,10 @@ describe("VaultScreen", () => {
 					id: "i2",
 					title: "License",
 					idNumber: "L1",
-					hasAttachment: true,
 				},
 			},
 		});
-		expect(String(JSON.stringify(identityRow))).toContain(
+		expect(String(JSON.stringify(identityRow))).not.toContain(
 			'"name":"attach"',
 		);
 	});
@@ -831,7 +821,6 @@ describe("VaultScreen", () => {
 			cvv: "111",
 			pin: "0000",
 			network: "VISA",
-			hasAttachment: false,
 		};
 		let call = 0;
 		reactMocks.useState.mockImplementation((initial: any) => {
@@ -880,7 +869,6 @@ describe("VaultScreen", () => {
 			cvv: "111",
 			pin: "0000",
 			network: "VISA",
-			hasAttachment: false,
 		};
 		const password = {
 			id: "p1",

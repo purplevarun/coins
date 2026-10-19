@@ -26,7 +26,6 @@ type Transaction = Readonly<{
 	categoryKind?: CategoryKind | null;
 	tripName: string | null;
 	investmentName: string | null;
-	hasAttachment: boolean;
 	items: readonly TransactionItem[];
 }>;
 

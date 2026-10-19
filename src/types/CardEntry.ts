@@ -12,7 +12,6 @@ type CardEntry = Readonly<{
 	notes: string;
 	createdAt: number;
 	updatedAt: number;
-	hasAttachment: boolean;
 }>;
 
 export type { CardEntry as default };

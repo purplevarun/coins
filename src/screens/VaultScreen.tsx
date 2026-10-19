@@ -343,13 +343,7 @@ const VaultScreen = ({
 										)}
 									</CustomText>
 								</View>
-								{entry.hasAttachment ? (
-									<Ionicons
-										color={COLORS.primaryBright}
-										name="attach"
-										size={16}
-									/>
-								) : null}
+
 								<Pressable
 									accessibilityLabel={
 										isRevealed
@@ -439,13 +433,6 @@ const VaultScreen = ({
 									{getIdentitySubtitle(entry.idNumber)}
 								</CustomText>
 							</View>
-							{entry.hasAttachment ? (
-								<Ionicons
-									color={COLORS.primaryBright}
-									name="attach"
-									size={16}
-								/>
-							) : null}
 						</View>
 						<View style={styles.actions}>
 							<AppButton

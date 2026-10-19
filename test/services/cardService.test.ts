@@ -33,23 +33,20 @@ describe("cardService", () => {
 		Object.values(mocks).forEach((mockFn) => mockFn.mockClear());
 	});
 
-	it("maps hasAttachment values", async () => {
-		mocks.getCardRows.mockResolvedValueOnce([
-			{ id: "c1", name: "A", hasAttachment: 1 },
-		]);
+	it("loads cards and handles missing records", async () => {
+		mocks.getCardRows.mockResolvedValueOnce([{ id: "c1", name: "A" }]);
 		mocks.getCardRow.mockResolvedValueOnce({
 			id: "c2",
 			name: "B",
-			hasAttachment: 0,
+		});
+		expect(await cardService.getCards(database)).toEqual([
+			{ id: "c1", name: "A" },
+		]);
+		expect(await cardService.getCard(database, "c2")).toEqual({
+			id: "c2",
+			name: "B",
 		});
 		mocks.getCardRow.mockResolvedValueOnce(null);
-
-		expect((await cardService.getCards(database))[0]?.hasAttachment).toBe(
-			true,
-		);
-		expect((await cardService.getCard(database, "c2"))?.hasAttachment).toBe(
-			false,
-		);
 		expect(await cardService.getCard(database, "missing")).toBeNull();
 	});
 
@@ -107,16 +104,14 @@ describe("cardService", () => {
 				network: "VISA",
 				notes: "note",
 				createdAt: new Date("2026-08-25T12:00:00.000Z").getTime(),
-				hasAttachment: false,
 			}),
 		);
 	});
 
-	it("updates existing card preserving createdAt and hasAttachment", async () => {
+	it("updates existing card preserving createdAt", async () => {
 		mocks.getCardRow.mockResolvedValueOnce({
 			id: "c1",
 			createdAt: 123,
-			hasAttachment: true,
 		});
 
 		const id = await cardService.saveCard(database, {
@@ -137,7 +132,6 @@ describe("cardService", () => {
 			expect.objectContaining({
 				id: "c1",
 				createdAt: 123,
-				hasAttachment: true,
 			}),
 		);
 	});
@@ -147,7 +141,6 @@ describe("cardService", () => {
 		expect(mocks.deleteContentRow).toHaveBeenCalledWith(
 			database,
 			"cards",
-			"CARD",
 			"c1",
 		);
 	});

@@ -352,8 +352,7 @@ const SettingsScreen = ({
 					</CustomText>
 					<CustomText style={styles.description}>
 						Exports use .pc. Restore accepts raw .pc and
-						.purplecoins SQLite snapshots, including attachments.
-						Keep them private.
+						.purplecoins SQLite snapshots. Keep them private.
 					</CustomText>
 					<AppButton
 						icon="share-outline"

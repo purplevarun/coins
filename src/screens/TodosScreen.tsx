@@ -107,13 +107,6 @@ const TodosScreen = ({ navigation }: TodosScreenProps): React.JSX.Element => {
 								>
 									{todo.title}
 								</CustomText>
-								{todo.hasAttachment ? (
-									<Ionicons
-										color={COLORS.primaryBright}
-										name="attach"
-										size={15}
-									/>
-								) : null}
 							</View>
 							{todo.description ? (
 								<CustomText

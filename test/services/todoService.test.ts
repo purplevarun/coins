@@ -51,7 +51,6 @@ describe("todoService", () => {
 				folderName: null,
 				dueAt: null,
 				isDone: 1,
-				hasAttachment: 0,
 				createdAt: 1,
 				updatedAt: 1,
 			},
@@ -59,7 +58,6 @@ describe("todoService", () => {
 
 		const todos = await todoService.getTodos(database);
 		expect(todos[0]?.isDone).toBe(true);
-		expect(todos[0]?.hasAttachment).toBe(false);
 	});
 
 	it("returns null for missing todo", async () => {
@@ -76,14 +74,12 @@ describe("todoService", () => {
 			folderName: null,
 			dueAt: null,
 			isDone: 0,
-			hasAttachment: 1,
 			createdAt: 1,
 			updatedAt: 1,
 		});
 
 		const todo = await todoService.getTodo(database, "t1");
 		expect(todo?.isDone).toBe(false);
-		expect(todo?.hasAttachment).toBe(true);
 	});
 
 	it("throws when title is empty", async () => {
@@ -119,11 +115,10 @@ describe("todoService", () => {
 			dueAt: null,
 			createdAt: new Date("2026-08-25T12:00:00.000Z").getTime(),
 			updatedAt: new Date("2026-08-25T12:00:00.000Z").getTime(),
-			hasAttachment: false,
 		});
 	});
 
-	it("updates existing todo and keeps createdAt and hasAttachment", async () => {
+	it("updates existing todo and keeps createdAt", async () => {
 		mocks.getTodoRow.mockResolvedValueOnce({
 			id: "t1",
 			title: "Old",
@@ -132,7 +127,6 @@ describe("todoService", () => {
 			folderName: "Folder",
 			dueAt: 10,
 			isDone: false,
-			hasAttachment: true,
 			createdAt: 123,
 			updatedAt: 456,
 		});
@@ -158,7 +152,6 @@ describe("todoService", () => {
 			dueAt: 789,
 			createdAt: 123,
 			updatedAt: new Date("2026-08-25T12:00:00.000Z").getTime(),
-			hasAttachment: true,
 		});
 	});
 
@@ -180,7 +173,6 @@ describe("todoService", () => {
 			folderName: "F",
 			dueAt: 500,
 			isDone: 0,
-			hasAttachment: 0,
 			createdAt: 100,
 			updatedAt: 101,
 		});
@@ -192,7 +184,6 @@ describe("todoService", () => {
 			folderName: "F",
 			dueAt: 500,
 			isDone: 0,
-			hasAttachment: 0,
 			createdAt: 100,
 			updatedAt: 101,
 		});
@@ -218,7 +209,6 @@ describe("todoService", () => {
 			folderName: null,
 			dueAt: null,
 			isDone: 1,
-			hasAttachment: 0,
 			createdAt: 100,
 			updatedAt: 101,
 		});
@@ -241,7 +231,6 @@ describe("todoService", () => {
 		expect(mocks.deleteContentRow).toHaveBeenCalledWith(
 			database,
 			"todos",
-			"TODO",
 			"t1",
 		);
 	});

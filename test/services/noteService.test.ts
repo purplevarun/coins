@@ -33,14 +33,13 @@ describe("noteService", () => {
 		Object.values(mocks).forEach((mockFn) => mockFn.mockClear());
 	});
 
-	it("maps boolean-ish attachment values", async () => {
+	it("loads notes and handles missing records", async () => {
 		mocks.getNoteRows.mockResolvedValueOnce([
 			{
 				id: "n1",
 				title: "A",
 				content: "B",
 				folderId: null,
-				hasAttachment: 1,
 			},
 		]);
 		mocks.getNoteRow.mockResolvedValueOnce({
@@ -48,16 +47,16 @@ describe("noteService", () => {
 			title: "A",
 			content: "B",
 			folderId: null,
-			hasAttachment: 0,
+		});
+		expect(await noteService.getNotes(database)).toMatchObject([
+			{ id: "n1", title: "A", content: "B" },
+		]);
+		expect(await noteService.getNote(database, "n2")).toMatchObject({
+			id: "n2",
+			title: "A",
+			content: "B",
 		});
 		mocks.getNoteRow.mockResolvedValueOnce(null);
-
-		expect((await noteService.getNotes(database))[0]?.hasAttachment).toBe(
-			true,
-		);
-		expect((await noteService.getNote(database, "n2"))?.hasAttachment).toBe(
-			false,
-		);
 		expect(await noteService.getNote(database, "missing")).toBeNull();
 	});
 
@@ -84,18 +83,16 @@ describe("noteService", () => {
 				content: "Content",
 				folderId: null,
 				createdAt: new Date("2026-08-25T12:00:00.000Z").getTime(),
-				hasAttachment: false,
 			}),
 		);
 	});
 
-	it("updates existing note preserving createdAt and hasAttachment", async () => {
+	it("updates existing note preserving createdAt", async () => {
 		mocks.getNoteRow.mockResolvedValueOnce({
 			id: "n1",
 			title: "Old",
 			content: "Old",
 			folderId: "f1",
-			hasAttachment: true,
 			createdAt: 123,
 			updatedAt: 456,
 		});
@@ -116,7 +113,6 @@ describe("noteService", () => {
 				content: "Body",
 				folderId: "f2",
 				createdAt: 123,
-				hasAttachment: true,
 			}),
 		);
 	});
@@ -126,7 +122,6 @@ describe("noteService", () => {
 		expect(mocks.deleteContentRow).toHaveBeenCalledWith(
 			database,
 			"notes",
-			"NOTE",
 			"n1",
 		);
 	});

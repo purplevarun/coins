@@ -5,7 +5,6 @@ type IdentityEntry = Readonly<{
 	notes: string;
 	createdAt: number;
 	updatedAt: number;
-	hasAttachment: boolean;
 }>;
 
 export type { IdentityEntry as default };

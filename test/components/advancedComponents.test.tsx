@@ -138,7 +138,6 @@ const baseTransaction: Transaction = {
 	categoryName: "Groceries",
 	tripName: null,
 	investmentName: null,
-	hasAttachment: false,
 };
 
 describe("advanced components", () => {
@@ -181,7 +180,6 @@ describe("advanced components", () => {
 			transaction: {
 				...baseTransaction,
 				type: "CREDIT",
-				hasAttachment: true,
 			},
 			onPress,
 			onLongPress,
@@ -195,7 +193,7 @@ describe("advanced components", () => {
 			findAllByType(credit, "Ionicons").some(
 				(icon) => icon.props.name === "attach",
 			),
-		).toBe(true);
+		).toBe(false);
 		expect(hasTextContaining(credit, "+INR:100")).toBe(true);
 
 		const debitInvestment = TransactionCard({

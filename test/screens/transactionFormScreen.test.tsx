@@ -5,8 +5,6 @@ import SegmentedControl from "@/components/SegmentedControl";
 import SelectField from "@/components/SelectField";
 import TextField from "@/components/TextField";
 import type AppDialogConfirmOptions from "@/types/AppDialogConfirmOptions";
-import type AttachmentInput from "@/types/AttachmentInput";
-import type AttachmentTestState from "@test/types/AttachmentTestState";
 import type TransactionFormHarness from "@test/types/TransactionFormHarness";
 import { isValidElement, type ComponentProps, type ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -32,16 +30,6 @@ const serviceMocks = vi.hoisted(() => ({
 const hookMocks = vi.hoisted(() => ({
 	refreshData: vi.fn(),
 	confirm: vi.fn(),
-	processAttachment: vi.fn(),
-	handleOpen: vi.fn(),
-	handleSend: vi.fn(),
-	handlePick: vi.fn(),
-	handleRemove: vi.fn(),
-}));
-
-const attachmentState = vi.hoisted((): AttachmentTestState => ({
-	pendingAttachment: null,
-	isRemoved: false,
 }));
 
 vi.mock("react", async (importOriginal) => {
@@ -61,9 +49,6 @@ vi.mock("react-native", () => ({
 
 vi.mock("@/components/AppButton", () => ({
 	default: (props: any) => ({ type: "AppButton", props }),
-}));
-vi.mock("@/components/AttachmentField", () => ({
-	default: (props: any) => ({ type: "AttachmentField", props }),
 }));
 vi.mock("@/components/CustomText", () => ({
 	default: (props: any) => ({ type: "CustomText", props }),
@@ -100,18 +85,6 @@ vi.mock("@/components/TextField", () => ({
 
 vi.mock("@/hooks/useAppDialog", () => ({
 	default: () => ({ confirm: hookMocks.confirm }),
-}));
-vi.mock("@/hooks/useAttachment", () => ({
-	default: () => ({
-		existingAttachment: null,
-		isRemoved: attachmentState.isRemoved,
-		pendingAttachment: attachmentState.pendingAttachment,
-		processAttachment: hookMocks.processAttachment,
-		handleOpen: hookMocks.handleOpen,
-		handleSend: hookMocks.handleSend,
-		handlePick: hookMocks.handlePick,
-		handleRemove: hookMocks.handleRemove,
-	}),
 }));
 vi.mock("@/hooks/useDatabaseContext", () => ({
 	default: () => ({
@@ -253,21 +226,7 @@ const createFormHarness = (
 };
 
 describe("TransactionFormScreen", () => {
-	it("delegates attachment send to the attachment hook", async () => {
-		const tree = TransactionFormScreen({
-			navigation: { goBack: vi.fn() },
-			route: { params: undefined },
-		} as any);
-		const field = findByPredicate(
-			tree,
-			(node) => typeof node?.props?.onSend === "function",
-		)[0];
-		await field.props.onSend();
-		expect(hookMocks.handleSend).toHaveBeenCalledTimes(1);
-	});
 	beforeEach(() => {
-		attachmentState.pendingAttachment = null;
-		attachmentState.isRemoved = false;
 		reactMocks.useEffect.mockReset();
 		reactMocks.useState.mockReset();
 		reactMocks.useRef.mockImplementation(() => ({ current: false }));
@@ -298,11 +257,35 @@ describe("TransactionFormScreen", () => {
 		serviceMocks.getTransaction.mockResolvedValue(null);
 		serviceMocks.saveTransaction.mockResolvedValue("txSaved");
 		serviceMocks.deleteTransaction.mockResolvedValue(undefined);
-		hookMocks.processAttachment.mockResolvedValue(undefined);
 		hookMocks.confirm.mockImplementation(({ onConfirm }: any) =>
 			onConfirm(),
 		);
 	});
+
+	it.each(["", "c1"])(
+		"forwards a credit category selection of %s",
+		async (categoryId) => {
+			const harness = createFormHarness(
+				new Map<number, unknown>([
+					[2, "CREDIT"],
+					[5, "100"],
+					[7, categoryId],
+				]),
+			);
+			const tree = harness.render();
+			formElements<ComponentProps<typeof AppButton>>(tree, AppButton)
+				.find((button) => button.props.label === "Save transaction")
+				?.props.onPress();
+			await flush();
+			expect(serviceMocks.saveTransaction).toHaveBeenCalledWith(
+				{ id: "db" },
+				expect.objectContaining({
+					type: "CREDIT",
+					categoryId: categoryId || undefined,
+				}),
+			);
+		},
+	);
 
 	it("starts with one item, adds independent fields, and never removes the last item", async () => {
 		const harness = createFormHarness();
@@ -344,7 +327,6 @@ describe("TransactionFormScreen", () => {
 					{ id: undefined, amount: "100", categoryId: "grocery" },
 				],
 			}),
-			undefined,
 		);
 		formElements<ComponentProps<typeof HeaderIconButton>>(
 			tree,
@@ -463,7 +445,6 @@ describe("TransactionFormScreen", () => {
 					id: clone ? undefined : "payment",
 					amount: "200",
 				}),
-				undefined,
 			);
 		},
 	);
@@ -500,43 +481,6 @@ describe("TransactionFormScreen", () => {
 		expect(harness.navigation.goBack).toHaveBeenCalledOnce();
 		expect(harness.values.get(16)).toBe(false);
 	});
-
-	it.each(["replace", "remove"])(
-		"sends a shared receipt %s through the payment save",
-		async (change) => {
-			const receipt: AttachmentInput = {
-				fileName: "receipt.txt",
-				mimeType: "text/plain",
-				sizeBytes: 1,
-				content: new Uint8Array([1]),
-			};
-			attachmentState.pendingAttachment =
-				change === "replace" ? receipt : null;
-			attachmentState.isRemoved = change === "remove";
-			const harness = createFormHarness(
-				new Map([
-					[2, "CREDIT"],
-					[5, "100"],
-					[7, "food"],
-				]),
-			);
-			const tree = harness.render();
-			formElements<ComponentProps<typeof AppButton>>(tree, AppButton)
-				.find((button) => button.props.label === "Save transaction")
-				?.props.onPress();
-			await flush();
-			expect(serviceMocks.saveTransaction).toHaveBeenCalledWith(
-				{ id: "db" },
-				expect.objectContaining({
-					type: "CREDIT",
-					categoryId: "food",
-					items: undefined,
-					amount: "100",
-				}),
-				change === "replace" ? receipt : null,
-			);
-		},
-	);
 
 	it("keeps incomplete item totals unavailable and can change mode without inventing an amount", () => {
 		const harness = createFormHarness(
@@ -729,7 +673,6 @@ describe("TransactionFormScreen", () => {
 				tripId: "tr1",
 				amount: "15",
 			}),
-			undefined,
 		);
 		expect(navigation.goBack).toHaveBeenCalled();
 	});
@@ -794,7 +737,6 @@ describe("TransactionFormScreen", () => {
 				expect.objectContaining({
 					transactionAt: initialTransactionAt,
 				}),
-				undefined,
 			);
 			expect(navigation.goBack).toHaveBeenCalled();
 		},
@@ -899,9 +841,7 @@ describe("TransactionFormScreen", () => {
 				transactionAt: 123,
 				items: undefined,
 			},
-			undefined,
 		);
-		expect(hookMocks.processAttachment).not.toHaveBeenCalled();
 		expect(serviceMocks.deleteTransaction).toHaveBeenCalledWith(
 			{ id: "db" },
 			"tx1",
@@ -991,9 +931,7 @@ describe("TransactionFormScreen", () => {
 				transactionAt: 456,
 				items: undefined,
 			},
-			undefined,
 		);
-		expect(hookMocks.processAttachment).not.toHaveBeenCalled();
 		expect(navigation.goBack).toHaveBeenCalled();
 	});
 
@@ -1019,32 +957,6 @@ describe("TransactionFormScreen", () => {
 					"Create a source before adding transactions.",
 			),
 		).not.toHaveLength(0);
-	});
-
-	it("covers attachment actions", async () => {
-		const navigation = { goBack: vi.fn() };
-
-		const tree = TransactionFormScreen({
-			navigation,
-			route: { key: "k4", name: "TransactionForm", params: {} },
-		} as any);
-		await flush();
-
-		const attachment = findByPredicate(
-			tree,
-			(node) =>
-				typeof node?.props?.onSend === "function" &&
-				typeof node?.props?.onPick === "function" &&
-				typeof node?.props?.onRemove === "function",
-		)[0];
-		await attachment?.props?.onView();
-		await attachment?.props?.onSend();
-		await attachment?.props?.onPick();
-		attachment?.props?.onRemove();
-
-		expect(hookMocks.handleOpen).toHaveBeenCalled();
-		expect(hookMocks.handlePick).toHaveBeenCalled();
-		expect(hookMocks.handleRemove).toHaveBeenCalled();
 	});
 
 	it("covers save and delete error branches", async () => {
@@ -1365,7 +1277,6 @@ describe("TransactionFormScreen", () => {
 				reason: "Groceries",
 				transactionAt: 789,
 			},
-			undefined,
 		);
 	});
 

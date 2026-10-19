@@ -7,23 +7,13 @@ import type { SQLiteDatabase } from "expo-sqlite";
 const { deleteContentRow, getNoteRow, getNoteRows, upsertNoteRow } =
 	contentRepository;
 
-const mapNote = (note: Note): Note => ({
-	...note,
-	hasAttachment: Boolean(note.hasAttachment),
-});
-
-const getNotes = async (database: SQLiteDatabase): Promise<readonly Note[]> => {
-	const notes = await getNoteRows(database);
-	return notes.map(mapNote);
-};
+const getNotes = async (database: SQLiteDatabase): Promise<readonly Note[]> =>
+	getNoteRows(database);
 
 const getNote = async (
 	database: SQLiteDatabase,
 	id: string,
-): Promise<Note | null> => {
-	const note = await getNoteRow(database, id);
-	return note ? mapNote(note) : null;
-};
+): Promise<Note | null> => getNoteRow(database, id);
 
 const saveNote = async (
 	database: SQLiteDatabase,
@@ -47,7 +37,6 @@ const saveNote = async (
 		content: content.trim(),
 		createdAt: existingNote?.createdAt ?? now,
 		updatedAt: now,
-		hasAttachment: existingNote?.hasAttachment ?? false,
 	});
 	return noteId;
 };
@@ -55,7 +44,7 @@ const saveNote = async (
 const deleteNote = async (
 	database: SQLiteDatabase,
 	id: string,
-): Promise<void> => deleteContentRow(database, "notes", "NOTE", id);
+): Promise<void> => deleteContentRow(database, "notes", id);
 
 const noteService = {
 	deleteNote,

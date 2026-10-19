@@ -33,23 +33,20 @@ describe("identityService", () => {
 		Object.values(mocks).forEach((mockFn) => mockFn.mockClear());
 	});
 
-	it("maps hasAttachment values", async () => {
-		mocks.getIdentityRows.mockResolvedValueOnce([
-			{ id: "i1", title: "A", hasAttachment: 1 },
-		]);
+	it("loads identities and handles missing records", async () => {
+		mocks.getIdentityRows.mockResolvedValueOnce([{ id: "i1", title: "A" }]);
 		mocks.getIdentityRow.mockResolvedValueOnce({
 			id: "i2",
 			title: "B",
-			hasAttachment: 0,
+		});
+		expect(await identityService.getIdentities(database)).toEqual([
+			{ id: "i1", title: "A" },
+		]);
+		expect(await identityService.getIdentity(database, "i2")).toEqual({
+			id: "i2",
+			title: "B",
 		});
 		mocks.getIdentityRow.mockResolvedValueOnce(null);
-
-		expect(
-			(await identityService.getIdentities(database))[0]?.hasAttachment,
-		).toBe(true);
-		expect(
-			(await identityService.getIdentity(database, "i2"))?.hasAttachment,
-		).toBe(false);
 		expect(
 			await identityService.getIdentity(database, "missing"),
 		).toBeNull();
@@ -78,16 +75,14 @@ describe("identityService", () => {
 				idNumber: "P123",
 				notes: "keep safe",
 				createdAt: new Date("2026-08-25T12:00:00.000Z").getTime(),
-				hasAttachment: false,
 			}),
 		);
 	});
 
-	it("updates identity preserving createdAt and hasAttachment", async () => {
+	it("updates identity preserving createdAt", async () => {
 		mocks.getIdentityRow.mockResolvedValueOnce({
 			id: "i1",
 			createdAt: 123,
-			hasAttachment: true,
 		});
 
 		const id = await identityService.saveIdentity(database, {
@@ -102,7 +97,6 @@ describe("identityService", () => {
 			expect.objectContaining({
 				id: "i1",
 				createdAt: 123,
-				hasAttachment: true,
 			}),
 		);
 	});
@@ -112,7 +106,6 @@ describe("identityService", () => {
 		expect(mocks.deleteContentRow).toHaveBeenCalledWith(
 			database,
 			"identities",
-			"IDENTITY",
 			"i1",
 		);
 	});

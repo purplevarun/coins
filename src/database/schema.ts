@@ -165,18 +165,6 @@ CREATE TABLE IF NOT EXISTS identities (
 	updated_at INTEGER
 );
 
-CREATE TABLE IF NOT EXISTS attachments (
-	id TEXT,
-	owner_type TEXT,
-	owner_id TEXT,
-	file_name TEXT,
-	mime_type TEXT,
-	size_bytes INTEGER,
-	content BLOB,
-	created_at INTEGER,
-	updated_at INTEGER
-);
-
 CREATE TABLE IF NOT EXISTS settings (
 	key TEXT,
 	value TEXT,
@@ -203,8 +191,6 @@ CREATE INDEX IF NOT EXISTS idx_investments_platform
 	ON investments(platform_id);
 CREATE INDEX IF NOT EXISTS idx_transaction_items_category
 	ON transaction_items(category_id);
-CREATE INDEX IF NOT EXISTS idx_attachments_owner
-	ON attachments(owner_type, owner_id);
 `;
 
 export default SCHEMA_SQL;

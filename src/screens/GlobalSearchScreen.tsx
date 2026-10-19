@@ -17,7 +17,6 @@ import financeConstants from "@/constants/financeConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
-import attachmentService from "@/services/attachmentService";
 import budgetService from "@/services/budgetService";
 import cardService from "@/services/cardService";
 import categoryService from "@/services/categoryService";
@@ -32,13 +31,11 @@ import tripService from "@/services/tripService";
 import type GlobalSearchResult from "@/types/GlobalSearchResult";
 import type GlobalSearchResultKind from "@/types/GlobalSearchResultKind";
 import type GlobalSearchScreenProps from "@/types/GlobalSearchScreenProps";
-import { getAttachmentOwnerLabel } from "@/utils/attachment";
 import dateUtils from "@/utils/date";
 import getErrorMessage from "@/utils/error";
 import moneyUtils from "@/utils/money";
 const { DEFAULT_CURRENCY_CODE } = appConstants;
 const { CATEGORY_KIND_LABELS } = financeConstants;
-const { getAttachments } = attachmentService;
 const { getBudgets } = budgetService;
 const { getCards } = cardService;
 const { getCategories } = categoryService;
@@ -77,7 +74,6 @@ const GlobalSearchScreen = ({
 				passwords,
 				cards,
 				identities,
-				documents,
 				transactions,
 				sources,
 				categories,
@@ -90,7 +86,6 @@ const GlobalSearchScreen = ({
 				getPasswords(database),
 				getCards(database),
 				getIdentities(database),
-				getAttachments(database),
 				getTransactions(database),
 				getSources(database),
 				getCategories(database),
@@ -138,14 +133,6 @@ const GlobalSearchScreen = ({
 					subtitle: identity.idNumber || "Identity",
 					icon: "person-circle-outline",
 					color: COLORS.blue,
-				})),
-				...documents.map((document): GlobalSearchResult => ({
-					id: document.id,
-					kind: "DOCUMENT",
-					title: document.fileName,
-					subtitle: getAttachmentOwnerLabel(document.ownerType),
-					icon: "document-attach-outline",
-					color: COLORS.primary,
 				})),
 				...transactions.map((transaction): GlobalSearchResult => ({
 					id: transaction.id,
@@ -264,10 +251,6 @@ const GlobalSearchScreen = ({
 			}
 			if (result.kind === "TODO") {
 				navigation.navigate("TodoForm", { todoId: result.id });
-				return;
-			}
-			if (result.kind === "DOCUMENT") {
-				navigation.navigate("Documents");
 				return;
 			}
 			navigation.navigate("VaultForm", {

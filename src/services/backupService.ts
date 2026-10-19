@@ -87,9 +87,9 @@ const restoreBackup = async (database: SQLiteDatabase): Promise<boolean> => {
 		tempDatabase = await openDatabaseAsync(TEMP_RESTORE_DB_NAME);
 		const tables = await tempDatabase.getFirstAsync<DatabaseCountRow>(
 			`SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table'
-			 AND name IN ('transactions', 'sources', 'categories', 'attachments', 'transaction_items');`,
+			 AND name IN ('transactions', 'sources', 'categories', 'transaction_items');`,
 		);
-		if (tables?.count !== 5) {
+		if (tables?.count !== 4) {
 			throw new AppError(
 				"INVALID_BACKUP_DATABASE",
 				"This file is not a Purplecoins database.",
@@ -161,6 +161,8 @@ const restoreBackup = async (database: SQLiteDatabase): Promise<boolean> => {
 	} finally {
 		await tempDatabase?.closeAsync();
 		if (tempFile.exists) tempFile.delete();
+		if (pickedFile.uri.startsWith(Paths.cache.uri) && pickedFile.exists)
+			pickedFile.delete();
 	}
 };
 

@@ -51,8 +51,6 @@ const createFixture = async (): Promise<
 			('food-monthly', 'food', '500', 'MONTHLY', 1, 1),
 			('grocery-monthly', 'grocery', '300', 'MONTHLY', 1, 1),
 			('grocery-yearly', 'grocery', '3000', 'YEARLY', 1, 1);
-		INSERT INTO attachments (id, owner_type, owner_id, file_name, mime_type, size_bytes, content, created_at, updated_at)
-			VALUES ('receipt', 'TRANSACTION', 'mixed', 'slip.pdf', 'application/pdf', 1, X'01', 1, 1);
 	`);
 	return result;
 };
@@ -142,9 +140,6 @@ describe("relation conversion persistence", () => {
 				transaction_at: 30,
 			},
 		]);
-		expect(
-			sqlite.prepare("SELECT owner_id FROM attachments").all(),
-		).toEqual([{ owner_id: "mixed" }]);
 		expect(
 			sqlite
 				.prepare("SELECT id FROM budgets WHERE category_id = 'pf'")

@@ -84,13 +84,6 @@ const TransactionCard = ({
 							>
 								{getTransactionDisplayReason(transaction)}
 							</CustomText>
-							{transaction.hasAttachment ? (
-								<Ionicons
-									color={COLORS.textMuted}
-									name="attach"
-									size={15}
-								/>
-							) : null}
 						</View>
 						<CustomText style={styles.meta}>
 							{transaction.classification === "INVESTMENT"
