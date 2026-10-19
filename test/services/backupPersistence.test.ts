@@ -61,9 +61,7 @@ vi.mock("expo-file-system", () => {
 	};
 });
 
-import SCHEMA_MIGRATIONS, {
-	isIdempotentMigrationError,
-} from "@/database/migrations";
+import SCHEMA_MIGRATIONS from "@/database/migrations";
 import SCHEMA_SQL from "@/database/schema";
 import financeRepository from "@/repositories/financeRepository";
 import analysisService from "@/services/analysisService";
@@ -77,11 +75,7 @@ const initializeFixture = async (
 	const fixture = createTestDatabase(path);
 	await fixture.database.execAsync(SCHEMA_SQL);
 	for (const migration of SCHEMA_MIGRATIONS) {
-		try {
-			await fixture.database.execAsync(migration);
-		} catch (error) {
-			if (!isIdempotentMigrationError(error)) throw error;
-		}
+		await fixture.database.execAsync(migration);
 	}
 	return fixture;
 };
@@ -257,28 +251,47 @@ describe("real SQLite backup restore", () => {
 		},
 	);
 
-	it.each(["amount", "notes"])(
-		"restores a backup with a missing %s through schema migration",
-		async (missing) => {
+	it.each([
+		["transactions", "amount"],
+		["categories", "kind"],
+		["trips", "trip_type_id"],
+	])(
+		"rejects missing %s.%s without replacing live data",
+		async (table, column) => {
 			const directory = setupRestore();
 			const path = join(directory, "fixture.pc");
 			const backup = await initializeFixture(path);
 			await addExpense(backup, "200");
 			backup.sqlite.exec(
-				missing === "amount"
-					? "ALTER TABLE transactions DROP COLUMN amount;"
-					: "DROP TABLE notes;",
+				`ALTER TABLE "${table}" DROP COLUMN "${column}";`,
 			);
 			await backup.database.closeAsync();
 			const live = await initializeFixture();
 			await addExpense(live, "50");
+			const originalSources = live.sqlite
+				.prepare("SELECT * FROM sources;")
+				.all();
+			const originalTransactions = live.sqlite
+				.prepare("SELECT * FROM transactions;")
+				.all();
+			const originalCategories = live.sqlite
+				.prepare("SELECT * FROM categories;")
+				.all();
 			selectBackup(path);
-			expect(await backupService.restoreBackup(live.database)).toBe(true);
+			await expect(
+				backupService.restoreBackup(live.database),
+			).rejects.toMatchObject({
+				code: "INVALID_BACKUP_DATABASE",
+			});
+			expect(live.sqlite.prepare("SELECT * FROM sources;").all()).toEqual(
+				originalSources,
+			);
 			expect(
-				live.sqlite
-					.prepare("SELECT COUNT(*) AS count FROM transactions;")
-					.get(),
-			).toEqual({ count: 1 });
+				live.sqlite.prepare("SELECT * FROM transactions;").all(),
+			).toEqual(originalTransactions);
+			expect(
+				live.sqlite.prepare("SELECT * FROM categories;").all(),
+			).toEqual(originalCategories);
 		},
 	);
 
@@ -326,6 +339,11 @@ describe("real SQLite backup restore", () => {
 			const referencePath = join(directory, "reference.db");
 			writeFileSync(referencePath, originalBytes);
 			const reference = await initializeFixture(referencePath);
+			expect(
+				createHash("sha256")
+					.update(readFileSync(referencePath))
+					.digest("hex"),
+			).toBe(originalHash);
 			const live = await initializeFixture();
 			selectBackup(pickedPath);
 			expect(await backupService.restoreBackup(live.database)).toBe(true);
@@ -333,10 +351,19 @@ describe("real SQLite backup restore", () => {
 				"SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';",
 			);
 			for (const { name } of tables) {
-				const query = `SELECT COUNT(*) AS count FROM "${name.replace(/"/g, '""')}";`;
-				expect(live.sqlite.prepare(query).get()).toEqual(
-					reference.sqlite.prepare(query).get(),
+				const quotedTable = `"${name.replace(/"/g, '""')}"`;
+				const columns = live.sqlite
+					.prepare(`SELECT * FROM ${quotedTable} LIMIT 0`)
+					.columns()
+					.map((column) => `"${column.name.replace(/"/g, '""')}"`)
+					.join(", ");
+				const query = `SELECT ${columns} FROM ${quotedTable} ORDER BY ${columns};`;
+				const hashes = [live, reference].map(({ sqlite }) =>
+					createHash("sha256")
+						.update(JSON.stringify(sqlite.prepare(query).all()))
+						.digest("hex"),
 				);
+				expect(hashes[0], `Restored ${name} content`).toBe(hashes[1]);
 			}
 			const summary = await analysisService.getAnalysisSummary(
 				live.database,

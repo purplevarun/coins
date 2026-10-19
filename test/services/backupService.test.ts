@@ -28,10 +28,6 @@ vi.mock("@/constants/appConstants", () => ({
 
 vi.mock("@/database/migrations", () => ({
 	default: ["FUTURE_MIGRATION_SQL"],
-	isIdempotentMigrationError: (error: unknown): boolean =>
-		error instanceof Error &&
-		(error.message.includes("duplicate column name") ||
-			error.message.includes("no such column")),
 }));
 
 vi.mock("@/database/schema", () => ({
@@ -127,31 +123,24 @@ describe("backupService", () => {
 		new Error("disk failure"),
 		"native failure",
 		new Error("duplicate column name: platform_id"),
-	])("handles restore migration errors: %s", async (error) => {
-		selectBackup();
-		const temp = validTempDatabase();
-		temp.execAsync
-			.mockResolvedValueOnce(undefined)
-			.mockRejectedValueOnce(error);
-		mocks.openDatabaseAsync.mockResolvedValueOnce(temp);
-		if (
-			error instanceof Error &&
-			error.message.includes("duplicate column name")
-		) {
-			await expect(backupService.restoreBackup(database)).resolves.toBe(
-				true,
-			);
-			expect(database.execAsync).toHaveBeenCalledWith(
-				expect.stringContaining("ATTACH DATABASE"),
-			);
-		} else {
+		new Error("no such column: kind"),
+	])(
+		"rejects restore migration errors without changing live data: %s",
+		async (error) => {
+			selectBackup();
+			const temp = validTempDatabase();
+			temp.execAsync
+				.mockResolvedValueOnce(undefined)
+				.mockRejectedValueOnce(error);
+			mocks.openDatabaseAsync.mockResolvedValueOnce(temp);
 			await expect(backupService.restoreBackup(database)).rejects.toBe(
 				error,
 			);
 			expect(database.execAsync).not.toHaveBeenCalled();
-		}
-		expect(temp.closeAsync).toHaveBeenCalledOnce();
-	});
+			expect(database.withTransactionAsync).not.toHaveBeenCalled();
+			expect(temp.closeAsync).toHaveBeenCalledOnce();
+		},
+	);
 	beforeEach(() => {
 		Object.values(mocks).forEach((mockFn) => {
 			if (typeof mockFn === "function" && "mockReset" in mockFn) {
@@ -174,9 +163,7 @@ describe("backupService", () => {
 				return [{ name: "transactions" }, { name: "categories" }];
 			}
 			if (sql.includes("'categories'")) {
-				return sql.includes("'restore_source'")
-					? [{ name: "legacy_id" }]
-					: [{ name: "id" }];
+				return [{ name: "id" }];
 			}
 			return sql.includes("'restore_source'")
 				? [{ name: "id" }, { name: "amount" }, { name: "label" }]
@@ -279,8 +266,8 @@ describe("backupService", () => {
 		expect(database.execAsync).not.toHaveBeenCalledWith(
 			expect.stringContaining('"restore_only"'),
 		);
-		expect(database.execAsync).not.toHaveBeenCalledWith(
-			expect.stringContaining('"categories"'),
+		expect(database.execAsync).toHaveBeenCalledWith(
+			'DELETE FROM main."categories"; INSERT INTO main."categories" ("id") SELECT "id" FROM restore_source."categories";',
 		);
 		expect(database.execAsync).toHaveBeenCalledWith(
 			"DETACH DATABASE restore_source;",

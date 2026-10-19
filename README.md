@@ -125,9 +125,11 @@ files, and checks the picked file before replacing local data.
 
 ### Database Setup
 
-The app creates any missing current-schema tables automatically.
-`SCHEMA_MIGRATIONS` runs after schema creation for fresh databases and temporary
-restore databases.
+The app creates any missing current-schema tables automatically using the fully
+migrated 2026.10.13 schema as its baseline. Completed migrations have been retired.
+`SCHEMA_MIGRATIONS` is currently empty and remains available for future changes,
+which run after schema creation for fresh databases and temporary restore databases.
+Older, unmigrated databases and backups are no longer automatically upgraded.
 
 Backups must contain every live table, including transaction items. After applying
 supported migrations to a temporary copy, restore checks that every required

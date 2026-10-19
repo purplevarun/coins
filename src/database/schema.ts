@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS sources (
 CREATE TABLE IF NOT EXISTS categories (
 	id TEXT,
 	name TEXT,
-	is_income INTEGER, -- DEPRECATED: replaced by kind; dropped via SCHEMA_MIGRATIONS
+	kind TEXT,
 	archived INTEGER,
 	created_at INTEGER,
 	updated_at INTEGER
@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS categories (
 CREATE TABLE IF NOT EXISTS trips (
 	id TEXT,
 	name TEXT,
+	trip_type_id TEXT,
 	archived INTEGER,
 	created_at INTEGER,
 	updated_at INTEGER
@@ -37,6 +38,7 @@ CREATE TABLE IF NOT EXISTS investments (
 	id TEXT,
 	name TEXT,
 	investment_type_id TEXT,
+	platform_id TEXT,
 	archived INTEGER,
 	created_at INTEGER,
 	updated_at INTEGER
@@ -197,6 +199,8 @@ CREATE INDEX IF NOT EXISTS idx_transactions_investment
 	ON transactions(investment_id);
 CREATE INDEX IF NOT EXISTS idx_investments_type
 	ON investments(investment_type_id);
+CREATE INDEX IF NOT EXISTS idx_investments_platform
+	ON investments(platform_id);
 CREATE INDEX IF NOT EXISTS idx_transaction_items_category
 	ON transaction_items(category_id);
 CREATE INDEX IF NOT EXISTS idx_attachments_owner

@@ -1,8 +1,6 @@
 import appConstants from "@/constants/appConstants";
 
-import SCHEMA_MIGRATIONS, {
-	isIdempotentMigrationError,
-} from "@/database/migrations";
+import SCHEMA_MIGRATIONS from "@/database/migrations";
 import SCHEMA_SQL from "@/database/schema";
 import { openDatabaseAsync, type SQLiteDatabase } from "expo-sqlite";
 
@@ -16,13 +14,7 @@ const initializeDatabase = async (): Promise<SQLiteDatabase> => {
 		await database.execAsync(SCHEMA_SQL);
 
 		for (const migration of SCHEMA_MIGRATIONS) {
-			try {
-				await database.execAsync(migration);
-			} catch (error) {
-				if (!isIdempotentMigrationError(error)) {
-					throw error;
-				}
-			}
+			await database.execAsync(migration);
 		}
 		return database;
 	} catch (error) {

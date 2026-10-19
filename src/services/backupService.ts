@@ -1,9 +1,7 @@
 import * as DocumentPicker from "expo-document-picker";
 
 import appConstants from "@/constants/appConstants";
-import SCHEMA_MIGRATIONS, {
-	isIdempotentMigrationError,
-} from "@/database/migrations";
+import SCHEMA_MIGRATIONS from "@/database/migrations";
 import SCHEMA_SQL from "@/database/schema";
 import AppError from "@/errors/AppError";
 import type DatabaseCountRow from "@/types/DatabaseCountRow";
@@ -99,13 +97,7 @@ const restoreBackup = async (database: SQLiteDatabase): Promise<boolean> => {
 		}
 		await tempDatabase.execAsync(SCHEMA_SQL);
 		for (const migration of SCHEMA_MIGRATIONS) {
-			try {
-				await tempDatabase.execAsync(migration);
-			} catch (error) {
-				if (!isIdempotentMigrationError(error)) {
-					throw error;
-				}
-			}
+			await tempDatabase.execAsync(migration);
 		}
 		const tempTables = await tempDatabase.getAllAsync<SqliteTableRow>(
 			`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';`,
@@ -144,7 +136,12 @@ const restoreBackup = async (database: SQLiteDatabase): Promise<boolean> => {
 					)
 						.map((column) => column.name)
 						.filter((column) => mainColumns.has(column));
-					if (sharedColumns.length === 0) continue;
+					if (sharedColumns.length !== mainColumns.size) {
+						throw new AppError(
+							"INVALID_BACKUP_DATABASE",
+							"The backup is missing required database columns.",
+						);
+					}
 					const quotedTable = `"${escaped}"`;
 					const columnList = sharedColumns
 						.map((column) => `"${column.replace(/"/g, '""')}"`)

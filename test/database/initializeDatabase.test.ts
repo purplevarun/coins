@@ -31,10 +31,6 @@ vi.mock("@/constants/appConstants", () => ({
 
 vi.mock("@/database/migrations", () => ({
 	default: ["FUTURE_MIGRATION_SQL"],
-	isIdempotentMigrationError: (error: unknown): boolean =>
-		error instanceof Error &&
-		(error.message.includes("duplicate column name") ||
-			error.message.includes("no such column")),
 }));
 
 vi.mock("@/database/schema", () => ({
@@ -44,28 +40,17 @@ vi.mock("@/database/schema", () => ({
 import initializeDatabase from "@/database/initializeDatabase";
 
 describe("initializeDatabase", () => {
-	it.each([new Error("disk failure"), "native failure"])(
-		"propagates migration errors: %s",
-		async (error) => {
-			execAsync
-				.mockResolvedValueOnce(undefined)
-				.mockRejectedValueOnce(error);
-			await expect(initializeDatabase()).rejects.toBe(error);
-			expect(closeAsync).toHaveBeenCalledOnce();
-		},
-	);
-
-	it("tolerates a column already added by a previous startup", async () => {
-		execAsync
-			.mockResolvedValueOnce(undefined)
-			.mockRejectedValueOnce(
-				new Error("duplicate column name: platform_id"),
-			);
-		await expect(initializeDatabase()).resolves.toMatchObject({
-			execAsync,
-		});
-		expect(closeAsync).not.toHaveBeenCalled();
+	it.each([
+		new Error("disk failure"),
+		new Error("duplicate column name: platform_id"),
+		new Error("no such column: kind"),
+		"native failure",
+	])("propagates migration errors: %s", async (error) => {
+		execAsync.mockResolvedValueOnce(undefined).mockRejectedValueOnce(error);
+		await expect(initializeDatabase()).rejects.toBe(error);
+		expect(closeAsync).toHaveBeenCalledOnce();
 	});
+
 	beforeEach(() => {
 		execAsync.mockClear();
 		closeAsync.mockClear();
