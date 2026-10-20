@@ -162,14 +162,14 @@ describe("AppDialogProvider", () => {
 		expect(onConfirm).toHaveBeenCalledTimes(1);
 	});
 
-	it("keeps the update confirmation card content-sized and actionable", async () => {
+	it("keeps the confirmation card content-sized and actionable", async () => {
 		const onConfirm = vi.fn();
 		setupState({
 			mode: "CONFIRM",
 			options: {
-				title: "Update available",
-				message: "Version 2026.10.13 is ready to download and install.",
-				confirmLabel: "Update",
+				title: "Confirm action",
+				message: "Apply these changes?",
+				confirmLabel: "Confirm",
 				onConfirm,
 			},
 		});
@@ -181,7 +181,7 @@ describe("AppDialogProvider", () => {
 		) as ReactElement<GlassCardProps>[];
 		expect(cards).toHaveLength(1);
 		const card = cards[0];
-		if (!card) throw new Error("Update confirmation card missing");
+		if (!card) throw new Error("Confirmation card missing");
 		expect(card.props.accent).toBe("warning");
 		const { default: renderGlassCard } = await vi.importActual<
 			typeof import("@/components/GlassCard")
@@ -189,19 +189,19 @@ describe("AppDialogProvider", () => {
 		const renderedCard = renderGlassCard(card.props);
 		expect(isValidElement<ViewProps>(renderedCard)).toBe(true);
 		if (!isValidElement<ViewProps>(renderedCard)) {
-			throw new Error("Update confirmation card not rendered");
+			throw new Error("Confirmation card not rendered");
 		}
 		const blur = renderedCard.props.children;
 		expect(isValidElement<ViewProps>(blur)).toBe(true);
 		if (!isValidElement<ViewProps>(blur)) {
-			throw new Error("Update confirmation content missing");
+			throw new Error("Confirmation content missing");
 		}
 		expect(blur.props.style).not.toHaveProperty("flex");
 		const buttons = collectNodesByPredicate(
 			element,
 			(node: unknown) =>
 				isValidElement<AppButtonProps>(node) &&
-				node.props.label === "Update",
+				node.props.label === "Confirm",
 		) as ReactElement<AppButtonProps>[];
 		expect(buttons).toHaveLength(1);
 		buttons[0]?.props.onPress();

@@ -12,7 +12,6 @@ const COMMON = {
 	CHANGE: "Change",
 	CONTINUE: "Continue",
 	HIDE: "Hide",
-	INSTALL: "Install",
 	IRREVERSIBLE: "This action cannot be undone.",
 	LOAD_MORE: "Load more",
 	NEW: "New",
@@ -22,7 +21,6 @@ const COMMON = {
 	SAVE: "Save",
 	SEARCH: "Search",
 	SEND: "Send",
-	UPDATE: "Update",
 	VALIDATE: "Validate",
 	VIEW: "View",
 	UNABLE_TO_ARCHIVE: "Unable to archive",
@@ -210,23 +208,18 @@ const ANALYSIS = {
 } as const;
 
 const SETTINGS = {
-	APP_UPDATE: "App update",
 	ARCHIVED_RELATIONS: "Archived relations",
 	BACKUP_PREPARED: "Backup prepared successfully.",
 	BACKUP_RESTORED: "Backup restored successfully.",
-	CHECK_FOR_UPDATE: "Check for update",
 	DEFAULT_SOURCE: "Default source",
 	DEFAULT_TRIP: "Default trip",
 	EXPORT: "Export .pc",
 	FY_START_MONTH: "Financial year start month",
-	INSTALLER_OPENED: "The Android installer has been opened.",
 	NO_DEFAULT_SOURCE: "No default source",
 	NO_DEFAULT_TRIP: "No default trip",
 	NONE: "None",
 	RESTORE: "Restore .pc",
 	RELATIONS: "Relations",
-	UPDATE_AVAILABLE: "Update available",
-	UPDATE_READY: "Update ready to install",
 } as const;
 
 const BUDGETS = {

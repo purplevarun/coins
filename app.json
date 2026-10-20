@@ -12,8 +12,7 @@
 			},
 			"predictiveBackGestureEnabled": false,
 			"package": "com.purple.coins",
-			"versionCode": 20261019,
-			"permissions": ["android.permission.REQUEST_INSTALL_PACKAGES"]
+			"versionCode": 20261019
 		},
 		"plugins": [
 			"expo-sqlite",

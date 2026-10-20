@@ -1,3 +1,3 @@
-type NoticeScope = "top" | "update" | "config" | "backup";
+type NoticeScope = "top" | "config" | "backup";
 
 export type { NoticeScope as default };

@@ -14,13 +14,11 @@ import COLORS from "@/constants/colors";
 import dateConstants from "@/constants/dateConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
-import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import backupService from "@/services/backupService";
 import settingsService from "@/services/settingsService";
 import sourceService from "@/services/sourceService";
 import tripService from "@/services/tripService";
-import updateService from "@/services/updateService";
 import type NoticeScope from "@/types/NoticeScope";
 import type SelectOption from "@/types/SelectOption";
 import type SettingsScreenProps from "@/types/SettingsScreenProps";
@@ -42,9 +40,6 @@ const {
 } = settingsService;
 const { getSources } = sourceService;
 const { getTrips } = tripService;
-const { checkForUpdate, downloadAndInstallUpdate, isUpdateDownloaded } =
-	updateService;
-
 const { DEFAULT_FY_START_MONTH, MONTH_OPTIONS } = dateConstants;
 
 const getFyEndMonthLabel = (startMonth: number): string => {
@@ -56,7 +51,6 @@ const SettingsScreen = ({
 	navigation,
 }: SettingsScreenProps): React.JSX.Element => {
 	const { database, refreshData } = useDatabaseContext();
-	const dialog = useAppDialog();
 	const [isNativeCurrency, setIsNativeCurrency] = useState(true);
 	const [isWorking, setIsWorking] = useState(false);
 	const [error, setError] = useState("");
@@ -66,7 +60,6 @@ const SettingsScreen = ({
 	const [trips, setTrips] = useState<readonly Trip[]>([]);
 	const [defaultSourceId, setDefaultSourceId] = useState("");
 	const [sources, setSources] = useState<readonly Source[]>([]);
-	const [isUpdating, setIsUpdating] = useState(false);
 	const [noticeScope, setNoticeScope] = useState<NoticeScope>("top");
 
 	useEffect(() => {
@@ -157,55 +150,6 @@ const SettingsScreen = ({
 		}
 	};
 
-	const handleCheckForUpdate = async (): Promise<void> => {
-		setIsUpdating(true);
-		setNoticeScope("update");
-		setError("");
-		setMessage("");
-		try {
-			const release = await checkForUpdate(version);
-			if (!release) {
-				setMessage(
-					`You are already on the latest version (${version}).`,
-				);
-				return;
-			}
-			const isDownloaded = isUpdateDownloaded(release);
-			dialog.confirm({
-				title: isDownloaded
-					? MESSAGES.SETTINGS.UPDATE_READY
-					: MESSAGES.SETTINGS.UPDATE_AVAILABLE,
-				message: isDownloaded
-					? `Version ${release.version} is already downloaded and ready to install.`
-					: `Version ${release.version} is ready to download and install.`,
-				confirmLabel: isDownloaded
-					? MESSAGES.COMMON.INSTALL
-					: MESSAGES.COMMON.UPDATE,
-				onConfirm: () => {
-					const processUpdate = async (): Promise<void> => {
-						setNoticeScope("update");
-						setError("");
-						setMessage("");
-						setIsUpdating(true);
-						try {
-							await downloadAndInstallUpdate(release);
-							setMessage(MESSAGES.SETTINGS.INSTALLER_OPENED);
-						} catch (caughtError: unknown) {
-							setError(getErrorMessage(caughtError));
-						} finally {
-							setIsUpdating(false);
-						}
-					};
-					void processUpdate();
-				},
-			});
-		} catch (caughtError: unknown) {
-			setError(getErrorMessage(caughtError));
-		} finally {
-			setIsUpdating(false);
-		}
-	};
-
 	const tripOptions: readonly SelectOption[] = [
 		{ label: MESSAGES.SETTINGS.NONE, value: "" },
 		...trips.map((t) => ({ label: t.name, value: t.id })),
@@ -235,26 +179,6 @@ const SettingsScreen = ({
 					<CustomText style={styles.version}>
 						Version {version}
 					</CustomText>
-					<CustomText style={styles.description}>
-						Track every penny
-					</CustomText>
-				</View>
-			</GlassCard>
-			<GlassCard>
-				<View style={styles.section}>
-					{renderNotice("update")}
-					<CustomText style={styles.heading}>
-						{MESSAGES.SETTINGS.APP_UPDATE}
-					</CustomText>
-					<CustomText style={styles.description}>
-						Get the latest APK from GitHub.
-					</CustomText>
-					<AppButton
-						icon="cloud-download-outline"
-						isLoading={isUpdating}
-						label={MESSAGES.SETTINGS.CHECK_FOR_UPDATE}
-						onPress={() => void handleCheckForUpdate()}
-					/>
 				</View>
 			</GlassCard>
 			<GlassCard>

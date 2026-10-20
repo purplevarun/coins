@@ -142,12 +142,6 @@ column exists before replacing any live rows. An incomplete schema is rejected;
 a copy failure rolls back the entire replacement. Older app versions may not
 understand backups written by newer app versions.
 
-### App Updates
-
-Settings can check the latest GitHub release. When its release name differs from
-the installed version, the app downloads the release APK and opens Android's
-installer. Android may ask you to allow installs from Purplecoins first.
-
 **Privacy:** Backups are unencrypted and may include passwords, card details,
 identities, and financial records. Keep them private. Backup files remain ignored
 by Git to prevent accidental commits.

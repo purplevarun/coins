@@ -1,6 +1,7 @@
 import { isValidElement, type ComponentProps, type ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import CustomText from "@/components/CustomText";
 import GlassCard from "@/components/GlassCard";
 import Notice from "@/components/Notice";
 import SelectField from "@/components/SelectField";
@@ -12,9 +13,6 @@ const reactMocks = vi.hoisted(() => ({
 }));
 
 const serviceMocks = vi.hoisted(() => ({
-	checkForUpdate: vi.fn(),
-	downloadAndInstallUpdate: vi.fn(),
-	isUpdateDownloaded: vi.fn(),
 	exportBackup: vi.fn(),
 	restoreBackup: vi.fn(),
 	getDefaultSourceId: vi.fn(),
@@ -31,7 +29,6 @@ const serviceMocks = vi.hoisted(() => ({
 
 const hookMocks = vi.hoisted(() => ({
 	refreshData: vi.fn(),
-	confirm: vi.fn(),
 }));
 
 vi.mock("react", async (importOriginal) => {
@@ -68,9 +65,6 @@ vi.mock("@/components/SelectField", () => ({
 	default: (props: any) => ({ type: "SelectField", props }),
 }));
 
-vi.mock("@/hooks/useAppDialog", () => ({
-	default: () => ({ confirm: hookMocks.confirm }),
-}));
 vi.mock("@/hooks/useDatabaseContext", () => ({
 	default: () => ({
 		database: { id: "db" },
@@ -104,14 +98,6 @@ vi.mock("@/services/tripService", () => ({
 		getTrips: serviceMocks.getTrips,
 	},
 }));
-vi.mock("@/services/updateService", () => ({
-	default: {
-		checkForUpdate: serviceMocks.checkForUpdate,
-		downloadAndInstallUpdate: serviceMocks.downloadAndInstallUpdate,
-		isUpdateDownloaded: serviceMocks.isUpdateDownloaded,
-	},
-}));
-
 vi.mock("@/utils/error", () => ({
 	default: (caughtError: unknown) =>
 		caughtError instanceof Error ? caughtError.message : "Unknown error",
@@ -175,12 +161,6 @@ describe("SettingsScreen", () => {
 		serviceMocks.updateDefaultTripId.mockResolvedValue(undefined);
 		serviceMocks.exportBackup.mockResolvedValue(undefined);
 		serviceMocks.restoreBackup.mockResolvedValue(true);
-		serviceMocks.checkForUpdate.mockResolvedValue(null);
-		serviceMocks.downloadAndInstallUpdate.mockResolvedValue(undefined);
-		serviceMocks.isUpdateDownloaded.mockReturnValue(false);
-		hookMocks.confirm.mockImplementation(({ onConfirm }: any) =>
-			onConfirm(),
-		);
 	});
 
 	it.each([
@@ -326,12 +306,24 @@ describe("SettingsScreen", () => {
 		const tree = SettingsScreen({ navigation } as any);
 		await flush();
 
+		const [brand] = findByPredicate(
+			tree,
+			(node) => isValidElement(node) && node.type === GlassCard,
+		);
+		const brandTexts = findByPredicate(
+			brand,
+			(node) => isValidElement(node) && node.type === CustomText,
+		);
+		expect(brandTexts.map((node) => node.props.children)).toEqual([
+			"Purplecoins",
+			["Version ", packageJson.version],
+		]);
 		expect(
 			findByPredicate(
 				tree,
-				(node) => node?.props?.children === "Track every penny",
-			),
-		).toHaveLength(1);
+				(node) => typeof node?.props?.onPress === "function",
+			).map((node) => node.props.label),
+		).toEqual(["Archived relations", "Export .pc", "Restore .pc"]);
 
 		findByPredicate(
 			tree,
@@ -418,168 +410,6 @@ describe("SettingsScreen", () => {
 
 		expect(serviceMocks.restoreBackup).toHaveBeenCalledWith({ id: "db" });
 	});
-
-	it("shows a current-version message when GitHub has no update", async () => {
-		const setMessage = vi.fn();
-		const setIsUpdating = vi.fn();
-		let stateCall = 0;
-		reactMocks.useState.mockImplementation((initial: unknown) => {
-			stateCall += 1;
-			if (stateCall === 4) return ["", setMessage];
-			if (stateCall === 10) return [false, setIsUpdating];
-			return [
-				typeof initial === "function"
-					? (initial as () => unknown)()
-					: initial,
-				vi.fn(),
-			];
-		});
-		const tree = SettingsScreen({
-			navigation: { navigate: vi.fn() },
-		} as any);
-		await flush();
-		findByPredicate(
-			tree,
-			(node) =>
-				node?.props?.label === "Check for update" &&
-				typeof node?.props?.onPress === "function",
-		)[0]?.props?.onPress();
-		await flush();
-		expect(serviceMocks.checkForUpdate).toHaveBeenCalledWith(
-			packageJson.version,
-		);
-		expect(setMessage).toHaveBeenCalledWith(
-			`You are already on the latest version (${packageJson.version}).`,
-		);
-		expect(setIsUpdating).toHaveBeenLastCalledWith(false);
-		expect(serviceMocks.downloadAndInstallUpdate).not.toHaveBeenCalled();
-		expect(hookMocks.confirm).not.toHaveBeenCalled();
-	});
-
-	it.each([false, true])(
-		"confirms an available update when isDownloaded is %s",
-		async (isDownloaded) => {
-			const release = {
-				version: "2026.9.22",
-				name: "com.purple.coins_2026.9.22.apk",
-				downloadUrl:
-					"https://github.com/purplevarun/coins/releases/download/v2026.9.22/com.purple.coins_2026.9.22.apk",
-				size: 123,
-			};
-			serviceMocks.checkForUpdate.mockResolvedValueOnce(release);
-			serviceMocks.isUpdateDownloaded.mockReturnValue(isDownloaded);
-			hookMocks.confirm.mockImplementationOnce(vi.fn());
-			const setIsUpdating = vi.fn();
-			const setMessage = vi.fn();
-			let stateCall = 0;
-			reactMocks.useState.mockImplementation((initial: unknown) => {
-				stateCall += 1;
-				if (stateCall === 4) return ["", setMessage];
-				if (stateCall === 10) return [false, setIsUpdating];
-				return [
-					typeof initial === "function"
-						? (initial as () => unknown)()
-						: initial,
-					vi.fn(),
-				];
-			});
-			const tree = SettingsScreen({
-				navigation: { navigate: vi.fn() },
-			} as any);
-			await flush();
-			findByPredicate(
-				tree,
-				(node) => node?.props?.label === "Check for update",
-			)[0]?.props?.onPress();
-			await flush();
-			expect(
-				serviceMocks.isUpdateDownloaded,
-			).toHaveBeenCalledExactlyOnceWith(release);
-			expect(hookMocks.confirm).toHaveBeenCalledWith(
-				expect.objectContaining({
-					title: isDownloaded
-						? "Update ready to install"
-						: "Update available",
-					message: isDownloaded
-						? `Version ${release.version} is already downloaded and ready to install.`
-						: `Version ${release.version} is ready to download and install.`,
-					confirmLabel: isDownloaded ? "Install" : "Update",
-				}),
-			);
-			expect(
-				serviceMocks.downloadAndInstallUpdate,
-			).not.toHaveBeenCalled();
-			expect(setIsUpdating).toHaveBeenLastCalledWith(false);
-			expect(String(JSON.stringify(tree))).toContain(
-				"Get the latest APK from GitHub.",
-			);
-			hookMocks.confirm.mock.calls[0]?.[0].onConfirm();
-			await flush();
-			expect(
-				serviceMocks.downloadAndInstallUpdate,
-			).toHaveBeenCalledExactlyOnceWith(release);
-			expect(setIsUpdating).toHaveBeenLastCalledWith(false);
-			expect(setMessage).toHaveBeenCalledWith(
-				"The Android installer has been opened.",
-			);
-		},
-	);
-
-	it.each(["check", "install", "cache"])(
-		"reports update %s errors",
-		async (operation) => {
-			const release = {
-				version: "2026.9.22",
-				name: "update.apk",
-				downloadUrl:
-					"https://github.com/purplevarun/coins/releases/download/v2026.9.22/update.apk",
-				size: 123,
-			};
-			if (operation === "check") {
-				serviceMocks.checkForUpdate.mockRejectedValueOnce(
-					new Error("check failed"),
-				);
-			} else {
-				serviceMocks.checkForUpdate.mockResolvedValueOnce(release);
-				if (operation === "install") {
-					serviceMocks.downloadAndInstallUpdate.mockRejectedValueOnce(
-						new Error("install failed"),
-					);
-				} else {
-					serviceMocks.isUpdateDownloaded.mockImplementationOnce(
-						() => {
-							throw new Error("cache failed");
-						},
-					);
-				}
-			}
-			const setError = vi.fn();
-			const setIsUpdating = vi.fn();
-			let stateCall = 0;
-			reactMocks.useState.mockImplementation((initial: unknown) => {
-				stateCall += 1;
-				if (stateCall === 3) return ["", setError];
-				if (stateCall === 10) return [false, setIsUpdating];
-				return [
-					typeof initial === "function"
-						? (initial as () => unknown)()
-						: initial,
-					vi.fn(),
-				];
-			});
-			const tree = SettingsScreen({
-				navigation: { navigate: vi.fn() },
-			} as any);
-			await flush();
-			findByPredicate(
-				tree,
-				(node) => node?.props?.label === "Check for update",
-			)[0]?.props?.onPress();
-			await flush();
-			expect(setError).toHaveBeenCalledWith(`${operation} failed`);
-			expect(setIsUpdating).toHaveBeenLastCalledWith(false);
-		},
-	);
 
 	it("covers export and restore error branches", async () => {
 		serviceMocks.exportBackup.mockRejectedValueOnce(
@@ -695,7 +525,6 @@ describe("SettingsScreen", () => {
 
 	it.each([
 		{ scope: "top", heading: null },
-		{ scope: "update", heading: "App update" },
 		{ scope: "config", heading: "Configuration" },
 		{ scope: "backup", heading: "Backup and restore" },
 	])(
@@ -706,7 +535,7 @@ describe("SettingsScreen", () => {
 			reactMocks.useState.mockImplementation((initial: any) => {
 				call += 1;
 				if (call === 3) return ["boom", vi.fn()];
-				if (call === 11) return [scope, vi.fn()];
+				if (call === 10) return [scope, vi.fn()];
 				return [
 					typeof initial === "function" ? initial() : initial,
 					vi.fn(),
@@ -752,7 +581,7 @@ describe("SettingsScreen", () => {
 		reactMocks.useState.mockImplementation((initial: any) => {
 			call += 1;
 			if (call === 4) return ["saved", vi.fn()];
-			if (call === 11) return ["update", vi.fn()];
+			if (call === 10) return ["backup", vi.fn()];
 			return [
 				typeof initial === "function" ? initial() : initial,
 				vi.fn(),
@@ -775,7 +604,7 @@ describe("SettingsScreen", () => {
 				node.type === GlassCard &&
 				findByPredicate(
 					node,
-					(c) => c?.props?.children === "App update",
+					(c) => c?.props?.children === "Backup and restore",
 				).length === 1,
 		);
 		expect(
