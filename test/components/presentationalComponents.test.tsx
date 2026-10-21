@@ -325,6 +325,7 @@ describe("presentational components", () => {
 			width: 64,
 			height: 40,
 			borderRadius: 16,
+			overflow: "hidden",
 		});
 
 		const items = findAllByPredicate(

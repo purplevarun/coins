@@ -7,6 +7,7 @@ import type ThemePaletteSeed from "@/types/ThemePaletteSeed";
 
 const { THEME_IDS } = themeConstants;
 const ALPHA = { BORDER: "5C", MUTED: "29", OVERLAY: "94" } as const;
+const GRAPHITE_BACKGROUND = "#161616";
 
 const createColors = (seed: ThemePaletteSeed): ThemeColors => ({
 	...COLORS,
@@ -63,21 +64,24 @@ const THEME_PALETTES: Readonly<Record<ThemeId, AppTheme>> = {
 	[THEME_IDS.GRAPHITE_MINT]: {
 		id: THEME_IDS.GRAPHITE_MINT,
 		isDark: true,
-		colors: createColors({
-			background: "#131817",
-			surface: "#202825",
-			field: "#171F1C",
-			line: "#3A4942",
-			text: "#F1F6F3",
-			muted: "#AABAB1",
-			primary: "#76E3B8",
-			onPrimary: "#103628",
-			selected: "#254C3D",
-			income: "#76E3B8",
-			expense: "#F2939B",
-			blue: "#8EBBF5",
-			gold: "#EFC477",
-		}),
+		colors: {
+			...createColors({
+				background: GRAPHITE_BACKGROUND,
+				surface: "#242424",
+				field: "#1C1C1C",
+				line: "#444444",
+				text: "#F4F4F4",
+				muted: "#B2B2B2",
+				primary: "#76E3B8",
+				onPrimary: "#103628",
+				selected: "#254C3D",
+				income: "#76E3B8",
+				expense: "#F2939B",
+				blue: "#8EBBF5",
+				gold: "#EFC477",
+			}),
+			backgroundTint: GRAPHITE_BACKGROUND,
+		},
 	},
 	[THEME_IDS.PAPER_COBALT]: {
 		id: THEME_IDS.PAPER_COBALT,

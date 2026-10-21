@@ -96,6 +96,38 @@ describe("theme context and provider", () => {
 		},
 	);
 
+	it("keeps Graphite & Mint surfaces and text neutral without losing mint accents", () => {
+		const { colors } = THEME_PALETTES[THEME_IDS.GRAPHITE_MINT];
+		const neutralRoles = [
+			"background",
+			"backgroundDeep",
+			"backgroundElevated",
+			"backgroundMid",
+			"backgroundTint",
+			"glass",
+			"glassStrong",
+			"border",
+			"borderStrong",
+			"surfaceBright",
+			"surfaceFaint",
+			"surfaceHigh",
+			"surfaceLight",
+			"surfaceMid",
+			"surfaceRaised",
+			"surfaceSoft",
+			"text",
+			"textMuted",
+			"textDim",
+		] as const;
+		for (const role of neutralRoles) {
+			expect(colors[role]).toMatch(/^#([0-9a-f]{2})\1\1$/i);
+		}
+		expect(colors.backgroundTint).toBe(colors.background);
+		expect(colors.overlayTint.slice(0, 7)).toBe(colors.background);
+		expect(colors.primary).toBe("#76E3B8");
+		expect(colors.primaryMuted).toBe("#254C3D");
+	});
+
 	it("uses purple while loading, then reads the saved theme", async () => {
 		const element = render();
 		expect(element.props.value.id).toBe(DEFAULT_THEME_ID);
