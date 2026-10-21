@@ -1915,7 +1915,7 @@ describe("list screens", () => {
 				(props) => Array.isArray(props.options),
 			);
 			expect(control.props.value).toBe(filter);
-			expect(control.props.labelNumberOfLines).toBe(2);
+			expect(control.props.labelNumberOfLines).toBeUndefined();
 			expect(control.props.options).toEqual([
 				{ label: "All", value: "ALL" },
 				{ label: "Validated", value: "VALIDATED" },

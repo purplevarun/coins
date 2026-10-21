@@ -12,11 +12,12 @@ import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
 import TextField from "@/components/TextField";
 import appConstants from "@/constants/appConstants";
-import COLORS from "@/constants/colors";
 import financeConstants from "@/constants/financeConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import budgetService from "@/services/budgetService";
 import cardService from "@/services/cardService";
 import categoryService from "@/services/categoryService";
@@ -31,6 +32,7 @@ import tripService from "@/services/tripService";
 import type GlobalSearchResult from "@/types/GlobalSearchResult";
 import type GlobalSearchResultKind from "@/types/GlobalSearchResultKind";
 import type GlobalSearchScreenProps from "@/types/GlobalSearchScreenProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 import dateUtils from "@/utils/date";
 import getErrorMessage from "@/utils/error";
 import moneyUtils from "@/utils/money";
@@ -61,6 +63,8 @@ const getKindLabel = (kind: GlobalSearchResultKind): string =>
 const GlobalSearchScreen = ({
 	navigation,
 }: GlobalSearchScreenProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const { database, dataVersion } = useDatabaseContext();
 	const [results, setResults] = useState<readonly GlobalSearchResult[]>([]);
 	const [search, setSearch] = useState("");
@@ -199,7 +203,7 @@ const GlobalSearchScreen = ({
 		} catch (caughtError: unknown) {
 			setError(getErrorMessage(caughtError));
 		}
-	}, [database]);
+	}, [database, COLORS]);
 
 	useEffect(() => {
 		const timeoutId = setTimeout(() => {
@@ -325,7 +329,7 @@ const GlobalSearchScreen = ({
 				</GlassCard>
 			</Pressable>
 		),
-		[handleOpenResult],
+		[handleOpenResult, styles],
 	);
 
 	return (
@@ -345,36 +349,38 @@ const GlobalSearchScreen = ({
 const { ALIGN, FLEX, FONT_SIZE, FONT_WEIGHT, RADIUS, SIZES, SPACING } =
 	styleConstants;
 
-const styles = StyleSheet.create({
-	screen: {
-		flex: FLEX.FILL,
-		backgroundColor: COLORS.background,
-	},
-	row: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S12,
-	},
-	iconBox: {
-		width: SIZES.S44,
-		height: SIZES.S44,
-		borderRadius: RADIUS.S15,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-	},
-	details: {
-		flex: FLEX.FILL,
-		gap: SPACING.S3,
-	},
-	title: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S15,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	subtitle: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		screen: {
+			flex: FLEX.FILL,
+			backgroundColor: COLORS.background,
+		},
+		row: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S12,
+		},
+		iconBox: {
+			width: SIZES.S44,
+			height: SIZES.S44,
+			borderRadius: RADIUS.S15,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+		},
+		details: {
+			flex: FLEX.FILL,
+			gap: SPACING.S3,
+		},
+		title: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S15,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		subtitle: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+		},
+	}),
+);
 
 export default GlobalSearchScreen;

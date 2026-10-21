@@ -20,8 +20,10 @@ const COMMON = {
 	RESTORE: "Restore",
 	SAVE: "Save",
 	SEARCH: "Search",
+	SELECT: "Select",
 	SEND: "Send",
 	VALIDATE: "Validate",
+	VACUUM_DONE: "Vacuum done!",
 	VIEW: "View",
 	UNABLE_TO_ARCHIVE: "Unable to archive",
 	UNABLE_TO_DELETE: "Unable to delete",
@@ -137,6 +139,7 @@ const VAULT = {
 const TRANSACTION_FORM = {
 	ADD_ITEM: "Add item",
 	CATEGORY_LABEL: "Category",
+	CLASSIFICATION_LABEL: "Transaction type",
 	CLONE_TITLE: "Clone transaction",
 	DATE_LABEL: "Date",
 	DEFAULTS_TO_CATEGORY: "Defaults to the selected category",
@@ -149,14 +152,15 @@ const TRANSACTION_FORM = {
 	INVESTMENT: "Investment",
 	NEW_TITLE: "New transaction",
 	NO_SOURCES: "Create a source before adding transactions.",
+	PAYMENT_TYPE_LABEL: "Payment type",
 	REASON_LABEL: "Reason (optional)",
 	REMOVE_ITEMS_MESSAGE:
 		"Keep the total as one amount and remove the individual expense items?",
 	REMOVE_ITEMS_TITLE: "Remove item breakdown?",
 	SAVE_ACTION: "Save transaction",
-	SELECT_CATEGORY: "Select category",
+	SELECT_CATEGORY: COMMON.SELECT,
 	SELECT_DESTINATION: "Select destination",
-	SELECT_INVESTMENT: "Select investment",
+	SELECT_INVESTMENT: COMMON.SELECT,
 	SELECT_SOURCE: "Select source",
 	TRIP_LABEL: "Trip",
 } as const;
@@ -220,6 +224,7 @@ const SETTINGS = {
 	NONE: "None",
 	RESTORE: "Restore .pc",
 	RELATIONS: "Relations",
+	THEME: "Theme",
 } as const;
 
 const BUDGETS = {

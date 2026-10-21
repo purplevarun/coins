@@ -12,14 +12,15 @@ import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
 import TextField from "@/components/TextField";
 import appConstants from "@/constants/appConstants";
-import COLORS from "@/constants/colors";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import exchangeRateService from "@/services/exchangeRateService";
 import sourceService from "@/services/sourceService";
 import type ExchangeRate from "@/types/ExchangeRate";
 import type ExchangeRatesScreenProps from "@/types/ExchangeRatesScreenProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 import dateUtils from "@/utils/date";
 import getErrorMessage from "@/utils/error";
 import moneyUtils from "@/utils/money";
@@ -34,6 +35,7 @@ const { formatMoney } = moneyUtils;
 const ExchangeRatesScreen = (
 	_props: ExchangeRatesScreenProps,
 ): React.JSX.Element => {
+	const styles = useThemedStyles(themedStyles);
 	const { database, dataVersion, refreshData } = useDatabaseContext();
 	const [currencies, setCurrencies] = useState<readonly string[]>([]);
 	const [rates, setRates] = useState<readonly ExchangeRate[]>([]);
@@ -171,7 +173,7 @@ const ExchangeRatesScreen = (
 				</GlassCard>
 			);
 		},
-		[drafts, handleSave, rates],
+		[drafts, handleSave, rates, styles],
 	);
 
 	const listHeader = useMemo(
@@ -218,32 +220,34 @@ const ExchangeRatesScreen = (
 
 const { ALIGN, FLEX, FONT_SIZE, FONT_WEIGHT, SPACING } = styleConstants;
 
-const styles = StyleSheet.create({
-	screen: {
-		flex: FLEX.FILL,
-		backgroundColor: COLORS.background,
-	},
-	rateHeader: {
-		flexDirection: FLEX.ROW,
-		justifyContent: ALIGN.SPACE_BETWEEN,
-		alignItems: ALIGN.CENTER,
-		marginBottom: SPACING.S14,
-	},
-	currency: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S18,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	meta: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S11,
-		marginTop: SPACING.S3,
-	},
-	equals: {
-		color: COLORS.primaryBright,
-		fontSize: FONT_SIZE.S14,
-		fontWeight: FONT_WEIGHT.HEAVY,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		screen: {
+			flex: FLEX.FILL,
+			backgroundColor: COLORS.background,
+		},
+		rateHeader: {
+			flexDirection: FLEX.ROW,
+			justifyContent: ALIGN.SPACE_BETWEEN,
+			alignItems: ALIGN.CENTER,
+			marginBottom: SPACING.S14,
+		},
+		currency: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S18,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		meta: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S11,
+			marginTop: SPACING.S3,
+		},
+		equals: {
+			color: COLORS.primaryBright,
+			fontSize: FONT_SIZE.S14,
+			fontWeight: FONT_WEIGHT.HEAVY,
+		},
+	}),
+);
 
 export default ExchangeRatesScreen;

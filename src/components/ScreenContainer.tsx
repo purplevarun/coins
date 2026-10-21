@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import type { ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
 	KeyboardAvoidingView,
 	Platform,
@@ -7,21 +7,35 @@ import {
 	StyleSheet,
 	View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+	SafeAreaView,
+	useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
-import COLORS from "@/constants/colors";
 import styleConstants from "@/constants/styleConstants";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import type ScreenContainerProps from "@/types/ScreenContainerProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 
 const { FLEX, SPACING } = styleConstants;
 
 const ScreenContainer = ({
 	children,
 	isScrollable = true,
+	footer,
 }: ScreenContainerProps): ReactNode => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
+	const viewport = useRef<View>(null);
+	const insets = useSafeAreaInsets();
+	const [keyboardVerticalOffset, setKeyboardVerticalOffset] = useState(0);
 	const content = isScrollable ? (
 		<ScrollView
-			contentContainerStyle={styles.scrollContent}
+			contentContainerStyle={[
+				styles.scrollContent,
+				footer ? styles.scrollContentWithFooter : null,
+			]}
 			keyboardShouldPersistTaps="handled"
 			showsVerticalScrollIndicator={false}
 		>
@@ -40,37 +54,76 @@ const ScreenContainer = ({
 			]}
 			style={styles.gradient}
 		>
-			<SafeAreaView edges={["bottom"]} style={styles.safeArea}>
+			<SafeAreaView
+				ref={viewport}
+				edges={["bottom"]}
+				onLayout={
+					footer
+						? () =>
+								viewport.current?.measureInWindow(
+									(_left, top) =>
+										setKeyboardVerticalOffset(
+											top +
+												(Platform.OS === "android"
+													? insets.top
+													: 0),
+										),
+								)
+						: undefined
+				}
+				style={styles.safeArea}
+			>
 				<KeyboardAvoidingView
-					behavior={Platform.OS === "ios" ? "padding" : undefined}
+					keyboardVerticalOffset={keyboardVerticalOffset}
+					behavior={
+						Platform.OS === "ios"
+							? "padding"
+							: footer
+								? "height"
+								: undefined
+					}
 					style={styles.keyboardView}
 				>
 					{content}
+					{footer ? (
+						<View style={styles.footer}>{footer}</View>
+					) : null}
 				</KeyboardAvoidingView>
 			</SafeAreaView>
 		</LinearGradient>
 	);
 };
 
-const styles = StyleSheet.create({
-	gradient: {
-		flex: FLEX.FILL,
-	},
-	safeArea: {
-		flex: FLEX.FILL,
-	},
-	keyboardView: {
-		flex: FLEX.FILL,
-	},
-	scrollContent: {
-		padding: SPACING.S16,
-		paddingBottom: SPACING.S120,
-		gap: SPACING.S14,
-	},
-	staticContent: {
-		flex: FLEX.FILL,
-		padding: SPACING.S16,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		gradient: {
+			flex: FLEX.FILL,
+		},
+		safeArea: {
+			flex: FLEX.FILL,
+		},
+		keyboardView: {
+			flex: FLEX.FILL,
+		},
+		scrollContent: {
+			padding: SPACING.S16,
+			paddingBottom: SPACING.S120,
+			gap: SPACING.S14,
+		},
+		scrollContentWithFooter: {
+			paddingBottom: SPACING.S16,
+		},
+		footer: {
+			padding: SPACING.S16,
+			borderTopWidth: 1,
+			borderTopColor: COLORS.border,
+			backgroundColor: COLORS.background,
+		},
+		staticContent: {
+			flex: FLEX.FILL,
+			padding: SPACING.S16,
+		},
+	}),
+);
 
 export default ScreenContainer;

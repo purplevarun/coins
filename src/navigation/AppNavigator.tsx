@@ -1,12 +1,17 @@
 import typographyConstants from "@/constants/typography";
 
-import { DarkTheme, NavigationContainer } from "@react-navigation/native";
+import {
+	DarkTheme,
+	DefaultTheme,
+	NavigationContainer,
+} from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { View } from "react-native";
 
 import HeaderIconButton from "@/components/HeaderIconButton";
-import COLORS from "@/constants/colors";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
+import useTheme from "@/hooks/useTheme";
 import AnalysisDetailsScreen from "@/screens/AnalysisDetailsScreen";
 import AnalysisScreen from "@/screens/AnalysisScreen";
 import ArchivedRelationsScreen from "@/screens/ArchivedRelationsScreen";
@@ -43,210 +48,225 @@ const { FONT_WEIGHT, SPACING } = styleConstants;
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-const navigationTheme = {
-	...DarkTheme,
-	colors: {
-		...DarkTheme.colors,
-		background: COLORS.background,
-		card: COLORS.backgroundElevated,
-		border: COLORS.border,
-		primary: COLORS.primary,
-		text: COLORS.text,
-	},
-};
+const AppNavigator = (): React.JSX.Element => {
+	const { colors: COLORS, isDark } = useTheme();
+	const baseTheme = isDark ? DarkTheme : DefaultTheme;
+	const navigationTheme = {
+		...baseTheme,
+		colors: {
+			...baseTheme.colors,
+			background: COLORS.background,
+			card: COLORS.backgroundElevated,
+			border: COLORS.border,
+			primary: COLORS.primary,
+			text: COLORS.text,
+			notification: COLORS.danger,
+		},
+	};
 
-const AppNavigator = (): React.JSX.Element => (
-	<NavigationContainer theme={navigationTheme}>
-		<Stack.Navigator
-			initialRouteName="Home"
-			screenOptions={({ navigation }) => ({
-				contentStyle: { backgroundColor: COLORS.background },
-				headerStyle: { backgroundColor: COLORS.backgroundElevated },
-				headerTintColor: COLORS.text,
-				headerShadowVisible: false,
-				headerTitleStyle: {
-					fontFamily: FONT_FAMILY,
-					fontWeight: FONT_WEIGHT.HEAVY,
-				},
-				animation: "slide_from_right",
-				headerBackVisible: false,
-				headerLeft: () =>
-					navigation.canGoBack() ? (
-						<View style={{ marginRight: SPACING.S15 }}>
-							<HeaderIconButton
-								icon="chevron-back"
-								onPress={() => navigation.goBack()}
-								accessibilityLabel="Back"
-							/>
-						</View>
-					) : null,
-			})}
-		>
-			<Stack.Screen
-				component={HomeScreen}
-				name="Home"
-				options={{ headerShown: false }}
-			/>
-			<Stack.Screen
-				component={TransactionsScreen}
-				name="Transactions"
-				options={{ title: "Transactions" }}
-			/>
-			<Stack.Screen
-				component={TransactionFormScreen}
-				name="TransactionForm"
-				options={{ title: "Transaction" }}
-			/>
-			<Stack.Screen
-				component={SourcesScreen}
-				name="Sources"
-				options={{ title: "Sources" }}
-			/>
-			<Stack.Screen
-				component={SourceFormScreen}
-				name="SourceForm"
-				options={{ title: "Source" }}
-			/>
-			<Stack.Screen
-				component={CategoriesScreen}
-				name="Categories"
-				options={{ title: "Categories" }}
-			/>
-			<Stack.Screen
-				component={CategoryFormScreen}
-				name="CategoryForm"
-				options={{ title: "Category" }}
-			/>
-			<Stack.Screen
-				component={TripsScreen}
-				name="Trips"
-				options={{ title: "Trips" }}
-			/>
-			<Stack.Screen
-				component={TripTypesScreen}
-				name="TripTypes"
-				options={{ title: "New trip type" }}
-			/>
-			<Stack.Screen
-				component={TripFormScreen}
-				name="TripForm"
-				options={{ title: "Trip" }}
-			/>
-			<Stack.Screen
-				component={InvestmentsScreen}
-				name="Investments"
-				options={{ title: "Investments" }}
-			/>
-			<Stack.Screen
-				component={InvestmentTypesScreen}
-				name="InvestmentTypes"
-				options={{ title: "New investment type" }}
-			/>
-			<Stack.Screen
-				component={PlatformsScreen}
-				name="Platforms"
-				options={{ title: "New investment platform" }}
-			/>
-			<Stack.Screen
-				component={RelationDetailsScreen}
-				name="RelationDetails"
-				options={({ route }) => ({ title: route.params.entityName })}
-			/>
-			<Stack.Screen
-				component={InvestmentFormScreen}
-				name="InvestmentForm"
-				options={{ title: "Investment" }}
-			/>
-			<Stack.Screen
-				component={ArchivedRelationsScreen}
-				name="ArchivedRelations"
-				options={{ title: "Archived relations" }}
-			/>
-			<Stack.Screen
-				component={LinkedTransactionsScreen}
-				name="LinkedTransactions"
-				options={({ route }) => ({ title: route.params.entityName })}
-			/>
-			<Stack.Screen
-				component={BudgetsScreen}
-				name="Budgets"
-				options={{ title: "Budgets" }}
-			/>
-			<Stack.Screen
-				component={BudgetFormScreen}
-				name="BudgetForm"
-				options={{ title: "Budget" }}
-			/>
-			<Stack.Screen
-				component={AnalysisScreen}
-				name="Analysis"
-				options={{ title: "Analysis" }}
-			/>
-			<Stack.Screen
-				component={AnalysisDetailsScreen}
-				name="AnalysisDetails"
-				options={({ route }) => ({
-					title:
-						/* v8 ignore next */
-						route.params.mode === "CATEGORIES"
-							? "All categories"
-							: "All investments",
+	return (
+		<NavigationContainer theme={navigationTheme}>
+			<Stack.Navigator
+				initialRouteName="Home"
+				screenOptions={({ navigation }) => ({
+					contentStyle: { backgroundColor: COLORS.background },
+					headerStyle: { backgroundColor: COLORS.backgroundElevated },
+					headerTintColor: COLORS.text,
+					headerShadowVisible: false,
+					headerTitleStyle: {
+						fontFamily: FONT_FAMILY,
+						fontWeight: FONT_WEIGHT.HEAVY,
+					},
+					animation: "slide_from_right",
+					headerBackVisible: false,
+					headerLeft: () =>
+						navigation.canGoBack() ? (
+							<View style={{ marginRight: SPACING.S15 }}>
+								<HeaderIconButton
+									icon="chevron-back"
+									onPress={() => navigation.goBack()}
+									accessibilityLabel="Back"
+								/>
+							</View>
+						) : null,
 				})}
-			/>
-			<Stack.Screen
-				component={ExchangeRatesScreen}
-				name="ExchangeRates"
-				options={{ title: "Exchange rates" }}
-			/>
-			<Stack.Screen
-				component={GlobalSearchScreen}
-				name="GlobalSearch"
-				options={{ title: "Search" }}
-			/>
-			<Stack.Screen
-				component={NotesScreen}
-				name="Notes"
-				options={{ title: "Notes" }}
-			/>
-			<Stack.Screen
-				component={NoteFormScreen}
-				name="NoteForm"
-				options={{ title: "Note" }}
-			/>
-			<Stack.Screen
-				component={TodosScreen}
-				name="Todos"
-				options={{ title: "Todos" }}
-			/>
-			<Stack.Screen
-				component={TodoFormScreen}
-				name="TodoForm"
-				options={{ title: "Todo" }}
-			/>
-			<Stack.Screen
-				component={VaultScreen}
-				name="Vault"
-				options={({ route }) => ({
-					title:
-						route.params.kind === "IDENTITY"
-							? "Identity"
-							: `${route.params.kind.charAt(0)}${route.params.kind
-									.slice(1)
-									.toLowerCase()}s`,
-				})}
-			/>
-			<Stack.Screen
-				component={VaultFormScreen}
-				name="VaultForm"
-				options={{ title: "Vault entry" }}
-			/>
-			<Stack.Screen
-				component={SettingsScreen}
-				name="Settings"
-				options={{ title: "Settings & backup" }}
-			/>
-		</Stack.Navigator>
-	</NavigationContainer>
-);
+			>
+				<Stack.Screen
+					component={HomeScreen}
+					name="Home"
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen
+					component={TransactionsScreen}
+					name="Transactions"
+					options={{ title: "Transactions" }}
+				/>
+				<Stack.Screen
+					component={TransactionFormScreen}
+					name="TransactionForm"
+					options={({ route }) => ({
+						title: route.params?.transactionId
+							? MESSAGES.TRANSACTION_FORM.EDIT_TITLE
+							: route.params?.cloneFromTransactionId
+								? MESSAGES.TRANSACTION_FORM.CLONE_TITLE
+								: MESSAGES.TRANSACTION_FORM.NEW_TITLE,
+					})}
+				/>
+				<Stack.Screen
+					component={SourcesScreen}
+					name="Sources"
+					options={{ title: "Sources" }}
+				/>
+				<Stack.Screen
+					component={SourceFormScreen}
+					name="SourceForm"
+					options={{ title: "Source" }}
+				/>
+				<Stack.Screen
+					component={CategoriesScreen}
+					name="Categories"
+					options={{ title: "Categories" }}
+				/>
+				<Stack.Screen
+					component={CategoryFormScreen}
+					name="CategoryForm"
+					options={{ title: "Category" }}
+				/>
+				<Stack.Screen
+					component={TripsScreen}
+					name="Trips"
+					options={{ title: "Trips" }}
+				/>
+				<Stack.Screen
+					component={TripTypesScreen}
+					name="TripTypes"
+					options={{ title: "New trip type" }}
+				/>
+				<Stack.Screen
+					component={TripFormScreen}
+					name="TripForm"
+					options={{ title: "Trip" }}
+				/>
+				<Stack.Screen
+					component={InvestmentsScreen}
+					name="Investments"
+					options={{ title: "Investments" }}
+				/>
+				<Stack.Screen
+					component={InvestmentTypesScreen}
+					name="InvestmentTypes"
+					options={{ title: "New investment type" }}
+				/>
+				<Stack.Screen
+					component={PlatformsScreen}
+					name="Platforms"
+					options={{ title: "New investment platform" }}
+				/>
+				<Stack.Screen
+					component={RelationDetailsScreen}
+					name="RelationDetails"
+					options={({ route }) => ({
+						title: route.params.entityName,
+					})}
+				/>
+				<Stack.Screen
+					component={InvestmentFormScreen}
+					name="InvestmentForm"
+					options={{ title: "Investment" }}
+				/>
+				<Stack.Screen
+					component={ArchivedRelationsScreen}
+					name="ArchivedRelations"
+					options={{ title: "Archived relations" }}
+				/>
+				<Stack.Screen
+					component={LinkedTransactionsScreen}
+					name="LinkedTransactions"
+					options={({ route }) => ({
+						title: route.params.entityName,
+					})}
+				/>
+				<Stack.Screen
+					component={BudgetsScreen}
+					name="Budgets"
+					options={{ title: "Budgets" }}
+				/>
+				<Stack.Screen
+					component={BudgetFormScreen}
+					name="BudgetForm"
+					options={{ title: "Budget" }}
+				/>
+				<Stack.Screen
+					component={AnalysisScreen}
+					name="Analysis"
+					options={{ title: "Analysis" }}
+				/>
+				<Stack.Screen
+					component={AnalysisDetailsScreen}
+					name="AnalysisDetails"
+					options={({ route }) => ({
+						title:
+							/* v8 ignore next */
+							route.params.mode === "CATEGORIES"
+								? "All categories"
+								: "All investments",
+					})}
+				/>
+				<Stack.Screen
+					component={ExchangeRatesScreen}
+					name="ExchangeRates"
+					options={{ title: "Exchange rates" }}
+				/>
+				<Stack.Screen
+					component={GlobalSearchScreen}
+					name="GlobalSearch"
+					options={{ title: "Search" }}
+				/>
+				<Stack.Screen
+					component={NotesScreen}
+					name="Notes"
+					options={{ title: "Notes" }}
+				/>
+				<Stack.Screen
+					component={NoteFormScreen}
+					name="NoteForm"
+					options={{ title: "Note" }}
+				/>
+				<Stack.Screen
+					component={TodosScreen}
+					name="Todos"
+					options={{ title: "Todos" }}
+				/>
+				<Stack.Screen
+					component={TodoFormScreen}
+					name="TodoForm"
+					options={{ title: "Todo" }}
+				/>
+				<Stack.Screen
+					component={VaultScreen}
+					name="Vault"
+					options={({ route }) => ({
+						title:
+							route.params.kind === "IDENTITY"
+								? "Identity"
+								: `${route.params.kind.charAt(0)}${route.params.kind
+										.slice(1)
+										.toLowerCase()}s`,
+					})}
+				/>
+				<Stack.Screen
+					component={VaultFormScreen}
+					name="VaultForm"
+					options={{ title: "Vault entry" }}
+				/>
+				<Stack.Screen
+					component={SettingsScreen}
+					name="Settings"
+					options={{ title: "Settings & backup" }}
+				/>
+			</Stack.Navigator>
+		</NavigationContainer>
+	);
+};
 
 export default AppNavigator;

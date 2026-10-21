@@ -2,6 +2,23 @@ import { describe, expect, it, vi } from "vitest";
 
 const applyAppFontStyleMock = vi.hoisted(() => vi.fn((style) => style ?? {}));
 
+const viewportMocks = vi.hoisted(() => ({
+	setOffset: vi.fn(),
+	useRef: vi.fn(() => ({
+		current: {
+			measureInWindow: (
+				callback: (left: number, top: number) => void,
+			): void => callback(0, 80),
+		},
+	})),
+}));
+
+vi.mock("react", async (importOriginal) => ({
+	...(await importOriginal<typeof import("react")>()),
+	useRef: viewportMocks.useRef,
+	useState: () => [80, viewportMocks.setOffset],
+}));
+
 vi.mock("@/utils/appFontStyle", () => ({
 	default: applyAppFontStyleMock,
 }));
@@ -36,6 +53,7 @@ vi.mock("expo-blur", () => ({
 
 vi.mock("react-native-safe-area-context", () => ({
 	SafeAreaView: "SafeAreaView",
+	useSafeAreaInsets: () => ({ top: 24, bottom: 0, left: 0, right: 0 }),
 }));
 
 vi.mock("@shopify/flash-list", () => ({
@@ -56,6 +74,9 @@ import ScreenContainer from "@/components/ScreenContainer";
 import ScreenList from "@/components/ScreenList";
 import SearchBar from "@/components/SearchBar";
 import SectionHeading from "@/components/SectionHeading";
+import themeConstants from "@/constants/themeConstants";
+import THEME_PALETTES from "@/constants/themePaletteConstants";
+import useTheme from "@/hooks/useTheme";
 
 import { Platform } from "react-native";
 
@@ -96,6 +117,55 @@ const findFirstByType = (node: any, type: string): any => {
 };
 
 describe("presentational components", () => {
+	it.each(themeConstants.THEME_OPTIONS)(
+		"themes input and glass appearance for $label",
+		({ value }) => {
+			const theme = THEME_PALETTES[value];
+			vi.mocked(useTheme).mockReturnValue(theme);
+			const input = CustomTextInput({ value: "example" });
+			expect(input.props.keyboardAppearance).toBe(
+				theme.isDark ? "dark" : "light",
+			);
+			expect(input.props.selectionColor).toBe(theme.colors.primary);
+			expect(input.props.placeholderTextColor).toBe(theme.colors.textDim);
+			const card = GlassCard({ children: null });
+			expect(findFirstByType(card, "BlurView").props.tint).toBe(
+				theme.isDark ? "dark" : "light",
+			);
+			vi.mocked(useTheme).mockReturnValue(
+				THEME_PALETTES[themeConstants.DEFAULT_THEME_ID],
+			);
+		},
+	);
+
+	it.each(themeConstants.THEME_OPTIONS)(
+		"renders bottom navigation in $label",
+		({ value }) => {
+			const theme = THEME_PALETTES[value];
+			vi.mocked(useTheme).mockReturnValue(theme);
+			const element = BottomNavBar({
+				options: [
+					{
+						mode: "finance",
+						label: "Finance",
+						icon: "wallet-outline",
+					},
+				],
+				activeMode: "finance",
+				onSelectMode: vi.fn(),
+			} as any);
+			expect(element.props.style.backgroundColor).toBe(
+				theme.colors.backgroundElevated,
+			);
+			expect(findFirstByType(element, "Ionicons").props.color).toBe(
+				theme.colors.primaryBright,
+			);
+			vi.mocked(useTheme).mockReturnValue(
+				THEME_PALETTES[themeConstants.DEFAULT_THEME_ID],
+			);
+		},
+	);
+
 	it("renders CustomText and CustomTextInput with app font styles", () => {
 		const textElement = CustomText({
 			style: { fontSize: 16 },
@@ -210,6 +280,15 @@ describe("presentational components", () => {
 			accessibilityLabel: "Search",
 		} as any);
 		expect(active.props.style({ pressed: false })[1]).toBeTruthy();
+		const disabled = HeaderIconButton({
+			icon: "add",
+			accessibilityLabel: "Add item",
+			onPress,
+			isDisabled: true,
+		});
+		expect(disabled.props.disabled).toBe(true);
+		expect(disabled.props.accessibilityState).toEqual({ disabled: true });
+		expect(disabled.props.style({ pressed: true })[2]).toBe(false);
 	});
 
 	it("covers BottomNavBar active, inactive and pressed branches", () => {
@@ -228,7 +307,25 @@ describe("presentational components", () => {
 			onSelectMode,
 		} as any) as any;
 
-		expect(findFirstByType(nav, "BlurView")).toBeTruthy();
+		expect(findFirstByType(nav, "BlurView")).toBeNull();
+		expect(nav.props.style).toMatchObject({ borderTopWidth: 1 });
+		expect(nav.props.style).not.toHaveProperty("borderRadius");
+		expect(nav.props.style).not.toHaveProperty("elevation");
+		const indicators = findAllByPredicate(
+			nav,
+			(node) =>
+				node?.type === "View" &&
+				Array.isArray(node.props?.style) &&
+				node.props.style[0]?.width === 64,
+		);
+		expect(indicators).toHaveLength(3);
+		expect(indicators[0]?.props.style[1]).toBe(false);
+		expect(indicators[1]?.props.style[1]).toHaveProperty("backgroundColor");
+		expect(indicators[1]?.props.style[0]).toMatchObject({
+			width: 64,
+			height: 40,
+			borderRadius: 16,
+		});
 
 		const items = findAllByPredicate(
 			nav,
@@ -290,8 +387,47 @@ describe("presentational components", () => {
 		);
 		expect(keyboardViewA.props.behavior).toBe("padding");
 		expect(findFirstByType(scrollable, "ScrollView")).toBeTruthy();
+		const withFooter = ScreenContainer({
+			children: "form",
+			footer: "save",
+		}) as any;
+		const footerKeyboardView = findFirstByType(
+			withFooter,
+			"KeyboardAvoidingView",
+		);
+		expect(footerKeyboardView.props.children[1].props.children).toBe(
+			"save",
+		);
+		findFirstByType(withFooter, "SafeAreaView").props.onLayout();
+		expect(viewportMocks.setOffset).toHaveBeenCalledWith(80);
+		expect(footerKeyboardView.props.keyboardVerticalOffset).toBe(80);
+		viewportMocks.useRef.mockReturnValueOnce({ current: null } as any);
+		const unmounted = ScreenContainer({
+			children: "form",
+			footer: "save",
+		}) as any;
+		expect(() =>
+			findFirstByType(unmounted, "SafeAreaView").props.onLayout(),
+		).not.toThrow();
+		expect(findFirstByType(withFooter, "ScrollView").props.children).toBe(
+			"form",
+		);
+		expect(
+			findFirstByType(withFooter, "ScrollView").props
+				.contentContainerStyle[1],
+		).toEqual({ paddingBottom: 16 });
 
 		(Platform as Pick<typeof Platform, "OS">).OS = "android";
+		const androidWithFooter = ScreenContainer({
+			children: "form",
+			footer: "save",
+		}) as any;
+		findFirstByType(androidWithFooter, "SafeAreaView").props.onLayout();
+		expect(viewportMocks.setOffset).toHaveBeenCalledWith(104);
+		expect(
+			findFirstByType(androidWithFooter, "KeyboardAvoidingView").props
+				.behavior,
+		).toBe("height");
 		const staticContainer = ScreenContainer({
 			children: "x",
 			isScrollable: false,

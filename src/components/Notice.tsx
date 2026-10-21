@@ -1,12 +1,18 @@
 import CustomText from "@/components/CustomText";
+import type ThemeColors from "@/types/ThemeColors";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, View } from "react-native";
 
-import COLORS from "@/constants/colors";
 import styleConstants from "@/constants/styleConstants";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import type NoticeProps from "@/types/NoticeProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 
-const getToneColor = (tone: NoticeProps["tone"]): string => {
+const getToneColor = (
+	COLORS: ThemeColors,
+	tone: NoticeProps["tone"],
+): string => {
 	if (tone === "danger") {
 		return COLORS.danger;
 	}
@@ -17,7 +23,9 @@ const getToneColor = (tone: NoticeProps["tone"]): string => {
 };
 
 const Notice = ({ message, tone = "info" }: NoticeProps): React.JSX.Element => {
-	const color = getToneColor(tone);
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
+	const color = getToneColor(COLORS, tone);
 	return (
 		<View style={[styles.container, { borderColor: color }]}>
 			<Ionicons
@@ -33,22 +41,24 @@ const Notice = ({ message, tone = "info" }: NoticeProps): React.JSX.Element => {
 const { ALIGN, BORDER, FLEX, FONT_SIZE, LINE_HEIGHT, RADIUS, SPACING } =
 	styleConstants;
 
-const styles = StyleSheet.create({
-	container: {
-		borderWidth: BORDER.THIN,
-		borderRadius: RADIUS.S14,
-		padding: SPACING.S12,
-		backgroundColor: COLORS.surfaceSoft,
-		flexDirection: FLEX.ROW,
-		gap: SPACING.S9,
-		alignItems: ALIGN.START,
-	},
-	message: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S13,
-		lineHeight: LINE_HEIGHT.S19,
-		flex: FLEX.FILL,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		container: {
+			borderWidth: BORDER.THIN,
+			borderRadius: RADIUS.S14,
+			padding: SPACING.S12,
+			backgroundColor: COLORS.surfaceSoft,
+			flexDirection: FLEX.ROW,
+			gap: SPACING.S9,
+			alignItems: ALIGN.START,
+		},
+		message: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S13,
+			lineHeight: LINE_HEIGHT.S19,
+			flex: FLEX.FILL,
+		},
+	}),
+);
 
 export default Notice;

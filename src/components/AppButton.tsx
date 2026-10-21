@@ -1,13 +1,17 @@
 import CustomText from "@/components/CustomText";
 import type ButtonColors from "@/types/ButtonColors";
+import type ThemeColors from "@/types/ThemeColors";
 import { Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator, Pressable, StyleSheet } from "react-native";
 
-import COLORS from "@/constants/colors";
 import styleConstants from "@/constants/styleConstants";
+import useTheme from "@/hooks/useTheme";
 import type AppButtonProps from "@/types/AppButtonProps";
 
-const getButtonColors = (variant: AppButtonProps["variant"]): ButtonColors => {
+const getButtonColors = (
+	COLORS: ThemeColors,
+	variant: AppButtonProps["variant"],
+): ButtonColors => {
 	if (variant === "danger") {
 		return {
 			backgroundColor: COLORS.dangerMuted,
@@ -31,7 +35,7 @@ const getButtonColors = (variant: AppButtonProps["variant"]): ButtonColors => {
 	}
 	return {
 		backgroundColor: COLORS.primary,
-		color: COLORS.background,
+		color: COLORS.onPrimary,
 		borderColor: COLORS.primaryBright,
 	};
 };
@@ -46,7 +50,8 @@ const AppButton = ({
 	isCompact = false,
 	style,
 }: AppButtonProps): React.JSX.Element => {
-	const colors = getButtonColors(variant);
+	const { colors: COLORS } = useTheme();
+	const colors = getButtonColors(COLORS, variant);
 	const isUnavailable = isDisabled || isLoading;
 	const buttonStyle = [
 		styles.button,
@@ -101,8 +106,11 @@ const {
 
 const styles = StyleSheet.create({
 	button: {
+		minWidth: 0,
+		maxWidth: "100%",
 		minHeight: SIZES.S50,
 		paddingHorizontal: SPACING.S18,
+		paddingVertical: SPACING.S8,
 		borderRadius: RADIUS.S15,
 		borderWidth: BORDER.THIN,
 		alignItems: ALIGN.CENTER,
@@ -119,6 +127,9 @@ const styles = StyleSheet.create({
 		transform: [{ scale: SCALE.GENTLE }],
 	},
 	label: {
+		flexShrink: 1,
+		minWidth: 0,
+		textAlign: ALIGN.CENTER,
 		fontSize: FONT_SIZE.S14,
 		fontWeight: FONT_WEIGHT.HEAVY,
 		letterSpacing: LETTER_SPACING.RELAXED,

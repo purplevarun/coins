@@ -10,14 +10,15 @@ import GlassCard from "@/components/GlassCard";
 import Notice from "@/components/Notice";
 import ScreenContainer from "@/components/ScreenContainer";
 import TextField from "@/components/TextField";
-import COLORS from "@/constants/colors";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import useFolders from "@/hooks/useFolders";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import todoService from "@/services/todoService";
 import type TodoFormScreenProps from "@/types/TodoFormScreenProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
 const { deleteTodo, getTodo, saveTodo } = todoService;
 
@@ -25,6 +26,7 @@ const TodoFormScreen = ({
 	navigation,
 	route,
 }: TodoFormScreenProps): React.JSX.Element => {
+	const styles = useThemedStyles(themedStyles);
 	const todoId = route.params?.todoId;
 	const { database, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
@@ -175,29 +177,31 @@ const TodoFormScreen = ({
 const { ALIGN, BORDER, FLEX, FONT_SIZE, FONT_WEIGHT, RADIUS, SPACING } =
 	styleConstants;
 
-const styles = StyleSheet.create({
-	form: {
-		gap: SPACING.S16,
-	},
-	heading: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S24,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	switchRow: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.SPACE_BETWEEN,
-		padding: SPACING.S12,
-		borderRadius: RADIUS.S14,
-		borderWidth: BORDER.THIN,
-		borderColor: COLORS.border,
-	},
-	switchLabel: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S14,
-		fontWeight: FONT_WEIGHT.HEAVY,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		form: {
+			gap: SPACING.S16,
+		},
+		heading: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S24,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		switchRow: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.SPACE_BETWEEN,
+			padding: SPACING.S12,
+			borderRadius: RADIUS.S14,
+			borderWidth: BORDER.THIN,
+			borderColor: COLORS.border,
+		},
+		switchLabel: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S14,
+			fontWeight: FONT_WEIGHT.HEAVY,
+		},
+	}),
+);
 
 export default TodoFormScreen;

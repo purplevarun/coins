@@ -14,6 +14,8 @@ const COLORS = {
 	primary: "#A87CFF",
 	primaryBright: "#C5A8FF",
 	primaryMuted: "rgba(168, 124, 255, 0.16)",
+	onPrimary: "#080B14",
+	netWorth: "#C5A8FF",
 	text: "#F4F1FF",
 	textMuted: "#A9B0C3",
 	textDim: "#747C91",

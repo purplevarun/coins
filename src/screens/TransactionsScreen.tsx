@@ -22,16 +22,18 @@ import SearchBar from "@/components/SearchBar";
 import SegmentedControl from "@/components/SegmentedControl";
 import TransactionCard from "@/components/TransactionCard";
 import appConstants from "@/constants/appConstants";
-import COLORS from "@/constants/colors";
 import financeConstants from "@/constants/financeConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import transactionService from "@/services/transactionService";
 import type Transaction from "@/types/Transaction";
 import type TransactionClassification from "@/types/TransactionClassification";
 import type TransactionCursor from "@/types/TransactionCursor";
 import type TransactionsScreenProps from "@/types/TransactionsScreenProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 import dateUtils from "@/utils/date";
 import getErrorMessage from "@/utils/error";
 import moneyUtils from "@/utils/money";
@@ -47,6 +49,8 @@ const { TRANSACTION_FILTER_OPTIONS } = financeConstants;
 const TransactionsScreen = ({
 	navigation,
 }: TransactionsScreenProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const { database, dataVersion } = useDatabaseContext();
 	const [transactions, setTransactions] = useState<readonly Transaction[]>(
 		[],
@@ -200,7 +204,7 @@ const TransactionsScreen = ({
 				</View>
 			),
 		});
-	}, [navigation, searchVisible, viewMode]);
+	}, [navigation, searchVisible, viewMode, styles]);
 
 	const filteredTransactions = useMemo(() => {
 		let list = transactions;
@@ -322,6 +326,8 @@ const TransactionsScreen = ({
 			searchVisible,
 			activeDate,
 			viewMode,
+			styles,
+			COLORS,
 		],
 	);
 
@@ -373,6 +379,8 @@ const TransactionsScreen = ({
 		paging.hasMore,
 		paging.isLoading,
 		viewMode,
+		COLORS,
+		styles,
 	]);
 
 	const listEmpty = useMemo(() => {
@@ -430,49 +438,51 @@ const {
 	SPACING,
 } = styleConstants;
 
-const styles = StyleSheet.create({
-	screen: {
-		flex: FLEX.FILL,
-		backgroundColor: COLORS.background,
-	},
-	headerActions: {
-		flexDirection: FLEX.ROW,
-		gap: SPACING.S8,
-	},
-	footer: {
-		marginTop: SPACING.S16,
-		minHeight: SIZES.S50,
-	},
-	endLabel: {
-		color: COLORS.textDim,
-		fontSize: FONT_SIZE.S13,
-		textAlign: ALIGN.CENTER,
-		marginTop: SPACING.S24,
-	},
-	dayRow: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.SPACE_BETWEEN,
-		marginBottom: SPACING.S10,
-	},
-	dayButton: {
-		width: SIZES.S40,
-		height: SIZES.S40,
-		borderRadius: RADIUS.S14,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-		borderWidth: BORDER.THIN,
-		borderColor: COLORS.border,
-		backgroundColor: COLORS.surfaceRaised,
-	},
-	dayButtonDisabled: {
-		opacity: OPACITY.MEDIUM,
-	},
-	dayLabel: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S15,
-		fontWeight: FONT_WEIGHT.HEAVY,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		screen: {
+			flex: FLEX.FILL,
+			backgroundColor: COLORS.background,
+		},
+		headerActions: {
+			flexDirection: FLEX.ROW,
+			gap: SPACING.S8,
+		},
+		footer: {
+			marginTop: SPACING.S16,
+			minHeight: SIZES.S50,
+		},
+		endLabel: {
+			color: COLORS.textDim,
+			fontSize: FONT_SIZE.S13,
+			textAlign: ALIGN.CENTER,
+			marginTop: SPACING.S24,
+		},
+		dayRow: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.SPACE_BETWEEN,
+			marginBottom: SPACING.S10,
+		},
+		dayButton: {
+			width: SIZES.S40,
+			height: SIZES.S40,
+			borderRadius: RADIUS.S14,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+			borderWidth: BORDER.THIN,
+			borderColor: COLORS.border,
+			backgroundColor: COLORS.surfaceRaised,
+		},
+		dayButtonDisabled: {
+			opacity: OPACITY.MEDIUM,
+		},
+		dayLabel: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S15,
+			fontWeight: FONT_WEIGHT.HEAVY,
+		},
+	}),
+);
 
 export default TransactionsScreen;

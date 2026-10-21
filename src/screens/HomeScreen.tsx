@@ -10,13 +10,15 @@ import BottomNavBar from "@/components/BottomNavBar";
 import GlassCard from "@/components/GlassCard";
 import HeaderIconButton from "@/components/HeaderIconButton";
 import ScreenContainer from "@/components/ScreenContainer";
-import COLORS from "@/constants/colors";
 import { DEFAULT_HOME_MODE, HOME_MODE_OPTIONS } from "@/constants/homeModes";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import type HomeMode from "@/types/HomeMode";
 import type HomeScreenProps from "@/types/HomeScreenProps";
 import type HomeTile from "@/types/HomeTile";
+import createThemedStyles from "@/utils/createThemedStyles";
 import type { ViewStyle } from "react-native";
 const {
 	ALIGN,
@@ -25,7 +27,6 @@ const {
 	FONT_WEIGHT,
 	LETTER_SPACING,
 	LINE_HEIGHT,
-	POSITION,
 	RADIUS,
 	SCALE,
 	SIZES,
@@ -38,11 +39,15 @@ const getModeLabel = (mode: HomeMode): string =>
 
 const getPressableScaleStyle = (
 	pressed: boolean,
-): readonly (ViewStyle | false)[] => [pressed && styles.pressed];
+): readonly (ViewStyle | false)[] => [
+	pressed && { transform: [{ scale: SCALE.GENTLE }] },
+];
 
 const getTileIconBackgroundColor = (color: string): string => `${color}20`;
 
 const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const [mode, setMode] = useState<HomeMode>(DEFAULT_HOME_MODE);
 
 	const tilesByMode = useMemo(
@@ -132,7 +137,7 @@ const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
 				},
 			],
 		}),
-		[navigation],
+		[navigation, COLORS],
 	);
 
 	const renderTiles = (tiles: readonly HomeTile[]): React.JSX.Element => (
@@ -190,7 +195,7 @@ const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
 			<SafeAreaView style={styles.safeArea}>
 				<ScreenContainer>
 					<View style={styles.header}>
-						<CustomText numberOfLines={1} style={styles.appName}>
+						<CustomText style={styles.appName}>
 							Purple
 							<CustomText style={styles.appNameAccent}>
 								coins
@@ -225,76 +230,72 @@ const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
 	);
 };
 
-const styles = StyleSheet.create({
-	background: {
-		flex: FLEX.FILL,
-	},
-	safeArea: {
-		flex: FLEX.FILL,
-	},
-	header: {
-		marginTop: SPACING.N6,
-		marginBottom: SPACING.S8,
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.SPACE_BETWEEN,
-		gap: SPACING.S12,
-	},
-	appName: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S36,
-		fontWeight: FONT_WEIGHT.BLACK,
-		letterSpacing: LETTER_SPACING.NONE,
-	},
-	appNameAccent: {
-		color: COLORS.primary,
-	},
-	headerActions: {
-		flexDirection: FLEX.ROW,
-		flexShrink: FLEX.NONE,
-		gap: SPACING.S8,
-	},
-	grid: {
-		flexDirection: FLEX.ROW,
-		justifyContent: ALIGN.SPACE_BETWEEN,
-		flexWrap: FLEX.WRAP,
-		rowGap: SPACING.S10,
-	},
-	navDock: {
-		position: POSITION.ABSOLUTE,
-		left: SPACING.S16,
-		right: SPACING.S16,
-		bottom: SPACING.S10,
-	},
-	tileWrapper: {
-		width: SIZES.TILE,
-	},
-	tile: {
-		minHeight: SIZES.S122,
-		gap: SPACING.S7,
-	},
-	tileIcon: {
-		width: SIZES.S42,
-		height: SIZES.S42,
-		borderRadius: RADIUS.S14,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-		marginBottom: SPACING.S3,
-	},
-	tileTitle: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S15,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	tileSubtitle: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S11,
-		lineHeight: LINE_HEIGHT.S15,
-	},
-	pressed: {
-		transform: [{ scale: SCALE.GENTLE }],
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		background: {
+			flex: FLEX.FILL,
+		},
+		safeArea: {
+			flex: FLEX.FILL,
+		},
+		header: {
+			marginTop: SPACING.N6,
+			marginBottom: SPACING.S8,
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.SPACE_BETWEEN,
+			gap: SPACING.S12,
+		},
+		appName: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S36,
+			fontWeight: FONT_WEIGHT.BLACK,
+			letterSpacing: LETTER_SPACING.NONE,
+		},
+		appNameAccent: {
+			color: COLORS.primary,
+		},
+		headerActions: {
+			flexDirection: FLEX.ROW,
+			flexShrink: FLEX.NONE,
+			gap: SPACING.S8,
+		},
+		grid: {
+			flexDirection: FLEX.ROW,
+			justifyContent: ALIGN.SPACE_BETWEEN,
+			flexWrap: FLEX.WRAP,
+			rowGap: SPACING.S10,
+		},
+		navDock: {
+			flexShrink: FLEX.NONE,
+		},
+		tileWrapper: {
+			width: SIZES.TILE,
+		},
+		tile: {
+			minHeight: SIZES.S122,
+			gap: SPACING.S7,
+		},
+		tileIcon: {
+			width: SIZES.S42,
+			height: SIZES.S42,
+			borderRadius: RADIUS.S14,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+			marginBottom: SPACING.S3,
+		},
+		tileTitle: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S15,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		tileSubtitle: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S11,
+			lineHeight: LINE_HEIGHT.S15,
+		},
+	}),
+);
 
 export default HomeScreen;
 

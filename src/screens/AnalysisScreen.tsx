@@ -1,4 +1,5 @@
 import CustomText from "@/components/CustomText";
+import type ThemeColors from "@/types/ThemeColors";
 
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -22,12 +23,15 @@ import SectionHeading from "@/components/SectionHeading";
 import SegmentedControl from "@/components/SegmentedControl";
 import TrendLineChart from "@/components/TrendLineChart";
 import appConstants from "@/constants/appConstants";
-import COLORS from "@/constants/colors";
 import dateConstants from "@/constants/dateConstants";
 import financeConstants from "@/constants/financeConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
+import themeConstants from "@/constants/themeConstants";
+import { THEME_CHART_COLORS } from "@/constants/themePaletteConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import financeRepository from "@/repositories/financeRepository";
 import analysisService from "@/services/analysisService";
 import settingsService from "@/services/settingsService";
@@ -40,6 +44,7 @@ import type DateRange from "@/types/DateRange";
 import type ExchangeRate from "@/types/ExchangeRate";
 import type SummaryMetricInput from "@/types/SummaryMetricInput";
 import type Transaction from "@/types/Transaction";
+import createThemedStyles from "@/utils/createThemedStyles";
 import dateUtils from "@/utils/date";
 import getErrorMessage from "@/utils/error";
 import moneyUtils from "@/utils/money";
@@ -72,16 +77,8 @@ const {
 const { ALL_TIME_END, ALL_TIME_START, DEFAULT_FY_START_MONTH } = dateConstants;
 const { ANALYSIS_PERIOD_OPTIONS, DEFAULT_ANALYSIS_PERIOD } = financeConstants;
 
-const CHART_COLORS = [
-	COLORS.primary,
-	COLORS.mint,
-	COLORS.blue,
-	COLORS.warning,
-	COLORS.danger,
-	COLORS.aqua,
-	COLORS.periwinkle,
-	COLORS.orange,
-] as const;
+const DEFAULT_CHART_COLORS =
+	THEME_CHART_COLORS[themeConstants.DEFAULT_THEME_ID];
 
 const getSelectedDateRange = ({
 	period,
@@ -132,7 +129,7 @@ const formatSignedMoney = (amount: string): string => {
 		: formattedAmount;
 };
 
-const getInvestmentColor = (net: string): string => {
+const getInvestmentColor = (COLORS: ThemeColors, net: string): string => {
 	const comparison = compareMoney(net, ZERO_AMOUNT);
 	if (comparison > 0) return COLORS.danger;
 	if (comparison < 0) return COLORS.success;
@@ -169,8 +166,10 @@ const getMissingRatesMessage = (missingCurrencies: readonly string[]): string =>
 	`Update INR exchange rates for ${missingCurrencies.join(", ")} before analysis can include those transactions.`;
 
 const getChartData = (
+	COLORS: ThemeColors,
 	summary: AnalysisSummary | null,
 	hasMissingCurrencies: boolean,
+	chartColors: readonly string[] = DEFAULT_CHART_COLORS,
 ): readonly ChartDatum[] => {
 	if (hasMissingCurrencies) {
 		return [];
@@ -178,16 +177,17 @@ const getChartData = (
 	return (
 		summary?.categories
 			.filter((category) => compareMoney(category.net, ZERO_AMOUNT) !== 0)
-			.slice(0, CHART_COLORS.length)
+			.slice(0, chartColors.length)
 			.map((category, index) => ({
 				label: category.categoryName,
 				value: Number(absoluteMoney(category.net)),
-				color: CHART_COLORS[index] ?? COLORS.primary,
+				color: chartColors[index] ?? COLORS.primary,
 			})) ?? []
 	);
 };
 
 const getSummaryMetrics = (
+	COLORS: ThemeColors,
 	summary: AnalysisSummary | null,
 	investmentCashFlow: string,
 	investmentNet: string,
@@ -215,7 +215,7 @@ const getSummaryMetrics = (
 		label: MESSAGES.ANALYSIS.INVESTMENTS_METRIC,
 		value: formatSignedMoney(investmentCashFlow),
 		accent: "warning",
-		color: getInvestmentColor(investmentNet),
+		color: getInvestmentColor(COLORS, investmentNet),
 	},
 	{
 		label: MESSAGES.FINANCIAL_METRICS.NET,
@@ -263,6 +263,8 @@ const HAS_ARROWS: readonly AnalysisPeriod[] = ["MONTH", "YEAR", "FY"];
 const AnalysisScreen = ({
 	navigation,
 }: AnalysisScreenProps): React.JSX.Element => {
+	const { colors: COLORS, id: themeId } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const { database, dataVersion } = useDatabaseContext();
 	const [period, setPeriod] = useState<AnalysisPeriod>(
 		DEFAULT_ANALYSIS_PERIOD,
@@ -401,8 +403,14 @@ const AnalysisScreen = ({
 		summary?.netProfit ?? ZERO_AMOUNT,
 		investmentCashFlow,
 	);
-	const chartData = getChartData(summary, hasMissingCurrencies);
+	const chartData = getChartData(
+		COLORS,
+		summary,
+		hasMissingCurrencies,
+		THEME_CHART_COLORS[themeId],
+	);
 	const summaryMetrics = getSummaryMetrics(
+		COLORS,
 		summary,
 		investmentCashFlow,
 		investmentNet,
@@ -627,72 +635,74 @@ const {
 	TEXT_TRANSFORM,
 } = styleConstants;
 
-const styles = StyleSheet.create({
-	periodRow: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.SPACE_BETWEEN,
-	},
-	periodButton: {
-		width: SIZES.S44,
-		height: SIZES.S44,
-		borderRadius: RADIUS.S14,
-		backgroundColor: COLORS.surfaceMid,
-		borderWidth: BORDER.THIN,
-		borderColor: COLORS.border,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-	},
-	periodButtonDisabled: {
-		opacity: OPACITY.FAINT,
-	},
-	periodText: {
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S2,
-	},
-	periodTitle: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S17,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	periodRange: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S11,
-	},
-	customDates: {
-		gap: SPACING.S12,
-	},
-	summaryGrid: {
-		flexDirection: FLEX.ROW,
-		flexWrap: FLEX.WRAP,
-		justifyContent: ALIGN.SPACE_BETWEEN,
-		rowGap: SPACING.S10,
-	},
-	actionGrid: {
-		flexDirection: FLEX.ROW,
-		flexWrap: FLEX.WRAP,
-		gap: SPACING.S8,
-		marginBottom: SPACING.S12,
-	},
-	summaryTile: {
-		width: SIZES.TILE,
-	},
-	summaryCard: {
-		flex: FLEX.FILL,
-	},
-	summaryLabel: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S11,
-		fontWeight: FONT_WEIGHT.HEAVY,
-		textTransform: TEXT_TRANSFORM.UPPERCASE,
-		letterSpacing: LETTER_SPACING.WIDER,
-	},
-	summaryValue: {
-		fontSize: FONT_SIZE.S14,
-		fontWeight: FONT_WEIGHT.BLACK,
-		marginTop: SPACING.S5,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		periodRow: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.SPACE_BETWEEN,
+		},
+		periodButton: {
+			width: SIZES.S44,
+			height: SIZES.S44,
+			borderRadius: RADIUS.S14,
+			backgroundColor: COLORS.surfaceMid,
+			borderWidth: BORDER.THIN,
+			borderColor: COLORS.border,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+		},
+		periodButtonDisabled: {
+			opacity: OPACITY.FAINT,
+		},
+		periodText: {
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S2,
+		},
+		periodTitle: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S17,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		periodRange: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S11,
+		},
+		customDates: {
+			gap: SPACING.S12,
+		},
+		summaryGrid: {
+			flexDirection: FLEX.ROW,
+			flexWrap: FLEX.WRAP,
+			justifyContent: ALIGN.SPACE_BETWEEN,
+			rowGap: SPACING.S10,
+		},
+		actionGrid: {
+			flexDirection: FLEX.ROW,
+			flexWrap: FLEX.WRAP,
+			gap: SPACING.S8,
+			marginBottom: SPACING.S12,
+		},
+		summaryTile: {
+			width: SIZES.TILE,
+		},
+		summaryCard: {
+			flex: FLEX.FILL,
+		},
+		summaryLabel: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S11,
+			fontWeight: FONT_WEIGHT.HEAVY,
+			textTransform: TEXT_TRANSFORM.UPPERCASE,
+			letterSpacing: LETTER_SPACING.WIDER,
+		},
+		summaryValue: {
+			fontSize: FONT_SIZE.S14,
+			fontWeight: FONT_WEIGHT.BLACK,
+			marginTop: SPACING.S5,
+		},
+	}),
+);
 
 export default AnalysisScreen;
 

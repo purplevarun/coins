@@ -24,6 +24,9 @@ import TrendLineChart, {
 	MAX_AXIS_VALUE,
 	MIN_AXIS_VALUE,
 } from "@/components/TrendLineChart";
+import themeConstants from "@/constants/themeConstants";
+import THEME_PALETTES from "@/constants/themePaletteConstants";
+import useTheme from "@/hooks/useTheme";
 import type TrendPoint from "@/types/TrendPoint";
 
 const findByPredicate = (
@@ -102,6 +105,30 @@ describe("TrendLineChart helpers", () => {
 });
 
 describe("TrendLineChart", () => {
+	it.each(themeConstants.THEME_OPTIONS)(
+		"distinguishes all three financial series in $label",
+		({ value }) => {
+			const theme = THEME_PALETTES[value];
+			vi.mocked(useTheme).mockReturnValue(theme);
+			const tree = TrendLineChart({ series });
+			const lines = findByPredicate(
+				tree,
+				(node) => typeof node.props?.points === "string",
+			);
+			expect(lines.map((line) => line.props.stroke)).toEqual([
+				theme.colors.success,
+				theme.colors.danger,
+				theme.colors.netWorth,
+			]);
+			expect(new Set(lines.map((line) => line.props.stroke)).size).toBe(
+				3,
+			);
+			vi.mocked(useTheme).mockReturnValue(
+				THEME_PALETTES[themeConstants.DEFAULT_THEME_ID],
+			);
+		},
+	);
+
 	it.each([
 		{ label: "empty", points: [] },
 		{

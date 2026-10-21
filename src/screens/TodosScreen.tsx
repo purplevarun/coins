@@ -13,16 +13,18 @@ import GlassCard from "@/components/GlassCard";
 import ListHeader from "@/components/ListHeader";
 import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
-import COLORS from "@/constants/colors";
 import folderConstants from "@/constants/folderConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import useFolders from "@/hooks/useFolders";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import todoService from "@/services/todoService";
 import type Todo from "@/types/Todo";
 import type TodosScreenProps from "@/types/TodosScreenProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 import dateUtils from "@/utils/date";
 import getErrorMessage from "@/utils/error";
 import runAfterRender from "@/utils/runAfterRender";
@@ -31,6 +33,8 @@ const { getTodos, toggleTodo } = todoService;
 const { formatDate } = dateUtils;
 
 const TodosScreen = ({ navigation }: TodosScreenProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const { database, dataVersion, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
 	const { folders, handleDeleteFolder, handleRenameFolder } =
@@ -109,10 +113,7 @@ const TodosScreen = ({ navigation }: TodosScreenProps): React.JSX.Element => {
 								</CustomText>
 							</View>
 							{todo.description ? (
-								<CustomText
-									numberOfLines={2}
-									style={styles.description}
-								>
+								<CustomText style={styles.description}>
 									{todo.description}
 								</CustomText>
 							) : null}
@@ -127,7 +128,7 @@ const TodosScreen = ({ navigation }: TodosScreenProps): React.JSX.Element => {
 				</GlassCard>
 			</Pressable>
 		),
-		[handleToggle, navigation],
+		[handleToggle, navigation, styles, COLORS],
 	);
 
 	const filteredTodos = useMemo(
@@ -254,6 +255,7 @@ const TodosScreen = ({ navigation }: TodosScreenProps): React.JSX.Element => {
 			handleRenameFolderWithModal,
 			selectedFolderId,
 			topFolderChips,
+			styles,
 		],
 	);
 
@@ -297,71 +299,73 @@ const {
 	TEXT_DECORATION,
 } = styleConstants;
 
-const styles = StyleSheet.create({
-	screen: {
-		flex: FLEX.FILL,
-		backgroundColor: COLORS.background,
-	},
-	row: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.START,
-		gap: SPACING.S10,
-	},
-	checkbox: {
-		padding: SPACING.S2,
-	},
-	details: {
-		flex: FLEX.FILL,
-		gap: SPACING.S4,
-	},
-	headingRow: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S5,
-	},
-	title: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S15,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	completedTitle: {
-		color: COLORS.textMuted,
-		textDecorationLine: TEXT_DECORATION.LINE_THROUGH,
-	},
-	description: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-		lineHeight: LINE_HEIGHT.S17,
-	},
-	meta: {
-		color: COLORS.textDim,
-		fontSize: FONT_SIZE.S10,
-	},
-	quickChipsRow: {
-		marginTop: SPACING.S6,
-		marginHorizontal: SPACING.N2,
-	},
-	quickChip: {
-		marginHorizontal: SPACING.S2,
-		paddingHorizontal: SPACING.S14,
-		paddingVertical: SPACING.S7,
-		borderRadius: RADIUS.PILL,
-		borderWidth: BORDER.THIN,
-		borderColor: COLORS.border,
-		backgroundColor: COLORS.surfaceFaint,
-	},
-	quickChipSelected: {
-		borderColor: COLORS.borderStrong,
-		backgroundColor: COLORS.primaryMuted,
-	},
-	quickChipLabel: {
-		color: COLORS.textDim,
-		fontSize: FONT_SIZE.S11,
-		fontWeight: FONT_WEIGHT.BOLD,
-	},
-	quickChipLabelSelected: {
-		color: COLORS.primaryBright,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		screen: {
+			flex: FLEX.FILL,
+			backgroundColor: COLORS.background,
+		},
+		row: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.START,
+			gap: SPACING.S10,
+		},
+		checkbox: {
+			padding: SPACING.S2,
+		},
+		details: {
+			flex: FLEX.FILL,
+			gap: SPACING.S4,
+		},
+		headingRow: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S5,
+		},
+		title: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S15,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		completedTitle: {
+			color: COLORS.textMuted,
+			textDecorationLine: TEXT_DECORATION.LINE_THROUGH,
+		},
+		description: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+			lineHeight: LINE_HEIGHT.S17,
+		},
+		meta: {
+			color: COLORS.textDim,
+			fontSize: FONT_SIZE.S10,
+		},
+		quickChipsRow: {
+			marginTop: SPACING.S6,
+			marginHorizontal: SPACING.N2,
+		},
+		quickChip: {
+			marginHorizontal: SPACING.S2,
+			paddingHorizontal: SPACING.S14,
+			paddingVertical: SPACING.S7,
+			borderRadius: RADIUS.PILL,
+			borderWidth: BORDER.THIN,
+			borderColor: COLORS.border,
+			backgroundColor: COLORS.surfaceFaint,
+		},
+		quickChipSelected: {
+			borderColor: COLORS.borderStrong,
+			backgroundColor: COLORS.primaryMuted,
+		},
+		quickChipLabel: {
+			color: COLORS.textDim,
+			fontSize: FONT_SIZE.S11,
+			fontWeight: FONT_WEIGHT.BOLD,
+		},
+		quickChipLabelSelected: {
+			color: COLORS.primaryBright,
+		},
+	}),
+);
 
 export default TodosScreen;

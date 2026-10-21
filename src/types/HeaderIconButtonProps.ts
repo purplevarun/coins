@@ -5,6 +5,7 @@ type HeaderIconButtonProps = Readonly<{
 	icon: ComponentProps<typeof Ionicons>["name"];
 	onPress: () => void;
 	isActive?: boolean;
+	isDisabled?: boolean;
 	accessibilityLabel: string;
 }>;
 

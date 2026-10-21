@@ -1,21 +1,27 @@
 import CustomText from "@/components/CustomText";
+import type ThemeColors from "@/types/ThemeColors";
 
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import GlassCard from "@/components/GlassCard";
-import COLORS from "@/constants/colors";
 import styleConstants from "@/constants/styleConstants";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import transactionService from "@/services/transactionService";
 import type Transaction from "@/types/Transaction";
 import type TransactionCardProps from "@/types/TransactionCardProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 import dateUtils from "@/utils/date";
 import moneyUtils from "@/utils/money";
 const { getTransactionDisplayReason } = transactionService;
 const { formatDate } = dateUtils;
 const { formatMoney, sumMoney } = moneyUtils;
 
-const getTransactionColor = (transaction: Transaction): string => {
+const getTransactionColor = (
+	COLORS: ThemeColors,
+	transaction: Transaction,
+): string => {
 	if (transaction.type === "CREDIT") {
 		return COLORS.success;
 	}
@@ -43,7 +49,9 @@ const TransactionCard = ({
 	onPress,
 	onLongPress,
 }: TransactionCardProps): React.JSX.Element => {
-	const color = getTransactionColor(transaction);
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
+	const color = getTransactionColor(COLORS, transaction);
 	const isExpense =
 		transaction.classification === "GENERAL" &&
 		transaction.type === "DEBIT";
@@ -78,10 +86,7 @@ const TransactionCard = ({
 					</View>
 					<View style={styles.details}>
 						<View style={styles.headingRow}>
-							<CustomText
-								numberOfLines={10}
-								style={styles.reason}
-							>
+							<CustomText style={styles.reason}>
 								{getTransactionDisplayReason(transaction)}
 							</CustomText>
 						</View>
@@ -139,62 +144,64 @@ const TransactionCard = ({
 const { ALIGN, FLEX, FONT_SIZE, FONT_WEIGHT, RADIUS, SIZES, SPACING } =
 	styleConstants;
 
-const styles = StyleSheet.create({
-	row: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.START,
-		gap: SPACING.S11,
-	},
-	typeIcon: {
-		width: SIZES.S43,
-		height: SIZES.S43,
-		borderRadius: RADIUS.S15,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-	},
-	details: {
-		flex: FLEX.FILL,
-		gap: SPACING.S3,
-	},
-	headingRow: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S5,
-	},
-	reason: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S15,
-		fontWeight: FONT_WEIGHT.BLACK,
-		flexShrink: FLEX.SHRINK,
-	},
-	meta: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-	},
-	trip: {
-		color: COLORS.primaryBright,
-		fontSize: FONT_SIZE.S11,
-		fontWeight: FONT_WEIGHT.BOLD,
-	},
-	date: {
-		color: COLORS.textDim,
-		fontSize: FONT_SIZE.S11,
-	},
-	amountColumn: {
-		alignItems: ALIGN.END,
-		gap: SPACING.S3,
-		flexShrink: FLEX.NONE,
-	},
-	amount: {
-		fontSize: FONT_SIZE.S14,
-		fontWeight: FONT_WEIGHT.BLACK,
-		textAlign: ALIGN.RIGHT,
-	},
-	toAmount: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S11,
-		fontWeight: FONT_WEIGHT.BOLD,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		row: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.START,
+			gap: SPACING.S11,
+		},
+		typeIcon: {
+			width: SIZES.S43,
+			height: SIZES.S43,
+			borderRadius: RADIUS.S15,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+		},
+		details: {
+			flex: FLEX.FILL,
+			gap: SPACING.S3,
+		},
+		headingRow: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S5,
+		},
+		reason: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S15,
+			fontWeight: FONT_WEIGHT.BLACK,
+			flexShrink: FLEX.SHRINK,
+		},
+		meta: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+		},
+		trip: {
+			color: COLORS.primaryBright,
+			fontSize: FONT_SIZE.S11,
+			fontWeight: FONT_WEIGHT.BOLD,
+		},
+		date: {
+			color: COLORS.textDim,
+			fontSize: FONT_SIZE.S11,
+		},
+		amountColumn: {
+			alignItems: ALIGN.END,
+			gap: SPACING.S3,
+			flexShrink: FLEX.NONE,
+		},
+		amount: {
+			fontSize: FONT_SIZE.S14,
+			fontWeight: FONT_WEIGHT.BLACK,
+			textAlign: ALIGN.RIGHT,
+		},
+		toAmount: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S11,
+			fontWeight: FONT_WEIGHT.BOLD,
+		},
+	}),
+);
 
 export default TransactionCard;

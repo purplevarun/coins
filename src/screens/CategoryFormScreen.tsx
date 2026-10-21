@@ -9,15 +9,16 @@ import Notice from "@/components/Notice";
 import ScreenContainer from "@/components/ScreenContainer";
 import SegmentedControl from "@/components/SegmentedControl";
 import TextField from "@/components/TextField";
-import COLORS from "@/constants/colors";
 import financeConstants from "@/constants/financeConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import categoryService from "@/services/categoryService";
 import type CategoryFormScreenProps from "@/types/CategoryFormScreenProps";
 import type CategoryKind from "@/types/CategoryKind";
+import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
 const { CATEGORY_KIND_OPTIONS, DEFAULT_CATEGORY_KIND } = financeConstants;
 const { getCategory, saveCategory } = categoryService;
@@ -26,6 +27,7 @@ const CategoryFormScreen = ({
 	navigation,
 	route,
 }: CategoryFormScreenProps): React.JSX.Element => {
+	const styles = useThemedStyles(themedStyles);
 	const { database, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
 	const entityId = route.params?.entityId;
@@ -144,38 +146,40 @@ const {
 	SPACING,
 } = styleConstants;
 
-const styles = StyleSheet.create({
-	form: {
-		gap: SPACING.S16,
-	},
-	heading: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S24,
-		fontWeight: FONT_WEIGHT.BLACK,
-		letterSpacing: LETTER_SPACING.TIGHT,
-	},
-	switchRow: {
-		gap: SPACING.S12,
-		padding: SPACING.S14,
-		borderRadius: RADIUS.S15,
-		borderWidth: BORDER.THIN,
-		borderColor: COLORS.border,
-		backgroundColor: COLORS.surfaceSoft,
-	},
-	switchText: {
-		flex: FLEX.FILL,
-		gap: SPACING.S4,
-	},
-	switchTitle: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S15,
-		fontWeight: FONT_WEIGHT.HEAVY,
-	},
-	switchDescription: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-		lineHeight: LINE_HEIGHT.S17,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		form: {
+			gap: SPACING.S16,
+		},
+		heading: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S24,
+			fontWeight: FONT_WEIGHT.BLACK,
+			letterSpacing: LETTER_SPACING.TIGHT,
+		},
+		switchRow: {
+			gap: SPACING.S12,
+			padding: SPACING.S14,
+			borderRadius: RADIUS.S15,
+			borderWidth: BORDER.THIN,
+			borderColor: COLORS.border,
+			backgroundColor: COLORS.surfaceSoft,
+		},
+		switchText: {
+			flex: FLEX.FILL,
+			gap: SPACING.S4,
+		},
+		switchTitle: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S15,
+			fontWeight: FONT_WEIGHT.HEAVY,
+		},
+		switchDescription: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+			lineHeight: LINE_HEIGHT.S17,
+		},
+	}),
+);
 
 export default CategoryFormScreen;

@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import CustomText from "@/components/CustomText";
-import COLORS from "@/constants/colors";
 import styleConstants from "@/constants/styleConstants";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import type BottomNavBarProps from "@/types/BottomNavBarProps";
 import type IconName from "@/types/IconName";
+import createThemedStyles from "@/utils/createThemedStyles";
 
 const {
 	ALIGN,
@@ -14,10 +15,9 @@ const {
 	FLEX,
 	FONT_SIZE,
 	FONT_WEIGHT,
-	OVERFLOW,
 	RADIUS,
 	SCALE,
-	SHADOW,
+	SIZES,
 	SPACING,
 } = styleConstants;
 
@@ -28,9 +28,11 @@ const BottomNavBar = ({
 	options,
 	activeMode,
 	onSelectMode,
-}: BottomNavBarProps): React.JSX.Element => (
-	<View style={styles.dock}>
-		<BlurView intensity={40} style={styles.blur} tint="dark">
+}: BottomNavBarProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
+	return (
+		<View style={styles.dock}>
 			<View style={styles.bar}>
 				{options.map((option) => {
 					const isActive = option.mode === activeMode;
@@ -46,25 +48,27 @@ const BottomNavBar = ({
 								pressed && styles.itemPressed,
 							]}
 						>
-							<View
-								style={[
-									styles.itemContent,
-									isActive && styles.itemContentActive,
-								]}
-							>
-								<Ionicons
-									color={
-										isActive
-											? COLORS.primaryBright
-											: COLORS.textMuted
-									}
-									name={
-										isActive
-											? getActiveIconName(option.icon)
-											: option.icon
-									}
-									size={22}
-								/>
+							<View style={styles.itemContent}>
+								<View
+									style={[
+										styles.iconContainer,
+										isActive && styles.iconContainerActive,
+									]}
+								>
+									<Ionicons
+										color={
+											isActive
+												? COLORS.primaryBright
+												: COLORS.textMuted
+										}
+										name={
+											isActive
+												? getActiveIconName(option.icon)
+												: option.icon
+										}
+										size={22}
+									/>
+								</View>
 								<CustomText
 									style={[
 										styles.label,
@@ -78,63 +82,63 @@ const BottomNavBar = ({
 					);
 				})}
 			</View>
-		</BlurView>
-	</View>
-);
+		</View>
+	);
+};
 
-const styles = StyleSheet.create({
-	dock: {
-		overflow: OVERFLOW.HIDDEN,
-		borderRadius: RADIUS.S30,
-		borderWidth: BORDER.THICK,
-		borderColor: COLORS.borderStrong,
-		backgroundColor: COLORS.glass,
-		shadowColor: COLORS.black,
-		shadowOpacity: SHADOW.OPACITY,
-		shadowRadius: SHADOW.RADIUS_XL,
-		shadowOffset: { width: SHADOW.OFFSET_X, height: SHADOW.OFFSET_Y_LG },
-		elevation: SHADOW.ELEVATION_MID,
-	},
-	blur: {
-		backgroundColor: COLORS.glass,
-	},
-	bar: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.SPACE_BETWEEN,
-		padding: SPACING.S4,
-		gap: SPACING.S4,
-	},
-	item: {
-		flex: FLEX.FILL,
-		alignItems: ALIGN.CENTER,
-	},
-	itemPressed: {
-		transform: [{ scale: SCALE.LIGHT }],
-	},
-	itemContent: {
-		alignItems: ALIGN.CENTER,
-		alignSelf: FLEX.STRETCH,
-		justifyContent: ALIGN.CENTER,
-		gap: SPACING.S3,
-		paddingHorizontal: SPACING.S8,
-		paddingVertical: SPACING.S5,
-		borderRadius: RADIUS.S22,
-		borderWidth: BORDER.THICK,
-		borderColor: COLORS.transparent,
-	},
-	itemContentActive: {
-		backgroundColor: COLORS.primaryMuted,
-		borderColor: COLORS.borderStrong,
-	},
-	label: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S11,
-		fontWeight: FONT_WEIGHT.HEAVY,
-	},
-	labelActive: {
-		color: COLORS.primaryBright,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		dock: {
+			borderTopWidth: BORDER.THIN,
+			borderColor: COLORS.border,
+			backgroundColor: COLORS.backgroundElevated,
+		},
+		bar: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.SPACE_BETWEEN,
+			paddingHorizontal: SPACING.S8,
+			paddingVertical: SPACING.S8,
+			gap: SPACING.S4,
+		},
+		item: {
+			flex: FLEX.FILL,
+			minWidth: 0,
+			alignItems: ALIGN.CENTER,
+		},
+		itemPressed: {
+			transform: [{ scale: SCALE.LIGHT }],
+		},
+		itemContent: {
+			minHeight: SIZES.S54,
+			alignItems: ALIGN.CENTER,
+			alignSelf: FLEX.STRETCH,
+			justifyContent: ALIGN.CENTER,
+			gap: SPACING.S4,
+			paddingHorizontal: SPACING.S8,
+		},
+		iconContainer: {
+			width: SIZES.S64,
+			height: SIZES.S40,
+			borderRadius: RADIUS.S16,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+		},
+		iconContainerActive: {
+			backgroundColor: COLORS.primaryMuted,
+		},
+		label: {
+			flexShrink: 1,
+			textAlign: ALIGN.CENTER,
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+			fontWeight: FONT_WEIGHT.BOLD,
+		},
+		labelActive: {
+			color: COLORS.text,
+			fontWeight: FONT_WEIGHT.HEAVY,
+		},
+	}),
+);
 
 export default BottomNavBar;

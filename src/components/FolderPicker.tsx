@@ -5,11 +5,12 @@ import { StyleSheet, View } from "react-native";
 import AppButton from "@/components/AppButton";
 import SelectField from "@/components/SelectField";
 import TextField from "@/components/TextField";
-import COLORS from "@/constants/colors";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import type FolderPickerProps from "@/types/FolderPickerProps";
 import type SelectOption from "@/types/SelectOption";
+import createThemedStyles from "@/utils/createThemedStyles";
 
 const FolderPicker = ({
 	value,
@@ -17,6 +18,7 @@ const FolderPicker = ({
 	onChange,
 	onCreateFolder,
 }: FolderPickerProps): React.JSX.Element => {
+	const styles = useThemedStyles(themedStyles);
 	const [isCreating, setIsCreating] = useState(false);
 	const [folderName, setFolderName] = useState("");
 	const options: readonly SelectOption[] = folders.map((folder) => ({
@@ -81,22 +83,24 @@ const FolderPicker = ({
 
 const { ALIGN, FLEX, FONT_SIZE, SPACING } = styleConstants;
 
-const styles = StyleSheet.create({
-	container: {
-		gap: SPACING.S9,
-	},
-	creator: {
-		gap: SPACING.S9,
-	},
-	actions: {
-		flexDirection: FLEX.ROW,
-		justifyContent: ALIGN.END,
-		gap: SPACING.S8,
-	},
-	hint: {
-		color: COLORS.textDim,
-		fontSize: FONT_SIZE.S11,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		container: {
+			gap: SPACING.S9,
+		},
+		creator: {
+			gap: SPACING.S9,
+		},
+		actions: {
+			flexDirection: FLEX.ROW,
+			justifyContent: ALIGN.END,
+			gap: SPACING.S8,
+		},
+		hint: {
+			color: COLORS.textDim,
+			fontSize: FONT_SIZE.S11,
+		},
+	}),
+);
 
 export default FolderPicker;

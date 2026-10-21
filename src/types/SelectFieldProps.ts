@@ -7,6 +7,9 @@ type SelectFieldProps = Readonly<{
 	onChange: (value: string) => void;
 	placeholder?: string;
 	isOptional?: boolean;
+	isCompact?: boolean;
+	isSearchable?: boolean;
+	isDisabled?: boolean;
 }>;
 
 export type { SelectFieldProps as default };

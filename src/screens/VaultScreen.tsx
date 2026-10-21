@@ -16,11 +16,12 @@ import ListHeader from "@/components/ListHeader";
 import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
 import TextField from "@/components/TextField";
-import COLORS from "@/constants/colors";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import cardService from "@/services/cardService";
 import identityService from "@/services/identityService";
 import passwordService from "@/services/passwordService";
@@ -30,6 +31,7 @@ import type PasswordEntry from "@/types/PasswordEntry";
 import type VaultKind from "@/types/VaultKind";
 import type VaultListItem from "@/types/VaultListItem";
 import type VaultScreenProps from "@/types/VaultScreenProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 import dateUtils from "@/utils/date";
 import getErrorMessage from "@/utils/error";
 import runAfterRender from "@/utils/runAfterRender";
@@ -99,6 +101,8 @@ const CopyRow = ({
 	isMasked = false,
 	onCopy,
 }: CopyRowProps): React.JSX.Element | null => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	if (!value) return null;
 	return (
 		<View style={styles.copyRow}>
@@ -128,6 +132,8 @@ const VaultScreen = ({
 	navigation,
 	route,
 }: VaultScreenProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const { database, dataVersion, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
 	const { kind } = route.params;
@@ -453,7 +459,15 @@ const VaultScreen = ({
 				</Pressable>
 			);
 		},
-		[handleCopy, handleDelete, navigation, revealedIds, toggleRevealed],
+		[
+			handleCopy,
+			handleDelete,
+			navigation,
+			revealedIds,
+			toggleRevealed,
+			styles,
+			COLORS,
+		],
 	);
 
 	const listHeader = useMemo(
@@ -520,73 +534,75 @@ const {
 	TEXT_TRANSFORM,
 } = styleConstants;
 
-const styles = StyleSheet.create({
-	screen: {
-		flex: FLEX.FILL,
-		backgroundColor: COLORS.background,
-	},
-	headingRow: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S11,
-	},
-	details: {
-		flex: FLEX.FILL,
-		gap: SPACING.S3,
-	},
-	title: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S16,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	meta: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-	},
-	updatedAt: {
-		color: COLORS.textDim,
-		fontSize: FONT_SIZE.S11,
-		marginTop: SPACING.S2,
-	},
-	actions: {
-		flexDirection: FLEX.ROW,
-		justifyContent: ALIGN.END,
-		gap: SPACING.S8,
-		marginTop: SPACING.S13,
-	},
-	cardFields: {
-		marginTop: SPACING.S12,
-		gap: SPACING.S8,
-	},
-	copyRow: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S8,
-	},
-	copyDetails: {
-		flex: FLEX.FILL,
-		gap: SPACING.S2,
-	},
-	copyLabel: {
-		color: COLORS.textDim,
-		fontSize: FONT_SIZE.S10,
-		fontWeight: FONT_WEIGHT.BOLD,
-		textTransform: TEXT_TRANSFORM.UPPERCASE,
-		letterSpacing: LETTER_SPACING.WIDE,
-	},
-	copyValue: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S14,
-		fontWeight: FONT_WEIGHT.BOLD,
-		fontVariant: [FONT_VARIANT.TABULAR_NUMS],
-	},
-	copyBtn: {
-		padding: SPACING.S8,
-	},
-	revealBtn: {
-		padding: SPACING.S8,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		screen: {
+			flex: FLEX.FILL,
+			backgroundColor: COLORS.background,
+		},
+		headingRow: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S11,
+		},
+		details: {
+			flex: FLEX.FILL,
+			gap: SPACING.S3,
+		},
+		title: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S16,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		meta: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+		},
+		updatedAt: {
+			color: COLORS.textDim,
+			fontSize: FONT_SIZE.S11,
+			marginTop: SPACING.S2,
+		},
+		actions: {
+			flexDirection: FLEX.ROW,
+			justifyContent: ALIGN.END,
+			gap: SPACING.S8,
+			marginTop: SPACING.S13,
+		},
+		cardFields: {
+			marginTop: SPACING.S12,
+			gap: SPACING.S8,
+		},
+		copyRow: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S8,
+		},
+		copyDetails: {
+			flex: FLEX.FILL,
+			gap: SPACING.S2,
+		},
+		copyLabel: {
+			color: COLORS.textDim,
+			fontSize: FONT_SIZE.S10,
+			fontWeight: FONT_WEIGHT.BOLD,
+			textTransform: TEXT_TRANSFORM.UPPERCASE,
+			letterSpacing: LETTER_SPACING.WIDE,
+		},
+		copyValue: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S14,
+			fontWeight: FONT_WEIGHT.BOLD,
+			fontVariant: [FONT_VARIANT.TABULAR_NUMS],
+		},
+		copyBtn: {
+			padding: SPACING.S8,
+		},
+		revealBtn: {
+			padding: SPACING.S8,
+		},
+	}),
+);
 
 export default VaultScreen;
 

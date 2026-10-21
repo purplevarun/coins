@@ -4,7 +4,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -15,6 +14,7 @@ import initializeDatabase from "@/database/initializeDatabase";
 import AppNavigator from "@/navigation/AppNavigator";
 import AppDialogProvider from "@/providers/AppDialogProvider";
 import DatabaseProvider from "@/providers/DatabaseProvider";
+import ThemeProvider from "@/providers/ThemeProvider";
 import type DatabaseState from "@/types/DatabaseState";
 const { APP_FONTS } = typographyConstants;
 
@@ -50,17 +50,14 @@ const App = (): React.JSX.Element => {
 
 	useEffect(() => {
 		const hideSplashWhenReady = async (): Promise<void> => {
-			if (
-				!fontsLoaded ||
-				(!databaseState.database && !databaseState.error)
-			) {
+			if (!fontsLoaded || !databaseState.error) {
 				return;
 			}
 			await SplashScreen.hideAsync();
 		};
 
 		void hideSplashWhenReady();
-	}, [databaseState.database, databaseState.error, fontsLoaded]);
+	}, [databaseState.error, fontsLoaded]);
 
 	if (!fontsLoaded) {
 		return <View style={styles.container} />;
@@ -72,11 +69,12 @@ const App = (): React.JSX.Element => {
 
 	return (
 		<GestureHandlerRootView style={styles.container}>
-			<StatusBar style="light" />
 			<DatabaseProvider database={databaseState.database}>
-				<AppDialogProvider>
-					<AppNavigator />
-				</AppDialogProvider>
+				<ThemeProvider>
+					<AppDialogProvider>
+						<AppNavigator />
+					</AppDialogProvider>
+				</ThemeProvider>
 			</DatabaseProvider>
 		</GestureHandlerRootView>
 	);

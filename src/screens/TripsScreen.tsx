@@ -23,11 +23,12 @@ import PagedScreenList from "@/components/PagedScreenList";
 import ScreenList from "@/components/ScreenList";
 import SearchBar from "@/components/SearchBar";
 import SegmentedControl from "@/components/SegmentedControl";
-import COLORS from "@/constants/colors";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import exchangeRateService from "@/services/exchangeRateService";
 import settingsService from "@/services/settingsService";
 import tripService from "@/services/tripService";
@@ -38,6 +39,7 @@ import type Trip from "@/types/Trip";
 import type TripsScreenProps from "@/types/TripsScreenProps";
 import type TripTotal from "@/types/TripTotal";
 import type TripType from "@/types/TripType";
+import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
 import moneyUtils from "@/utils/money";
 const { getExchangeRates } = exchangeRateService;
@@ -48,6 +50,8 @@ const { getTripTypes } = tripTypeService;
 const { compareMoney, formatMoney, ZERO_AMOUNT } = moneyUtils;
 
 const TripsScreen = ({ navigation }: TripsScreenProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const { database, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
 	const [trips, setTrips] = useState<readonly Trip[]>([]);
@@ -316,7 +320,15 @@ const TripsScreen = ({ navigation }: TripsScreenProps): React.JSX.Element => {
 				</Pressable>
 			);
 		},
-		[handleArchivePress, isNativeCurrency, navigation, toInr, tripTotals],
+		[
+			handleArchivePress,
+			isNativeCurrency,
+			navigation,
+			toInr,
+			tripTotals,
+			styles,
+			COLORS,
+		],
 	);
 
 	const renderTripTypeItem = useCallback(
@@ -336,7 +348,7 @@ const TripsScreen = ({ navigation }: TripsScreenProps): React.JSX.Element => {
 				</GlassCard>
 			</Pressable>
 		),
-		[navigation],
+		[navigation, styles],
 	);
 
 	const listHeader = useMemo(
@@ -443,63 +455,65 @@ const {
 	SPACING,
 } = styleConstants;
 
-const styles = StyleSheet.create({
-	screen: {
-		flex: FLEX.FILL,
-		backgroundColor: COLORS.background,
-	},
-	row: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.START,
-		gap: SPACING.S12,
-	},
-	iconBox: {
-		width: SIZES.S44,
-		height: SIZES.S44,
-		borderRadius: RADIUS.S15,
-		backgroundColor: COLORS.surfaceRaised,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-	},
-	details: {
-		flex: FLEX.FILL,
-		gap: SPACING.S3,
-	},
-	title: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S16,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	amount: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S15,
-		fontWeight: FONT_WEIGHT.BLACK,
-		marginTop: SPACING.S3,
-	},
-	convertedAmount: {
-		fontSize: FONT_SIZE.S13,
-		fontWeight: FONT_WEIGHT.BLACK,
-		marginTop: SPACING.S1,
-	},
-	actions: {
-		marginTop: SPACING.S12,
-		flexDirection: FLEX.ROW,
-		justifyContent: ALIGN.END,
-		gap: SPACING.S8,
-	},
-	actionIcon: {
-		width: SIZES.S34,
-		height: SIZES.S34,
-		borderRadius: RADIUS.S12,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-		borderWidth: BORDER.THIN,
-		borderColor: COLORS.border,
-		backgroundColor: COLORS.surfaceRaised,
-	},
-	actionIconPressed: {
-		transform: [{ scale: SCALE.STRONG }],
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		screen: {
+			flex: FLEX.FILL,
+			backgroundColor: COLORS.background,
+		},
+		row: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.START,
+			gap: SPACING.S12,
+		},
+		iconBox: {
+			width: SIZES.S44,
+			height: SIZES.S44,
+			borderRadius: RADIUS.S15,
+			backgroundColor: COLORS.surfaceRaised,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+		},
+		details: {
+			flex: FLEX.FILL,
+			gap: SPACING.S3,
+		},
+		title: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S16,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		amount: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S15,
+			fontWeight: FONT_WEIGHT.BLACK,
+			marginTop: SPACING.S3,
+		},
+		convertedAmount: {
+			fontSize: FONT_SIZE.S13,
+			fontWeight: FONT_WEIGHT.BLACK,
+			marginTop: SPACING.S1,
+		},
+		actions: {
+			marginTop: SPACING.S12,
+			flexDirection: FLEX.ROW,
+			justifyContent: ALIGN.END,
+			gap: SPACING.S8,
+		},
+		actionIcon: {
+			width: SIZES.S34,
+			height: SIZES.S34,
+			borderRadius: RADIUS.S12,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+			borderWidth: BORDER.THIN,
+			borderColor: COLORS.border,
+			backgroundColor: COLORS.surfaceRaised,
+		},
+		actionIconPressed: {
+			transform: [{ scale: SCALE.STRONG }],
+		},
+	}),
+);
 
 export default TripsScreen;

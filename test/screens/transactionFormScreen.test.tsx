@@ -1,7 +1,7 @@
 import AppButton from "@/components/AppButton";
 import DateField from "@/components/DateField";
 import HeaderIconButton from "@/components/HeaderIconButton";
-import SegmentedControl from "@/components/SegmentedControl";
+import ScreenContainer from "@/components/ScreenContainer";
 import SelectField from "@/components/SelectField";
 import TextField from "@/components/TextField";
 import type AppDialogConfirmOptions from "@/types/AppDialogConfirmOptions";
@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const reactMocks = vi.hoisted(() => ({
 	useEffect: vi.fn(),
+	useLayoutEffect: vi.fn(),
 	useState: vi.fn(),
 	useRef: vi.fn(() => ({ current: false })),
 }));
@@ -37,6 +38,7 @@ vi.mock("react", async (importOriginal) => {
 	return {
 		...actual,
 		useEffect: reactMocks.useEffect,
+		useLayoutEffect: reactMocks.useLayoutEffect,
 		useState: reactMocks.useState,
 		useRef: reactMocks.useRef,
 	};
@@ -72,9 +74,6 @@ vi.mock("@/components/Notice", () => ({
 }));
 vi.mock("@/components/ScreenContainer", () => ({
 	default: (props: any) => ({ type: "ScreenContainer", props }),
-}));
-vi.mock("@/components/SegmentedControl", () => ({
-	default: (props: any) => ({ type: "SegmentedControl", props }),
 }));
 vi.mock("@/components/SelectField", () => ({
 	default: (props: any) => ({ type: "SelectField", props }),
@@ -182,11 +181,14 @@ const createFormHarness = (
 		],
 		...overrides,
 	]);
-	const navigation = { goBack: vi.fn() };
+	const navigation = { goBack: vi.fn(), setOptions: vi.fn() };
 	const saving = { current: false };
 	let stateIndex = 0;
 	reactMocks.useRef.mockReturnValue(saving);
 	reactMocks.useEffect.mockImplementation(() => undefined);
+	reactMocks.useLayoutEffect.mockImplementation((effect: () => void) =>
+		effect(),
+	);
 	reactMocks.useState.mockImplementation((initial: unknown) => {
 		const index = ++stateIndex;
 		if (!values.has(index))
@@ -212,6 +214,10 @@ const createFormHarness = (
 	return {
 		values,
 		navigation,
+		renderHeader: () =>
+			navigation.setOptions.mock.lastCall?.[0].headerRight() as ReactElement<
+				ComponentProps<typeof AppButton>
+			> | null,
 		render: () => {
 			stateIndex = 0;
 			const renderScreen = TransactionFormScreen as (
@@ -228,6 +234,7 @@ const createFormHarness = (
 describe("TransactionFormScreen", () => {
 	beforeEach(() => {
 		reactMocks.useEffect.mockReset();
+		reactMocks.useLayoutEffect.mockReset();
 		reactMocks.useState.mockReset();
 		reactMocks.useRef.mockImplementation(() => ({ current: false }));
 		reactMocks.useEffect.mockImplementation((effect: () => void) => {
@@ -287,19 +294,171 @@ describe("TransactionFormScreen", () => {
 		},
 	);
 
+	it.each([
+		["GENERAL", "DEBIT", "Category"],
+		["GENERAL", "CREDIT", "Category"],
+		["INVESTMENT", "DEBIT", "Investment"],
+		["INVESTMENT", "CREDIT", "Investment"],
+		["GENERAL", "TRANSFER", "Destination source"],
+	])(
+		"puts amount first for %s %s with a fixed Save footer",
+		(classification, type, detailLabel) => {
+			const harness = createFormHarness(
+				new Map<number, unknown>([
+					[1, classification],
+					[2, type],
+				]),
+			);
+			const tree = harness.render() as ReactElement<
+				ComponentProps<typeof ScreenContainer>
+			>;
+			const fields = findByPredicate(
+				tree.props.children,
+				(node) =>
+					node?.type === TextField ||
+					(node?.type === SelectField && !node.props.isCompact),
+			);
+			expect(fields[0]?.props.keyboardType).toBe("decimal-pad");
+			expect(fields[0]?.props.autoFocus).toBe(true);
+			expect(fields[1]?.props.label).toBe(detailLabel);
+			expect(
+				formElements(
+					tree.props.children as ReactElement,
+					AppButton,
+				).some(
+					(button) =>
+						(button.props as ComponentProps<typeof AppButton>)
+							.label === "Save transaction",
+				),
+			).toBe(false);
+			expect(
+				formElements<ComponentProps<typeof AppButton>>(
+					tree.props.footer as ReactElement,
+					AppButton,
+				).map((button) => button.props.label),
+			).toEqual(["Save transaction"]);
+			expect(
+				formElements<ComponentProps<typeof SelectField>>(
+					tree,
+					SelectField,
+				).filter(
+					(field) =>
+						field.props.isCompact &&
+						field.props.isSearchable === false,
+				),
+			).toHaveLength(2);
+			if (classification === "GENERAL" && type === "DEBIT") {
+				expect(harness.renderHeader()?.props.label).toBe("Add item");
+			} else {
+				expect(harness.renderHeader()).toBeNull();
+			}
+		},
+	);
+
+	it.each([
+		{},
+		{ transactionId: "payment" },
+		{ cloneFromTransactionId: "payment" },
+	])(
+		"keeps the title out of the form and separates its mode pickers: %j",
+		(params) => {
+			const tree = createFormHarness(new Map(), params).render();
+			const titles = [
+				"New transaction",
+				"Edit transaction",
+				"Clone transaction",
+			];
+			expect(
+				findByPredicate(tree, (node) =>
+					titles.includes(node?.props?.children),
+				),
+			).toHaveLength(0);
+			const modes = formElements<ComponentProps<typeof SelectField>>(
+				tree,
+				SelectField,
+			).filter((field) => field.props.isSearchable === false);
+			const defaults = [
+				...formElements<ComponentProps<typeof SelectField>>(
+					tree,
+					SelectField,
+				).filter((field) => field.props.isCompact),
+				...formElements<ComponentProps<typeof DateField>>(
+					tree,
+					DateField,
+				).filter((field) => field.props.isCompact),
+			];
+			const [row] = findByPredicate(
+				tree,
+				(node) =>
+					Array.isArray(node?.props?.children) &&
+					defaults.every((field) =>
+						node.props.children.includes(field),
+					),
+			);
+			expect(modes).toHaveLength(2);
+			expect(defaults).toHaveLength(5);
+			expect(row.props.style).toMatchObject({ gap: 8, flexWrap: "wrap" });
+			expect(row.props.style).not.toHaveProperty("marginLeft");
+			expect(row.props.style).not.toHaveProperty("width");
+		},
+	);
+
+	it("hides the single-item heading and focuses newly added amounts", () => {
+		const harness = createFormHarness();
+		const initial = harness.render();
+		expect(
+			findByPredicate(
+				initial,
+				(node) => node?.props?.children === "Item 1",
+			),
+		).toHaveLength(0);
+		harness.renderHeader()?.props.onPress();
+		const expanded = harness.render();
+		expect(
+			findByPredicate(
+				expanded,
+				(node) => node?.props?.children === "Item 1",
+			),
+		).toHaveLength(1);
+		const amounts = formElements<ComponentProps<typeof TextField>>(
+			expanded,
+			TextField,
+		).filter((field) => field.props.keyboardType === "decimal-pad");
+		expect(amounts[1]?.props.autoFocus).toBe(true);
+		const addAction = harness.renderHeader();
+		expect(addAction?.type).toBe(AppButton);
+		expect(addAction?.props).toMatchObject({
+			icon: "add",
+			label: "Add item",
+			isCompact: true,
+		});
+		expect(
+			formElements<ComponentProps<typeof AppButton>>(
+				expanded,
+				AppButton,
+			).some((button) => button.props.label === "Add item"),
+		).toBe(false);
+		harness.values.set(16, true);
+		harness.render();
+		expect(harness.renderHeader()?.props.isDisabled).toBe(true);
+	});
+
 	it("starts with one item, adds independent fields, and never removes the last item", async () => {
 		const harness = createFormHarness();
 		let tree = harness.render();
-		expect(formElements(tree, HeaderIconButton)).toHaveLength(0);
+		expect(
+			formElements<ComponentProps<typeof HeaderIconButton>>(
+				tree,
+				HeaderIconButton,
+			).filter((button) => button.props.icon === "close-outline"),
+		).toHaveLength(0);
 		formElements<ComponentProps<typeof TextField>>(tree, TextField)
 			.find((field) => field.props.keyboardType === "decimal-pad")
 			?.props.onChangeText("100");
 		formElements<ComponentProps<typeof SelectField>>(tree, SelectField)
 			.find((field) => field.props.label === "Category")
 			?.props.onChange("food");
-		formElements<ComponentProps<typeof AppButton>>(tree, AppButton)
-			.find((button) => button.props.label === "Add item")
-			?.props.onPress();
+		harness.renderHeader()?.props.onPress();
 		tree = harness.render();
 		const amounts = formElements<ComponentProps<typeof TextField>>(
 			tree,
@@ -331,9 +490,18 @@ describe("TransactionFormScreen", () => {
 		formElements<ComponentProps<typeof HeaderIconButton>>(
 			tree,
 			HeaderIconButton,
-		)[0]?.props.onPress();
+		)
+			.find(
+				(button) => button.props.accessibilityLabel === "Remove item 1",
+			)
+			?.props.onPress();
 		tree = harness.render();
-		expect(formElements(tree, HeaderIconButton)).toHaveLength(0);
+		expect(
+			formElements<ComponentProps<typeof HeaderIconButton>>(
+				tree,
+				HeaderIconButton,
+			).filter((button) => button.props.icon === "close-outline"),
+		).toHaveLength(0);
 		expect(
 			formElements<ComponentProps<typeof TextField>>(
 				tree,
@@ -356,9 +524,9 @@ describe("TransactionFormScreen", () => {
 		);
 		hookMocks.confirm.mockImplementation(() => undefined);
 		const tree = harness.render();
-		formElements<ComponentProps<typeof SegmentedControl>>(
+		formElements<ComponentProps<typeof SelectField>>(
 			tree,
-			SegmentedControl,
+			SelectField,
 		)[1]?.props.onChange("CREDIT");
 		expect(hookMocks.confirm).toHaveBeenCalledOnce();
 		expect(harness.values.get(2)).toBe("DEBIT");
@@ -371,15 +539,16 @@ describe("TransactionFormScreen", () => {
 		expect(harness.values.get(2)).toBe("CREDIT");
 		expect(harness.values.get(5)).toBe("0.3");
 		const incomeTree = harness.render();
+		expect(harness.renderHeader()).toBeNull();
 		expect(
-			formElements<ComponentProps<typeof AppButton>>(
+			formElements<ComponentProps<typeof HeaderIconButton>>(
 				incomeTree,
-				AppButton,
-			).some((button) => button.props.label === "Add item"),
+				HeaderIconButton,
+			).some((button) => button.props.accessibilityLabel === "Add item"),
 		).toBe(false);
-		formElements<ComponentProps<typeof SegmentedControl>>(
+		formElements<ComponentProps<typeof SelectField>>(
 			incomeTree,
-			SegmentedControl,
+			SelectField,
 		)[1]?.props.onChange("DEBIT");
 		expect(harness.values.get(18)).toMatchObject([
 			{ amount: "0.3", categoryId: "food" },
@@ -495,17 +664,17 @@ describe("TransactionFormScreen", () => {
 			]),
 		);
 		const tree = harness.render();
-		formElements<ComponentProps<typeof SegmentedControl>>(
+		formElements<ComponentProps<typeof SelectField>>(
 			tree,
-			SegmentedControl,
+			SelectField,
 		)[1]?.props.onChange("CREDIT");
 		expect(harness.values.get(5)).toBe("");
 		harness.values.set(1, "GENERAL");
 		harness.values.set(2, "DEBIT");
 		harness.values.set(18, []);
-		formElements<ComponentProps<typeof SegmentedControl>>(
+		formElements<ComponentProps<typeof SelectField>>(
 			harness.render(),
-			SegmentedControl,
+			SelectField,
 		)[1]?.props.onChange("CREDIT");
 		expect(harness.values.get(7)).toBe("");
 	});
@@ -1126,7 +1295,7 @@ describe("TransactionFormScreen", () => {
 		expect(serviceMocks.getDefaultTripId).not.toHaveBeenCalled();
 	});
 
-	it("covers classification and type segmented-control handlers", async () => {
+	it("covers classification and type compact-picker handlers", async () => {
 		const navigation = { goBack: vi.fn() };
 		const setClassification = vi.fn();
 		const setType = vi.fn();
@@ -1148,16 +1317,18 @@ describe("TransactionFormScreen", () => {
 		} as any);
 		await flush();
 
-		const segmentedControls = findByPredicate(
+		const modeControls = findByPredicate(
 			tree,
 			(node) =>
+				node?.props?.isSearchable === false &&
 				typeof node?.props?.onChange === "function" &&
 				Array.isArray(node?.props?.options),
 		);
-		segmentedControls[0]?.props?.onChange("INVESTMENT");
-		segmentedControls[0]?.props?.onChange("GENERAL");
-		segmentedControls[1]?.props?.onChange("CREDIT");
-		segmentedControls[1]?.props?.onChange("SOMETHING_ELSE");
+		expect(modeControls).toHaveLength(2);
+		modeControls[0]?.props?.onChange("INVESTMENT");
+		modeControls[0]?.props?.onChange("GENERAL");
+		modeControls[1]?.props?.onChange("CREDIT");
+		modeControls[1]?.props?.onChange("SOMETHING_ELSE");
 
 		expect(setClassification).toHaveBeenCalledWith("INVESTMENT");
 		expect(setClassification).toHaveBeenCalledWith("GENERAL");
@@ -1324,7 +1495,8 @@ describe("TransactionFormScreen", () => {
 		const categorySelect = findByPredicate(
 			tree,
 			(node) =>
-				node?.props?.placeholder === "Select category" &&
+				node?.props?.label === "Category" &&
+				node?.props?.placeholder === "Select" &&
 				Array.isArray(node?.props?.options),
 		)[0];
 		expect(categorySelect?.props?.options).toEqual([

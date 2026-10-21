@@ -234,9 +234,49 @@ describe("form components", () => {
 			variant: "primary",
 		} as any);
 		expect(findAllByType(noIconButton, "Ionicons")).toHaveLength(0);
+		expect(
+			findAllByType(noIconButton, "CustomText")[0]?.props.style,
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					flexShrink: 1,
+					minWidth: 0,
+					textAlign: "center",
+				}),
+			]),
+		);
 	});
 
-	it("covers SegmentedControl basis math and selected state", () => {
+	it("renders palette swatches and disables theme selection while saving", () => {
+		reactMocks.useState.mockReturnValueOnce([true, vi.fn()]);
+		reactMocks.useState.mockReturnValueOnce(["", vi.fn()]);
+		const colors = ["#131817", "#202825", "#76E3B8"];
+		const field = SelectField({
+			label: "Theme",
+			value: "graphite-mint",
+			onChange: vi.fn(),
+			isSearchable: false,
+			isDisabled: true,
+			options: [
+				{
+					label: "Graphite & Mint",
+					value: "graphite-mint",
+					swatches: colors,
+				},
+			],
+		});
+		const trigger = findAllByType(field, "Pressable")[0];
+		expect(trigger.props.disabled).toBe(true);
+		expect(trigger.props.accessibilityState).toEqual({ disabled: true });
+		const swatches = findAllByType(field, "View").filter(
+			(node) =>
+				Array.isArray(node.props.style) &&
+				colors.includes(node.props.style[1]?.backgroundColor),
+		);
+		expect(swatches).toHaveLength(6);
+	});
+
+	it("sizes segmented options to their content and allows complete labels", () => {
 		const onChange = vi.fn();
 		const segmented = SegmentedControl({
 			value: "a",
@@ -251,7 +291,10 @@ describe("form components", () => {
 
 		const pressables = findAllByType(segmented, "Pressable");
 		expect(pressables).toHaveLength(4);
-		expect(pressables[0]?.props.style[1].flexBasis).toContain("%");
+		expect(pressables[0]?.props.style[0]).toMatchObject({
+			flexBasis: "auto",
+			maxWidth: "100%",
+		});
 		pressables[1]?.props.onPress();
 		expect(onChange).toHaveBeenCalledWith("b");
 		const labels = findAllByType(
@@ -259,7 +302,7 @@ describe("form components", () => {
 			"CustomText",
 		) as ReactElement<TextProps>[];
 		for (const label of labels) {
-			expect(label.props.numberOfLines).toBe(1);
+			expect(label.props.numberOfLines).toBe(0);
 		}
 	});
 
@@ -340,8 +383,53 @@ describe("form components", () => {
 			value: "Alice",
 			onChangeText,
 			isSecure: false,
+			autoFocus: true,
 		});
+		expect(
+			findAllByType(plainField, "CustomTextInput")[0]?.props.autoFocus,
+		).toBe(true);
 		expect(findAllByType(plainField, "Pressable")).toHaveLength(0);
+	});
+
+	it("renders compact choices without a search input and keeps selection behavior", () => {
+		const setIsOpen = vi.fn();
+		const setSearch = vi.fn();
+		const onChange = vi.fn();
+		reactMocks.useState
+			.mockImplementationOnce(() => [true, setIsOpen])
+			.mockImplementationOnce(() => ["", setSearch]);
+		const tree = SelectField({
+			label: "Classification",
+			value: "GENERAL",
+			options: [
+				{ label: "General", value: "GENERAL" },
+				{ label: "Investment", value: "INVESTMENT" },
+			],
+			onChange,
+			isCompact: true,
+			isSearchable: false,
+		});
+		const trigger = findAllByType(tree, "Pressable")[0];
+		expect(tree.props.style[1]).toMatchObject({
+			flexBasis: "auto",
+			alignSelf: "flex-start",
+		});
+		for (const style of tree.props.style)
+			expect(style).not.toHaveProperty("width");
+		expect(trigger.props.accessibilityLabel).toBe(
+			"Classification: General",
+		);
+		expect(trigger.props.style[0]).toMatchObject({
+			borderWidth: 1,
+			borderColor: COLORS.borderStrong,
+		});
+		expect(trigger.props.style[1]).not.toHaveProperty("borderWidth");
+		expect(trigger.props.style[1]).not.toHaveProperty("backgroundColor");
+		expect(findAllByType(tree, "CustomTextInput")).toHaveLength(0);
+		const modal = findAllByType(tree, "Modal")[0];
+		findPressableByText(modal, "Investment").props.onPress();
+		expect(onChange).toHaveBeenCalledWith("INVESTMENT");
+		expect(setIsOpen).toHaveBeenCalledWith(false);
 	});
 
 	it("covers SelectField open/close/select/search/no-result branches", () => {
@@ -364,6 +452,10 @@ describe("form components", () => {
 			isOptional: false,
 		});
 		const closedPressables = findAllByType(closed, "Pressable");
+		expect(
+			findAllByType(closedPressables[0], "CustomText")[0]?.props
+				.numberOfLines,
+		).toBeUndefined();
 		closedPressables[0]?.props.onPress();
 		expect(setSearch).toHaveBeenCalledWith("");
 		expect(setIsOpen).toHaveBeenCalledWith(true);

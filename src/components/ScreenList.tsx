@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import COLORS from "@/constants/colors";
 import styleConstants from "@/constants/styleConstants";
+import useTheme from "@/hooks/useTheme";
 import type ScreenListProps from "@/types/ScreenListProps";
 
 const ListSeparator = (): ReactNode => <View style={styles.separator} />;
@@ -14,6 +14,7 @@ const ScreenList = <T,>({
 	ItemSeparatorComponent = ListSeparator,
 	...props
 }: ScreenListProps<T>): ReactNode => {
+	const { colors: COLORS } = useTheme();
 	return (
 		<LinearGradient
 			colors={[

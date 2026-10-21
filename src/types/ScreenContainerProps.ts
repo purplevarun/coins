@@ -1,8 +1,9 @@
-import type { PropsWithChildren } from "react";
+import type { PropsWithChildren, ReactNode } from "react";
 
 type ScreenContainerProps = PropsWithChildren<
 	Readonly<{
 		isScrollable?: boolean;
+		footer?: ReactNode;
 	}>
 >;
 

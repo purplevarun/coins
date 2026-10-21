@@ -1,4 +1,5 @@
 import appConstants from "@/constants/appConstants";
+import MESSAGES from "@/constants/messageConstants";
 
 import SCHEMA_MIGRATIONS from "@/database/migrations";
 import SCHEMA_SQL from "@/database/schema";
@@ -6,6 +7,7 @@ import settingsRepository from "@/repositories/settingsRepository";
 import type SqliteTableRow from "@/types/SqliteTableRow";
 import { Directory, File, Paths } from "expo-file-system";
 import { openDatabaseAsync, type SQLiteDatabase } from "expo-sqlite";
+import { ToastAndroid } from "react-native";
 
 const { DATABASE_NAME, LAST_VACUUM_DAY_KEY } = appConstants;
 const { getSettingRow, upsertSettingRow } = settingsRepository;
@@ -30,6 +32,7 @@ const vacuumDatabaseIfNeeded = async (
 			day,
 			now.getTime(),
 		);
+		ToastAndroid.show(MESSAGES.COMMON.VACUUM_DONE, ToastAndroid.SHORT);
 	} finally {
 		databasesBeingVacuumed.delete(database);
 	}

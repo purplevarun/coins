@@ -10,6 +10,7 @@ const {
 	upsertSettingRow,
 	cacheList,
 	cacheDelete,
+	toast,
 	openDatabaseAsync,
 } = vi.hoisted(() => {
 	const mockedExecAsync = vi
@@ -38,12 +39,17 @@ const {
 			.mockResolvedValue(undefined),
 		cacheList,
 		cacheDelete,
+		toast: vi.fn(),
 		openDatabaseAsync: mockedOpenDatabaseAsync,
 	};
 });
 
 vi.mock("expo-sqlite", () => ({
 	openDatabaseAsync,
+}));
+
+vi.mock("react-native", () => ({
+	ToastAndroid: { show: toast, SHORT: 0 },
 }));
 
 vi.mock("@/repositories/settingsRepository", () => ({
@@ -116,6 +122,7 @@ describe("initializeDatabase", () => {
 		upsertSettingRow.mockReset().mockResolvedValue(undefined);
 		cacheList.mockReset().mockReturnValue([]);
 		cacheDelete.mockReset();
+		toast.mockReset();
 	});
 	afterEach(() => vi.useRealTimers());
 
@@ -137,6 +144,7 @@ describe("initializeDatabase", () => {
 			"react-native-pdf",
 		]);
 		expect(execAsync).toHaveBeenLastCalledWith("VACUUM;");
+		expect(toast).toHaveBeenCalledExactlyOnceWith("Vacuum done!", 0);
 	});
 
 	it("keeps the migration pending when legacy cache cleanup fails", async () => {
@@ -190,6 +198,7 @@ describe("initializeDatabase", () => {
 			execAsync.mock.calls.filter(([sql]) => sql === "VACUUM;"),
 		).toHaveLength(1);
 		expect(upsertSettingRow).toHaveBeenCalledOnce();
+		expect(toast).toHaveBeenCalledTimes(1);
 	});
 
 	it("compacts again on the first open of the next local day", async () => {
@@ -212,9 +221,21 @@ describe("initializeDatabase", () => {
 			.mockRejectedValueOnce(new Error("vacuum failed"));
 		await expect(initializeDatabase()).rejects.toThrow("vacuum failed");
 		expect(upsertSettingRow).not.toHaveBeenCalled();
+		expect(toast).not.toHaveBeenCalled();
 		expect(closeAsync).toHaveBeenCalledOnce();
 		await initializeDatabase();
 		expect(upsertSettingRow).toHaveBeenCalledOnce();
+		expect(toast).toHaveBeenCalledTimes(1);
+	});
+
+	it("does not show a success toast when saving the completion marker fails", async () => {
+		upsertSettingRow.mockRejectedValueOnce(
+			new Error("settings write failed"),
+		);
+		await expect(initializeDatabase()).rejects.toThrow(
+			"settings write failed",
+		);
+		expect(toast).not.toHaveBeenCalled();
 	});
 
 	it("prevents overlapping compaction checks on the same connection", async () => {

@@ -9,15 +9,16 @@ import Notice from "@/components/Notice";
 import ScreenContainer from "@/components/ScreenContainer";
 import SelectField from "@/components/SelectField";
 import TextField from "@/components/TextField";
-import COLORS from "@/constants/colors";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import cardService from "@/services/cardService";
 import identityService from "@/services/identityService";
 import passwordService from "@/services/passwordService";
 import type VaultFormScreenProps from "@/types/VaultFormScreenProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
 const { deleteCard, getCard, saveCard } = cardService;
 const { deleteIdentity, getIdentity, saveIdentity } = identityService;
@@ -27,6 +28,7 @@ const VaultFormScreen = ({
 	navigation,
 	route,
 }: VaultFormScreenProps): React.JSX.Element => {
+	const styles = useThemedStyles(themedStyles);
 	const { kind, entryId } = route.params;
 	const { database, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
@@ -318,16 +320,18 @@ const VaultFormScreen = ({
 
 const { FONT_SIZE, FONT_WEIGHT, SPACING, TEXT_TRANSFORM } = styleConstants;
 
-const styles = StyleSheet.create({
-	form: {
-		gap: SPACING.S16,
-	},
-	heading: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S24,
-		fontWeight: FONT_WEIGHT.BLACK,
-		textTransform: TEXT_TRANSFORM.CAPITALIZE,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		form: {
+			gap: SPACING.S16,
+		},
+		heading: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S24,
+			fontWeight: FONT_WEIGHT.BLACK,
+			textTransform: TEXT_TRANSFORM.CAPITALIZE,
+		},
+	}),
+);
 
 export default VaultFormScreen;

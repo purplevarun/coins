@@ -11,6 +11,7 @@ const vitestConfig = defineConfig({
 	},
 	test: {
 		environment: "node",
+		setupFiles: ["./test/helpers/themeSetup.ts"],
 		coverage: {
 			provider: "v8",
 			reporter: ["text", "lcov"],

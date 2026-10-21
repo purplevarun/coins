@@ -9,12 +9,13 @@ import Notice from "@/components/Notice";
 import ScreenContainer from "@/components/ScreenContainer";
 import TextField from "@/components/TextField";
 import appConstants from "@/constants/appConstants";
-import COLORS from "@/constants/colors";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import sourceService from "@/services/sourceService";
 import type SourceFormScreenProps from "@/types/SourceFormScreenProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
 const { DEFAULT_CURRENCY_CODE } = appConstants;
 const { createSource, getSource, updateSourceName } = sourceService;
@@ -23,6 +24,7 @@ const SourceFormScreen = ({
 	navigation,
 	route,
 }: SourceFormScreenProps): React.JSX.Element => {
+	const styles = useThemedStyles(themedStyles);
 	const { database, refreshData } = useDatabaseContext();
 	const entityId = route.params?.entityId;
 	const [name, setName] = useState("");
@@ -111,16 +113,18 @@ const SourceFormScreen = ({
 
 const { FONT_SIZE, FONT_WEIGHT, LETTER_SPACING, SPACING } = styleConstants;
 
-const styles = StyleSheet.create({
-	form: {
-		gap: SPACING.S16,
-	},
-	heading: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S24,
-		fontWeight: FONT_WEIGHT.BLACK,
-		letterSpacing: LETTER_SPACING.TIGHT,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		form: {
+			gap: SPACING.S16,
+		},
+		heading: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S24,
+			fontWeight: FONT_WEIGHT.BLACK,
+			letterSpacing: LETTER_SPACING.TIGHT,
+		},
+	}),
+);
 
 export default SourceFormScreen;

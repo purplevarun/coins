@@ -2,23 +2,29 @@ import CustomText from "@/components/CustomText";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, View } from "react-native";
 
-import COLORS from "@/constants/colors";
 import styleConstants from "@/constants/styleConstants";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import type EmptyStateProps from "@/types/EmptyStateProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 
 const EmptyState = ({
 	icon,
 	title,
 	message,
-}: EmptyStateProps): React.JSX.Element => (
-	<View style={styles.container}>
-		<View style={styles.icon}>
-			<Ionicons color={COLORS.primaryBright} name={icon} size={30} />
+}: EmptyStateProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
+	return (
+		<View style={styles.container}>
+			<View style={styles.icon}>
+				<Ionicons color={COLORS.primaryBright} name={icon} size={30} />
+			</View>
+			<CustomText style={styles.title}>{title}</CustomText>
+			<CustomText style={styles.message}>{message}</CustomText>
 		</View>
-		<CustomText style={styles.title}>{title}</CustomText>
-		<CustomText style={styles.message}>{message}</CustomText>
-	</View>
-);
+	);
+};
 
 const {
 	ALIGN,
@@ -31,35 +37,37 @@ const {
 	SPACING,
 } = styleConstants;
 
-const styles = StyleSheet.create({
-	container: {
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-		padding: SPACING.S40,
-		gap: SPACING.S10,
-	},
-	icon: {
-		width: SIZES.S64,
-		height: SIZES.S64,
-		borderRadius: RADIUS.S22,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-		backgroundColor: COLORS.primaryMuted,
-		borderWidth: BORDER.THIN,
-		borderColor: COLORS.borderStrong,
-	},
-	title: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S18,
-		fontWeight: FONT_WEIGHT.HEAVY,
-		textAlign: ALIGN.CENTER,
-	},
-	message: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S14,
-		textAlign: ALIGN.CENTER,
-		lineHeight: LINE_HEIGHT.S20,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		container: {
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+			padding: SPACING.S40,
+			gap: SPACING.S10,
+		},
+		icon: {
+			width: SIZES.S64,
+			height: SIZES.S64,
+			borderRadius: RADIUS.S22,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+			backgroundColor: COLORS.primaryMuted,
+			borderWidth: BORDER.THIN,
+			borderColor: COLORS.borderStrong,
+		},
+		title: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S18,
+			fontWeight: FONT_WEIGHT.HEAVY,
+			textAlign: ALIGN.CENTER,
+		},
+		message: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S14,
+			textAlign: ALIGN.CENTER,
+			lineHeight: LINE_HEIGHT.S20,
+		},
+	}),
+);
 
 export default EmptyState;

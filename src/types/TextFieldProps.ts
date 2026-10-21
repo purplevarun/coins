@@ -8,6 +8,7 @@ type TextFieldProps = Readonly<{
 	isSecure?: boolean;
 	isEditable?: boolean;
 	autoCapitalize?: "none" | "sentences" | "words" | "characters";
+	autoFocus?: boolean;
 }>;
 
 export type { TextFieldProps as default };

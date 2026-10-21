@@ -12,16 +12,18 @@ import ListHeader from "@/components/ListHeader";
 import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
 import appConstants from "@/constants/appConstants";
-import COLORS from "@/constants/colors";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import analysisService from "@/services/analysisService";
 import budgetService from "@/services/budgetService";
 import type AnalysisSummary from "@/types/AnalysisSummary";
 import type Budget from "@/types/Budget";
 import type BudgetsScreenProps from "@/types/BudgetsScreenProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 import dateUtils from "@/utils/date";
 import getErrorMessage from "@/utils/error";
 import moneyUtils from "@/utils/money";
@@ -35,6 +37,8 @@ const { compareMoney, formatMoney, subtractMoney, ZERO_AMOUNT } = moneyUtils;
 const BudgetsScreen = ({
 	navigation,
 }: BudgetsScreenProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const { database, dataVersion, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
 	const [budgets, setBudgets] = useState<readonly Budget[]>([]);
@@ -197,7 +201,7 @@ const BudgetsScreen = ({
 				</GlassCard>
 			);
 		},
-		[getSpent, handleDelete, navigation],
+		[getSpent, handleDelete, navigation, styles, COLORS],
 	);
 
 	const listHeader = useMemo(
@@ -256,61 +260,63 @@ const {
 	SPACING,
 } = styleConstants;
 
-const styles = StyleSheet.create({
-	screen: {
-		flex: FLEX.FILL,
-		backgroundColor: COLORS.background,
-	},
-	headingRow: {
-		flexDirection: FLEX.ROW,
-		justifyContent: ALIGN.SPACE_BETWEEN,
-		alignItems: ALIGN.START,
-		gap: SPACING.S10,
-	},
-	details: {
-		flex: FLEX.FILL,
-		gap: SPACING.S3,
-	},
-	title: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S16,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	period: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S11,
-	},
-	percentage: {
-		color: COLORS.primaryBright,
-		fontSize: FONT_SIZE.S18,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	overBudget: {
-		color: COLORS.danger,
-	},
-	progressTrack: {
-		height: SIZES.S9,
-		borderRadius: RADIUS.S5,
-		backgroundColor: COLORS.surfaceBright,
-		overflow: OVERFLOW.HIDDEN,
-		marginTop: SPACING.S14,
-	},
-	progressFill: {
-		height: SIZES.FULL,
-		borderRadius: RADIUS.S5,
-	},
-	amounts: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-		fontWeight: FONT_WEIGHT.BOLD,
-		marginTop: SPACING.S8,
-	},
-	actions: {
-		flexDirection: FLEX.ROW,
-		justifyContent: ALIGN.END,
-		gap: SPACING.S8,
-		marginTop: SPACING.S12,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		screen: {
+			flex: FLEX.FILL,
+			backgroundColor: COLORS.background,
+		},
+		headingRow: {
+			flexDirection: FLEX.ROW,
+			justifyContent: ALIGN.SPACE_BETWEEN,
+			alignItems: ALIGN.START,
+			gap: SPACING.S10,
+		},
+		details: {
+			flex: FLEX.FILL,
+			gap: SPACING.S3,
+		},
+		title: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S16,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		period: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S11,
+		},
+		percentage: {
+			color: COLORS.primaryBright,
+			fontSize: FONT_SIZE.S18,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		overBudget: {
+			color: COLORS.danger,
+		},
+		progressTrack: {
+			height: SIZES.S9,
+			borderRadius: RADIUS.S5,
+			backgroundColor: COLORS.surfaceBright,
+			overflow: OVERFLOW.HIDDEN,
+			marginTop: SPACING.S14,
+		},
+		progressFill: {
+			height: SIZES.FULL,
+			borderRadius: RADIUS.S5,
+		},
+		amounts: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+			fontWeight: FONT_WEIGHT.BOLD,
+			marginTop: SPACING.S8,
+		},
+		actions: {
+			flexDirection: FLEX.ROW,
+			justifyContent: ALIGN.END,
+			gap: SPACING.S8,
+			marginTop: SPACING.S12,
+		},
+	}),
+);
 
 export default BudgetsScreen;

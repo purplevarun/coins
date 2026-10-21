@@ -10,11 +10,13 @@ import GlassCard from "@/components/GlassCard";
 import Notice from "@/components/Notice";
 import ScreenContainer from "@/components/ScreenContainer";
 import SelectField from "@/components/SelectField";
-import COLORS from "@/constants/colors";
 import dateConstants from "@/constants/dateConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
+import { THEME_SELECT_OPTIONS } from "@/constants/themePaletteConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import backupService from "@/services/backupService";
 import settingsService from "@/services/settingsService";
 import sourceService from "@/services/sourceService";
@@ -23,7 +25,9 @@ import type NoticeScope from "@/types/NoticeScope";
 import type SelectOption from "@/types/SelectOption";
 import type SettingsScreenProps from "@/types/SettingsScreenProps";
 import type Source from "@/types/Source";
+import type ThemeId from "@/types/ThemeId";
 import type Trip from "@/types/Trip";
+import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
 const { APP_NAME } = appConstants;
 const { version } = packageJson;
@@ -37,6 +41,7 @@ const {
 	updateDefaultTripId,
 	updateFyStartMonth,
 	updateNativeCurrencyDisplay,
+	updateThemeId,
 } = settingsService;
 const { getSources } = sourceService;
 const { getTrips } = tripService;
@@ -50,6 +55,8 @@ const getFyEndMonthLabel = (startMonth: number): string => {
 const SettingsScreen = ({
 	navigation,
 }: SettingsScreenProps): React.JSX.Element => {
+	const { id: themeId, colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const { database, refreshData } = useDatabaseContext();
 	const [isNativeCurrency, setIsNativeCurrency] = useState(true);
 	const [isWorking, setIsWorking] = useState(false);
@@ -132,6 +139,22 @@ const SettingsScreen = ({
 		}
 	};
 
+	const handleThemeChange = async (value: string): Promise<void> => {
+		if (value === themeId) return;
+		setIsWorking(true);
+		setNoticeScope("config");
+		setError("");
+		setMessage("");
+		try {
+			await updateThemeId(database, value as ThemeId);
+			refreshData();
+		} catch (caughtError: unknown) {
+			setError(getErrorMessage(caughtError));
+		} finally {
+			setIsWorking(false);
+		}
+	};
+
 	const handleRestore = async (): Promise<void> => {
 		setIsWorking(true);
 		setNoticeScope("backup");
@@ -197,6 +220,15 @@ const SettingsScreen = ({
 							</CustomText>
 						</View>
 						<Switch
+							trackColor={{
+								false: COLORS.border,
+								true: COLORS.primaryMuted,
+							}}
+							thumbColor={
+								isNativeCurrency
+									? COLORS.primary
+									: COLORS.textMuted
+							}
 							onValueChange={(value) =>
 								void handleCurrencyToggle(value)
 							}
@@ -211,6 +243,14 @@ const SettingsScreen = ({
 					<CustomText style={styles.heading}>
 						Configuration
 					</CustomText>
+					<SelectField
+						label={MESSAGES.SETTINGS.THEME}
+						isSearchable={false}
+						isDisabled={isWorking}
+						options={THEME_SELECT_OPTIONS}
+						value={themeId}
+						onChange={(value) => void handleThemeChange(value)}
+					/>
 					<SelectField
 						label={MESSAGES.SETTINGS.FY_START_MONTH}
 						onChange={(value) =>
@@ -300,61 +340,63 @@ const SettingsScreen = ({
 const { ALIGN, FLEX, FONT_SIZE, FONT_WEIGHT, LINE_HEIGHT, SPACING } =
 	styleConstants;
 
-const styles = StyleSheet.create({
-	brand: {
-		gap: SPACING.S5,
-	},
-	appName: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S25,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	version: {
-		color: COLORS.primaryBright,
-		fontSize: FONT_SIZE.S12,
-		fontWeight: FONT_WEIGHT.HEAVY,
-	},
-	description: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S13,
-		lineHeight: LINE_HEIGHT.S19,
-	},
-	section: {
-		gap: SPACING.S14,
-	},
-	heading: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S17,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	switchRow: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S12,
-	},
-	switchDetails: {
-		flex: FLEX.FILL,
-		gap: SPACING.S3,
-	},
-	switchTitle: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S14,
-		fontWeight: FONT_WEIGHT.HEAVY,
-	},
-	switchDescription: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S11,
-		lineHeight: LINE_HEIGHT.S16,
-	},
-	fyEndHint: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-		marginTop: SPACING.N6,
-	},
-	fyEndValue: {
-		color: COLORS.primaryBright,
-		fontWeight: FONT_WEIGHT.HEAVY,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		brand: {
+			gap: SPACING.S5,
+		},
+		appName: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S25,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		version: {
+			color: COLORS.primaryBright,
+			fontSize: FONT_SIZE.S12,
+			fontWeight: FONT_WEIGHT.HEAVY,
+		},
+		description: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S13,
+			lineHeight: LINE_HEIGHT.S19,
+		},
+		section: {
+			gap: SPACING.S14,
+		},
+		heading: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S17,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		switchRow: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S12,
+		},
+		switchDetails: {
+			flex: FLEX.FILL,
+			gap: SPACING.S3,
+		},
+		switchTitle: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S14,
+			fontWeight: FONT_WEIGHT.HEAVY,
+		},
+		switchDescription: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S11,
+			lineHeight: LINE_HEIGHT.S16,
+		},
+		fyEndHint: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+			marginTop: SPACING.N6,
+		},
+		fyEndValue: {
+			color: COLORS.primaryBright,
+			fontWeight: FONT_WEIGHT.HEAVY,
+		},
+	}),
+);
 
 export default SettingsScreen;

@@ -6,12 +6,14 @@ import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import AppButton from "@/components/AppButton";
 import CustomTextInput from "@/components/CustomTextInput";
-import COLORS from "@/constants/colors";
 import folderConstants from "@/constants/folderConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import type Folder from "@/types/Folder";
 import type FolderFilterChipsProps from "@/types/FolderFilterChipsProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 const { FOLDER_FILTER_ALL, FOLDER_FILTER_NONE } = folderConstants;
 
 const FolderFilterChips = ({
@@ -21,6 +23,8 @@ const FolderFilterChips = ({
 	onDeleteFolder,
 	onRenameFolder,
 }: FolderFilterChipsProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const [actionFolder, setActionFolder] = useState<Folder | null>(null);
 	const [renameMode, setRenameMode] = useState(false);
 	const [renameName, setRenameName] = useState("");
@@ -210,86 +214,88 @@ const FolderFilterChips = ({
 const { ALIGN, BORDER, FLEX, FONT_SIZE, FONT_WEIGHT, RADIUS, SPACING } =
 	styleConstants;
 
-const styles = StyleSheet.create({
-	scroller: {
-		marginHorizontal: SPACING.N2,
-	},
-	chip: {
-		marginHorizontal: SPACING.S2,
-		paddingHorizontal: SPACING.S12,
-		paddingVertical: SPACING.S9,
-		borderRadius: RADIUS.PILL,
-		borderWidth: BORDER.THIN,
-		borderColor: COLORS.border,
-		backgroundColor: COLORS.surfaceLight,
-	},
-	selectedChip: {
-		borderColor: COLORS.borderStrong,
-		backgroundColor: COLORS.primaryMuted,
-	},
-	chipContent: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S4,
-	},
-	label: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-		fontWeight: FONT_WEIGHT.HEAVY,
-	},
-	selectedLabel: {
-		color: COLORS.primaryBright,
-	},
-	overlay: {
-		flex: FLEX.FILL,
-		backgroundColor: COLORS.overlayStrong,
-		justifyContent: ALIGN.START,
-		padding: SPACING.S16,
-		paddingTop: SPACING.S56,
-	},
-	sheet: {
-		borderRadius: RADIUS.S24,
-		backgroundColor: COLORS.glassStrong,
-		borderWidth: BORDER.THIN,
-		borderColor: COLORS.borderStrong,
-		padding: SPACING.S18,
-		gap: SPACING.S4,
-	},
-	sheetTitle: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S18,
-		fontWeight: FONT_WEIGHT.HEAVY,
-		marginBottom: SPACING.S10,
-	},
-	actionRow: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S14,
-		paddingVertical: SPACING.S14,
-		paddingHorizontal: SPACING.S4,
-		borderRadius: RADIUS.S12,
-	},
-	actionLabel: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S16,
-		fontWeight: FONT_WEIGHT.BOLD,
-	},
-	renameInput: {
-		backgroundColor: COLORS.surfaceHigh,
-		borderWidth: BORDER.THIN,
-		borderColor: COLORS.border,
-		borderRadius: RADIUS.S12,
-		paddingHorizontal: SPACING.S12,
-		paddingVertical: SPACING.S10,
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S15,
-		marginBottom: SPACING.S12,
-	},
-	renameActions: {
-		flexDirection: FLEX.ROW,
-		gap: SPACING.S8,
-		justifyContent: ALIGN.END,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		scroller: {
+			marginHorizontal: SPACING.N2,
+		},
+		chip: {
+			marginHorizontal: SPACING.S2,
+			paddingHorizontal: SPACING.S12,
+			paddingVertical: SPACING.S9,
+			borderRadius: RADIUS.PILL,
+			borderWidth: BORDER.THIN,
+			borderColor: COLORS.border,
+			backgroundColor: COLORS.surfaceLight,
+		},
+		selectedChip: {
+			borderColor: COLORS.borderStrong,
+			backgroundColor: COLORS.primaryMuted,
+		},
+		chipContent: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S4,
+		},
+		label: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+			fontWeight: FONT_WEIGHT.HEAVY,
+		},
+		selectedLabel: {
+			color: COLORS.primaryBright,
+		},
+		overlay: {
+			flex: FLEX.FILL,
+			backgroundColor: COLORS.overlayStrong,
+			justifyContent: ALIGN.START,
+			padding: SPACING.S16,
+			paddingTop: SPACING.S56,
+		},
+		sheet: {
+			borderRadius: RADIUS.S24,
+			backgroundColor: COLORS.glassStrong,
+			borderWidth: BORDER.THIN,
+			borderColor: COLORS.borderStrong,
+			padding: SPACING.S18,
+			gap: SPACING.S4,
+		},
+		sheetTitle: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S18,
+			fontWeight: FONT_WEIGHT.HEAVY,
+			marginBottom: SPACING.S10,
+		},
+		actionRow: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S14,
+			paddingVertical: SPACING.S14,
+			paddingHorizontal: SPACING.S4,
+			borderRadius: RADIUS.S12,
+		},
+		actionLabel: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S16,
+			fontWeight: FONT_WEIGHT.BOLD,
+		},
+		renameInput: {
+			backgroundColor: COLORS.surfaceHigh,
+			borderWidth: BORDER.THIN,
+			borderColor: COLORS.border,
+			borderRadius: RADIUS.S12,
+			paddingHorizontal: SPACING.S12,
+			paddingVertical: SPACING.S10,
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S15,
+			marginBottom: SPACING.S12,
+		},
+		renameActions: {
+			flexDirection: FLEX.ROW,
+			gap: SPACING.S8,
+			justifyContent: ALIGN.END,
+		},
+	}),
+);
 
 export default FolderFilterChips;

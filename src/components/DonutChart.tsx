@@ -2,9 +2,11 @@ import CustomText from "@/components/CustomText";
 import { StyleSheet, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 
-import COLORS from "@/constants/colors";
 import styleConstants from "@/constants/styleConstants";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import type DonutChartProps from "@/types/DonutChartProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 
 const CHART_SIZE = 190;
 const STROKE_WIDTH = 24;
@@ -15,6 +17,8 @@ const DonutChart = ({
 	data,
 	centerLabel,
 }: DonutChartProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const total = data.reduce((sum, datum) => sum + datum.value, 0);
 	let accumulatedFraction = 0;
 
@@ -74,10 +78,7 @@ const DonutChart = ({
 								{ backgroundColor: datum.color },
 							]}
 						/>
-						<CustomText
-							numberOfLines={1}
-							style={styles.legendLabel}
-						>
+						<CustomText style={styles.legendLabel}>
 							{datum.label}
 						</CustomText>
 					</View>
@@ -98,53 +99,55 @@ const {
 	SPACING,
 } = styleConstants;
 
-const styles = StyleSheet.create({
-	container: {
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S16,
-	},
-	chart: {
-		width: CHART_SIZE,
-		height: CHART_SIZE,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-	},
-	center: {
-		position: POSITION.ABSOLUTE,
-		alignItems: ALIGN.CENTER,
-		maxWidth: SIZES.S120,
-	},
-	centerLabel: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S16,
-		fontWeight: FONT_WEIGHT.BLACK,
-		textAlign: ALIGN.CENTER,
-	},
-	centerSubLabel: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S10,
-		textAlign: ALIGN.CENTER,
-		marginTop: SPACING.S2,
-	},
-	legend: {
-		width: SIZES.FULL,
-		gap: SPACING.S7,
-	},
-	legendRow: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S8,
-	},
-	legendDot: {
-		width: SIZES.S9,
-		height: SIZES.S9,
-		borderRadius: RADIUS.S5,
-	},
-	legendLabel: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-		flex: FLEX.FILL,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		container: {
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S16,
+		},
+		chart: {
+			width: CHART_SIZE,
+			height: CHART_SIZE,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+		},
+		center: {
+			position: POSITION.ABSOLUTE,
+			alignItems: ALIGN.CENTER,
+			maxWidth: SIZES.S120,
+		},
+		centerLabel: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S16,
+			fontWeight: FONT_WEIGHT.BLACK,
+			textAlign: ALIGN.CENTER,
+		},
+		centerSubLabel: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S10,
+			textAlign: ALIGN.CENTER,
+			marginTop: SPACING.S2,
+		},
+		legend: {
+			width: SIZES.FULL,
+			gap: SPACING.S7,
+		},
+		legendRow: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S8,
+		},
+		legendDot: {
+			width: SIZES.S9,
+			height: SIZES.S9,
+			borderRadius: RADIUS.S5,
+		},
+		legendLabel: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+			flex: FLEX.FILL,
+		},
+	}),
+);
 
 export default DonutChart;

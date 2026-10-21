@@ -1,12 +1,14 @@
 import CustomText from "@/components/CustomText";
-import COLORS from "@/constants/colors";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import type ChartBounds from "@/types/ChartBounds";
 import type TrendLineChartProps from "@/types/TrendLineChartProps";
 import type TrendPoint from "@/types/TrendPoint";
 import type TrendSeriesConfig from "@/types/TrendSeriesConfig";
 import type TrendSeriesKey from "@/types/TrendSeriesKey";
+import createThemedStyles from "@/utils/createThemedStyles";
 import { StyleSheet, View } from "react-native";
 import Svg, { Line, Polyline } from "react-native-svg";
 
@@ -23,23 +25,23 @@ const AXIS_TICKS = [
 	100_000, 2_500_000, 5_000_000, 7_500_000, 10_000_000,
 ] as const;
 
-const TREND_SERIES_CONFIG: readonly TrendSeriesConfig[] = [
+const TREND_SERIES_CONFIG = [
 	{
 		key: "income",
 		label: MESSAGES.FINANCIAL_METRICS.INCOME,
-		color: COLORS.success,
+		color: "success",
 	},
 	{
 		key: "expenses",
 		label: MESSAGES.FINANCIAL_METRICS.EXPENSES,
-		color: COLORS.danger,
+		color: "danger",
 	},
 	{
 		key: "networth",
 		label: MESSAGES.COMPONENTS.NET_WORTH,
-		color: COLORS.primaryBright,
+		color: "netWorth",
 	},
-];
+] as const satisfies readonly TrendSeriesConfig[];
 
 const formatAxisValue = (value: number): string => {
 	const absoluteValue = Math.abs(value);
@@ -104,6 +106,8 @@ const getSeriesPoints = (
 		.join(" ");
 
 const TrendLineChart = ({ series }: TrendLineChartProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const chartBounds = getChartBounds(series);
 	const axisTicks = Array.from(
 		{ length: 5 },
@@ -119,7 +123,7 @@ const TrendLineChart = ({ series }: TrendLineChartProps): React.JSX.Element => {
 						<View
 							style={[
 								styles.legendDot,
-								{ backgroundColor: config.color },
+								{ backgroundColor: COLORS[config.color] },
 							]}
 						/>
 						<CustomText style={styles.legendLabel}>
@@ -133,7 +137,7 @@ const TrendLineChart = ({ series }: TrendLineChartProps): React.JSX.Element => {
 					{axisTicks.map((tick) => (
 						<Line
 							key={tick}
-							stroke="rgba(255,255,255,0.08)"
+							stroke={COLORS.border}
 							strokeWidth={1}
 							x1={PLOT_LEFT}
 							x2={PLOT_RIGHT}
@@ -151,7 +155,7 @@ const TrendLineChart = ({ series }: TrendLineChartProps): React.JSX.Element => {
 								chartBounds.min,
 								chartBounds.max,
 							)}
-							stroke={config.color}
+							stroke={COLORS[config.color]}
 							strokeLinecap="round"
 							strokeLinejoin="round"
 							strokeWidth={2}
@@ -207,56 +211,58 @@ const {
 	SPACING,
 } = styleConstants;
 
-const styles = StyleSheet.create({
-	container: {
-		gap: SPACING.S10,
-	},
-	legendRow: {
-		flexDirection: FLEX.ROW,
-		gap: SPACING.S14,
-		flexWrap: FLEX.WRAP,
-	},
-	legendItem: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S6,
-	},
-	legendDot: {
-		width: SIZES.S8,
-		height: SIZES.S8,
-		borderRadius: RADIUS.S4,
-	},
-	legendLabel: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S11,
-		fontWeight: FONT_WEIGHT.BOLD,
-	},
-	chartArea: {
-		position: POSITION.RELATIVE,
-	},
-	axisLabels: {
-		position: POSITION.ABSOLUTE,
-		top: SPACING.S0,
-		left: SPACING.S0,
-		width: PLOT_LEFT,
-		height: CHART_HEIGHT,
-	},
-	axisLabel: {
-		position: POSITION.ABSOLUTE,
-		left: SPACING.S0,
-		color: COLORS.textDim,
-		fontSize: FONT_SIZE.S9,
-	},
-	xAxisRow: {
-		height: SIZES.S16,
-		position: POSITION.RELATIVE,
-	},
-	xAxisLabel: {
-		position: POSITION.ABSOLUTE,
-		color: COLORS.textDim,
-		fontSize: FONT_SIZE.S10,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		container: {
+			gap: SPACING.S10,
+		},
+		legendRow: {
+			flexDirection: FLEX.ROW,
+			gap: SPACING.S14,
+			flexWrap: FLEX.WRAP,
+		},
+		legendItem: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S6,
+		},
+		legendDot: {
+			width: SIZES.S8,
+			height: SIZES.S8,
+			borderRadius: RADIUS.S4,
+		},
+		legendLabel: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S11,
+			fontWeight: FONT_WEIGHT.BOLD,
+		},
+		chartArea: {
+			position: POSITION.RELATIVE,
+		},
+		axisLabels: {
+			position: POSITION.ABSOLUTE,
+			top: SPACING.S0,
+			left: SPACING.S0,
+			width: PLOT_LEFT,
+			height: CHART_HEIGHT,
+		},
+		axisLabel: {
+			position: POSITION.ABSOLUTE,
+			left: SPACING.S0,
+			color: COLORS.textDim,
+			fontSize: FONT_SIZE.S9,
+		},
+		xAxisRow: {
+			height: SIZES.S16,
+			position: POSITION.RELATIVE,
+		},
+		xAxisLabel: {
+			position: POSITION.ABSOLUTE,
+			color: COLORS.textDim,
+			fontSize: FONT_SIZE.S10,
+		},
+	}),
+);
 
 export default TrendLineChart;
 export {

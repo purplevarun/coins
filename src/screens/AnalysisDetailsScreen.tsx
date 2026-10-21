@@ -2,11 +2,12 @@ import CustomText from "@/components/CustomText";
 import EmptyState from "@/components/EmptyState";
 import GlassCard from "@/components/GlassCard";
 import PagedScreenList from "@/components/PagedScreenList";
-import COLORS from "@/constants/colors";
 import financeConstants from "@/constants/financeConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import analysisService from "@/services/analysisService";
 import type AnalysisDetailsScreenProps from "@/types/AnalysisDetailsScreenProps";
 import type AnalysisDetailsView from "@/types/AnalysisDetailsView";
@@ -14,6 +15,8 @@ import type AnalysisSummary from "@/types/AnalysisSummary";
 import type CategoryAnalysis from "@/types/CategoryAnalysis";
 import type InvestmentAnalysis from "@/types/InvestmentAnalysis";
 import type ListItemProps from "@/types/ListItemProps";
+import type ThemeColors from "@/types/ThemeColors";
+import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
 import moneyUtils from "@/utils/money";
 import runAfterRender from "@/utils/runAfterRender";
@@ -28,7 +31,7 @@ const { compareMoney, formatMoney, ZERO_AMOUNT } = moneyUtils;
 const getCategoryAccent = (net: string): "success" | "danger" =>
 	compareMoney(net, ZERO_AMOUNT) >= 0 ? "success" : "danger";
 
-const getCategoryNetColor = (net: string): string =>
+const getCategoryNetColor = (COLORS: ThemeColors, net: string): string =>
 	compareMoney(net, ZERO_AMOUNT) >= 0 ? COLORS.success : COLORS.danger;
 
 const getInvestmentAccent = (net: string): "success" | "danger" | "default" => {
@@ -39,7 +42,7 @@ const getInvestmentAccent = (net: string): "success" | "danger" | "default" => {
 	return "default";
 };
 
-const getInvestmentColor = (net: string): string => {
+const getInvestmentColor = (COLORS: ThemeColors, net: string): string => {
 	const comparison = compareMoney(net, ZERO_AMOUNT);
 	if (comparison > 0) return COLORS.danger;
 	if (comparison < 0) return COLORS.success;
@@ -100,6 +103,8 @@ const AnalysisDetailsScreen = ({
 	navigation,
 	route,
 }: AnalysisDetailsScreenProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const { database, dataVersion } = useDatabaseContext();
 	const { mode, dateRangeStart, dateRangeEnd, dateRangeLabel } = route.params;
 	const [summary, setSummary] = useState<AnalysisSummary | null>(null);
@@ -182,6 +187,7 @@ const AnalysisDetailsScreen = ({
 											styles.net,
 											{
 												color: getCategoryNetColor(
+													COLORS,
 													category.net,
 												),
 											},
@@ -250,6 +256,7 @@ const AnalysisDetailsScreen = ({
 									styles.investmentNet,
 									{
 										color: getInvestmentColor(
+											COLORS,
 											investment.net,
 										),
 									},
@@ -265,7 +272,15 @@ const AnalysisDetailsScreen = ({
 				</Pressable>
 			);
 		},
-		[dateRangeEnd, dateRangeLabel, dateRangeStart, mode, navigation],
+		[
+			dateRangeEnd,
+			dateRangeLabel,
+			dateRangeStart,
+			mode,
+			navigation,
+			styles,
+			COLORS,
+		],
 	);
 
 	return (
@@ -306,70 +321,72 @@ const AnalysisDetailsScreen = ({
 const { ALIGN, FLEX, FONT_SIZE, FONT_WEIGHT, LINE_HEIGHT, SPACING } =
 	styleConstants;
 
-const styles = StyleSheet.create({
-	screen: {
-		flex: FLEX.FILL,
-		backgroundColor: COLORS.background,
-		padding: SPACING.S12,
-	},
-	row: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S10,
-	},
-	details: {
-		flex: FLEX.FILL,
-		gap: SPACING.S3,
-	},
-	right: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S4,
-	},
-	name: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S15,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	meta: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S11,
-		lineHeight: LINE_HEIGHT.S16,
-	},
-	net: {
-		fontSize: FONT_SIZE.S14,
-		fontWeight: FONT_WEIGHT.BLACK,
-		textAlign: ALIGN.RIGHT,
-	},
-	chevron: {
-		color: COLORS.textDim,
-		fontSize: FONT_SIZE.S18,
-	},
-	investmentCard: {
-		gap: SPACING.S10,
-	},
-	detailsRow: {
-		flexDirection: FLEX.ROW,
-		justifyContent: ALIGN.SPACE_BETWEEN,
-		gap: SPACING.S16,
-	},
-	value: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S14,
-		fontWeight: FONT_WEIGHT.BLACK,
-		marginTop: SPACING.S4,
-	},
-	investmentNet: {
-		fontSize: FONT_SIZE.S12,
-		fontWeight: FONT_WEIGHT.BLACK,
-		marginTop: SPACING.S6,
-	},
-	error: {
-		color: COLORS.danger,
-		fontWeight: FONT_WEIGHT.BOLD,
-		marginBottom: SPACING.S12,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		screen: {
+			flex: FLEX.FILL,
+			backgroundColor: COLORS.background,
+			padding: SPACING.S12,
+		},
+		row: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S10,
+		},
+		details: {
+			flex: FLEX.FILL,
+			gap: SPACING.S3,
+		},
+		right: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S4,
+		},
+		name: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S15,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		meta: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S11,
+			lineHeight: LINE_HEIGHT.S16,
+		},
+		net: {
+			fontSize: FONT_SIZE.S14,
+			fontWeight: FONT_WEIGHT.BLACK,
+			textAlign: ALIGN.RIGHT,
+		},
+		chevron: {
+			color: COLORS.textDim,
+			fontSize: FONT_SIZE.S18,
+		},
+		investmentCard: {
+			gap: SPACING.S10,
+		},
+		detailsRow: {
+			flexDirection: FLEX.ROW,
+			justifyContent: ALIGN.SPACE_BETWEEN,
+			gap: SPACING.S16,
+		},
+		value: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S14,
+			fontWeight: FONT_WEIGHT.BLACK,
+			marginTop: SPACING.S4,
+		},
+		investmentNet: {
+			fontSize: FONT_SIZE.S12,
+			fontWeight: FONT_WEIGHT.BLACK,
+			marginTop: SPACING.S6,
+		},
+		error: {
+			color: COLORS.danger,
+			fontWeight: FONT_WEIGHT.BOLD,
+			marginBottom: SPACING.S12,
+		},
+	}),
+);
 
 export {
 	getCategoryAccent,

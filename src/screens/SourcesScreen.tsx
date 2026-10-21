@@ -22,18 +22,20 @@ import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
 import SearchBar from "@/components/SearchBar";
 import SegmentedControl from "@/components/SegmentedControl";
-import COLORS from "@/constants/colors";
 import financeConstants from "@/constants/financeConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import exchangeRateService from "@/services/exchangeRateService";
 import settingsService from "@/services/settingsService";
 import sourceService from "@/services/sourceService";
 import type ExchangeRate from "@/types/ExchangeRate";
 import type Source from "@/types/Source";
 import type SourcesScreenProps from "@/types/SourcesScreenProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
 import moneyUtils from "@/utils/money";
 const { getExchangeRates } = exchangeRateService;
@@ -51,6 +53,8 @@ const isSourceValidated = (source: Source): boolean =>
 const SourcesScreen = ({
 	navigation,
 }: SourcesScreenProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const { database, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
 	const [sources, setSources] = useState<readonly Source[]>([]);
@@ -321,6 +325,8 @@ const SourcesScreen = ({
 			isNativeCurrency,
 			navigation,
 			toInr,
+			styles,
+			COLORS,
 		],
 	);
 
@@ -328,7 +334,6 @@ const SourcesScreen = ({
 		() => (
 			<ListHeader>
 				<SegmentedControl
-					labelNumberOfLines={2}
 					onChange={setSourceFilter}
 					options={SOURCE_FILTER_OPTIONS}
 					value={sourceFilter}
@@ -394,71 +399,73 @@ const {
 	SPACING,
 } = styleConstants;
 
-const styles = StyleSheet.create({
-	screen: {
-		flex: FLEX.FILL,
-		backgroundColor: COLORS.background,
-	},
-	row: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.START,
-		gap: SPACING.S12,
-	},
-	iconBox: {
-		width: SIZES.S44,
-		height: SIZES.S44,
-		borderRadius: RADIUS.S15,
-		backgroundColor: COLORS.surfaceRaised,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-	},
-	details: {
-		flex: FLEX.FILL,
-		gap: SPACING.S3,
-	},
-	title: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S16,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	meta: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-	},
-	amount: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S15,
-		fontWeight: FONT_WEIGHT.BLACK,
-		marginTop: SPACING.S3,
-	},
-	convertedAmount: {
-		fontSize: FONT_SIZE.S13,
-		fontWeight: FONT_WEIGHT.BLACK,
-		marginTop: SPACING.S1,
-	},
-	actions: {
-		marginTop: SPACING.S12,
-		flexDirection: FLEX.ROW,
-		justifyContent: ALIGN.END,
-		gap: SPACING.S8,
-	},
-	actionIcon: {
-		width: SIZES.S34,
-		height: SIZES.S34,
-		borderRadius: RADIUS.S12,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-		borderWidth: BORDER.THIN,
-		borderColor: COLORS.border,
-		backgroundColor: COLORS.surfaceRaised,
-	},
-	actionIconSuccess: {
-		borderColor: COLORS.successBorder,
-		backgroundColor: COLORS.successMuted,
-	},
-	actionIconPressed: {
-		transform: [{ scale: SCALE.STRONG }],
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		screen: {
+			flex: FLEX.FILL,
+			backgroundColor: COLORS.background,
+		},
+		row: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.START,
+			gap: SPACING.S12,
+		},
+		iconBox: {
+			width: SIZES.S44,
+			height: SIZES.S44,
+			borderRadius: RADIUS.S15,
+			backgroundColor: COLORS.surfaceRaised,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+		},
+		details: {
+			flex: FLEX.FILL,
+			gap: SPACING.S3,
+		},
+		title: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S16,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		meta: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+		},
+		amount: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S15,
+			fontWeight: FONT_WEIGHT.BLACK,
+			marginTop: SPACING.S3,
+		},
+		convertedAmount: {
+			fontSize: FONT_SIZE.S13,
+			fontWeight: FONT_WEIGHT.BLACK,
+			marginTop: SPACING.S1,
+		},
+		actions: {
+			marginTop: SPACING.S12,
+			flexDirection: FLEX.ROW,
+			justifyContent: ALIGN.END,
+			gap: SPACING.S8,
+		},
+		actionIcon: {
+			width: SIZES.S34,
+			height: SIZES.S34,
+			borderRadius: RADIUS.S12,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+			borderWidth: BORDER.THIN,
+			borderColor: COLORS.border,
+			backgroundColor: COLORS.surfaceRaised,
+		},
+		actionIconSuccess: {
+			borderColor: COLORS.successBorder,
+			backgroundColor: COLORS.successMuted,
+		},
+		actionIconPressed: {
+			transform: [{ scale: SCALE.STRONG }],
+		},
+	}),
+);
 
 export default SourcesScreen;

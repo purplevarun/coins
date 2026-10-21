@@ -23,12 +23,13 @@ import PagedScreenList from "@/components/PagedScreenList";
 import ScreenList from "@/components/ScreenList";
 import SearchBar from "@/components/SearchBar";
 import SegmentedControl from "@/components/SegmentedControl";
-import COLORS from "@/constants/colors";
 import dateConstants from "@/constants/dateConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import analysisService from "@/services/analysisService";
 import exchangeRateService from "@/services/exchangeRateService";
 import investmentService from "@/services/investmentService";
@@ -44,6 +45,7 @@ import type InvestmentsScreenProps from "@/types/InvestmentsScreenProps";
 import type InvestmentType from "@/types/InvestmentType";
 import type Platform from "@/types/Platform";
 import type SelectOption from "@/types/SelectOption";
+import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
 import moneyUtils from "@/utils/money";
 const { getAnalysisSummary, getInvestmentNetAmount, getInvestmentNetLabel } =
@@ -79,6 +81,8 @@ const getInvestmentGroupKey = (
 const InvestmentsScreen = ({
 	navigation,
 }: InvestmentsScreenProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const { database, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
 	const [investments, setInvestments] = useState<readonly Investment[]>([]);
@@ -397,7 +401,14 @@ const InvestmentsScreen = ({
 				</Pressable>
 			);
 		},
-		[analysis, handleArchivePress, isNativeCurrency, navigation],
+		[
+			analysis,
+			handleArchivePress,
+			isNativeCurrency,
+			navigation,
+			styles,
+			COLORS,
+		],
 	);
 
 	const renderRelationItem = useCallback(
@@ -422,7 +433,7 @@ const InvestmentsScreen = ({
 				</GlassCard>
 			</Pressable>
 		),
-		[groupBy, navigation],
+		[groupBy, navigation, styles],
 	);
 
 	const listHeader = useMemo(
@@ -550,78 +561,80 @@ const {
 	TEXT_TRANSFORM,
 } = styleConstants;
 
-const styles = StyleSheet.create({
-	screen: {
-		flex: FLEX.FILL,
-		backgroundColor: COLORS.background,
-	},
-	row: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.START,
-		gap: SPACING.S12,
-	},
-	iconBox: {
-		width: SIZES.S44,
-		height: SIZES.S44,
-		borderRadius: RADIUS.S15,
-		backgroundColor: COLORS.surfaceRaised,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-	},
-	details: {
-		flex: FLEX.FILL,
-		gap: SPACING.S3,
-	},
-	title: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S16,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	meta: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-	},
-	amount: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S15,
-		fontWeight: FONT_WEIGHT.BLACK,
-		marginTop: SPACING.S3,
-	},
-	actions: {
-		marginTop: SPACING.S12,
-		flexDirection: FLEX.ROW,
-		justifyContent: ALIGN.END,
-		gap: SPACING.S8,
-	},
-	actionIcon: {
-		width: SIZES.S34,
-		height: SIZES.S34,
-		borderRadius: RADIUS.S12,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-		borderWidth: BORDER.THIN,
-		borderColor: COLORS.border,
-		backgroundColor: COLORS.surfaceRaised,
-	},
-	actionIconPressed: {
-		transform: [{ scale: SCALE.STRONG }],
-	},
-	investmentTotals: {
-		marginTop: SPACING.S5,
-		gap: SPACING.S2,
-	},
-	groupHeader: {
-		paddingTop: SPACING.S6,
-		paddingBottom: SPACING.S2,
-		paddingHorizontal: SPACING.S2,
-	},
-	groupHeaderText: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-		fontWeight: FONT_WEIGHT.BLACK,
-		textTransform: TEXT_TRANSFORM.UPPERCASE,
-		letterSpacing: LETTER_SPACING.WIDE,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		screen: {
+			flex: FLEX.FILL,
+			backgroundColor: COLORS.background,
+		},
+		row: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.START,
+			gap: SPACING.S12,
+		},
+		iconBox: {
+			width: SIZES.S44,
+			height: SIZES.S44,
+			borderRadius: RADIUS.S15,
+			backgroundColor: COLORS.surfaceRaised,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+		},
+		details: {
+			flex: FLEX.FILL,
+			gap: SPACING.S3,
+		},
+		title: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S16,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		meta: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+		},
+		amount: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S15,
+			fontWeight: FONT_WEIGHT.BLACK,
+			marginTop: SPACING.S3,
+		},
+		actions: {
+			marginTop: SPACING.S12,
+			flexDirection: FLEX.ROW,
+			justifyContent: ALIGN.END,
+			gap: SPACING.S8,
+		},
+		actionIcon: {
+			width: SIZES.S34,
+			height: SIZES.S34,
+			borderRadius: RADIUS.S12,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+			borderWidth: BORDER.THIN,
+			borderColor: COLORS.border,
+			backgroundColor: COLORS.surfaceRaised,
+		},
+		actionIconPressed: {
+			transform: [{ scale: SCALE.STRONG }],
+		},
+		investmentTotals: {
+			marginTop: SPACING.S5,
+			gap: SPACING.S2,
+		},
+		groupHeader: {
+			paddingTop: SPACING.S6,
+			paddingBottom: SPACING.S2,
+			paddingHorizontal: SPACING.S2,
+		},
+		groupHeaderText: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+			fontWeight: FONT_WEIGHT.BLACK,
+			textTransform: TEXT_TRANSFORM.UPPERCASE,
+			letterSpacing: LETTER_SPACING.WIDE,
+		},
+	}),
+);
 
 export default InvestmentsScreen;

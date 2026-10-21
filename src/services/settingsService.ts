@@ -1,12 +1,30 @@
+import themeConstants from "@/constants/themeConstants";
 import settingsRepository from "@/repositories/settingsRepository";
+import type ThemeId from "@/types/ThemeId";
 import type { SQLiteDatabase } from "expo-sqlite";
 
 const { getSettingRow, upsertSettingRow } = settingsRepository;
+const { DEFAULT_THEME_ID, THEME_OPTIONS, THEME_SETTING_KEY } = themeConstants;
 
 const NATIVE_CURRENCY_KEY = "native_currency_display";
 const FY_START_MONTH_KEY = "fy_start_month";
 const DEFAULT_TRIP_ID_KEY = "default_trip_id";
 const DEFAULT_SOURCE_ID_KEY = "default_source_id";
+
+const updateThemeId = async (
+	database: SQLiteDatabase,
+	themeId: ThemeId,
+): Promise<void> =>
+	upsertSettingRow(database, THEME_SETTING_KEY, themeId, Date.now());
+
+const getThemeId = async (database: SQLiteDatabase): Promise<ThemeId> => {
+	const value = await getSettingRow(database, THEME_SETTING_KEY);
+	const themeId =
+		THEME_OPTIONS.find((option) => option.value === value)?.value ??
+		DEFAULT_THEME_ID;
+	if (value !== themeId) await updateThemeId(database, themeId);
+	return themeId;
+};
 
 const getNativeCurrencyDisplay = async (
 	database: SQLiteDatabase,
@@ -77,10 +95,12 @@ const settingsService = {
 	getDefaultTripId,
 	getFyStartMonth,
 	getNativeCurrencyDisplay,
+	getThemeId,
 	updateDefaultSourceId,
 	updateDefaultTripId,
 	updateFyStartMonth,
 	updateNativeCurrencyDisplay,
+	updateThemeId,
 };
 
 export default settingsService;

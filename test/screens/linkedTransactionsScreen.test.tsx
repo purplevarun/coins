@@ -240,12 +240,24 @@ describe("LinkedTransactionsScreen", () => {
 			} as any);
 			await flush();
 
-			findByPredicate(
+			const editAction = findByPredicate(
 				tree,
 				(node) =>
 					node?.props?.label === "Edit" &&
 					typeof node?.props?.onPress === "function",
-			)[0]?.props?.onPress();
+			)[0];
+			expect(editAction.props.style).toMatchObject({
+				flexGrow: 1,
+				flexBasis: 120,
+				minWidth: 120,
+			});
+			expect(
+				findByPredicate(
+					tree,
+					(node) => node?.props?.style?.flexWrap === "wrap",
+				),
+			).not.toHaveLength(0);
+			editAction.props.onPress();
 
 			const screenList = findByPredicate(
 				tree,

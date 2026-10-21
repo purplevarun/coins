@@ -167,6 +167,14 @@ describe("HomeScreen", () => {
 		)[0];
 
 		expect(navBar).toBeTruthy();
+		const dock = findByPredicate(
+			tree,
+			(node) => node?.props?.children === navBar,
+		)[0];
+		expect(dock.props.style).toMatchObject({ flexShrink: 0 });
+		expect(dock.props.style).not.toHaveProperty("position");
+		expect(dock.props.style).not.toHaveProperty("left");
+		expect(dock.props.style).not.toHaveProperty("right");
 		expect(navBar.props.activeMode).toBe("FINANCE");
 		expect(navBar.props.options).toEqual(HOME_MODE_OPTIONS);
 		expect(navBar.props.options.map((option: any) => option.label)).toEqual(

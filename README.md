@@ -58,6 +58,49 @@ Expense search includes item categories and amounts. Category-linked lists show
 the matched allocation alongside the payment total. Opening a split payment
 allows editing all items together; cloning creates a new payment and new item IDs.
 
+## Transaction Entry
+
+New transactions put amount and category first, with classification, payment type,
+source, date, and optional trip available through compact tap-to-edit controls.
+These controls share one wrapping flow: their selected values determine their
+widths, and there is no fixed number of controls per line.
+General debits start with one item; additional items share the same transaction
+type, source, date, and trip. Credits remain a single amount and category,
+investments use an amount and investment, and transfers keep separate accounts
+and received amounts when currencies differ.
+
+The total and Save action remain outside the scrolling form. New amount fields
+receive focus automatically, while edit and clone flows retain their existing
+values and date rules. Switching a multi-item debit to another mode still requires
+confirmation before removing the item breakdown.
+General debits use the Add item action in the navigation header; there is no
+add-item control inside the item rows. Home navigation remains full-width, with
+a compact indicator around the active tab icon.
+
+Display zoom and font scaling are respected. Tabs size to their labels, action rows
+wrap when space is limited, and text is allowed to wrap instead of being truncated.
+Transaction category and investment fields use the shorter "Select" placeholder
+because their labels already identify the field. The layout may reflow on smaller
+or zoomed displays while keeping the same actions and complete text available.
+
+## Themes
+
+Settings > Configuration > Theme offers Midnight Amethyst (the original purple),
+Graphite & Mint, Paper & Cobalt, Carbon & Ice, and Obsidian & Amber. Midnight
+Amethyst is the default for both new and existing installations. Paper & Cobalt
+is light; the other four themes are dark. Selection is explicit, not based on the
+device's preferred appearance.
+
+The selected ID is stored under `theme` in the existing `settings` table. Changes
+apply immediately after a successful save and persist across app restarts and
+backup restore. Missing or unknown theme IDs fall back to the purple default.
+No schema migration is required. The Graphite & Mint coin-and-ledger launcher
+icon is shared across themes.
+
+Components use the shared theme context and cached per-palette styles. Navigation,
+inputs, dialogs, charts, and system appearance follow the active palette without
+remounting screens. The splash stays visible until the saved theme is loaded.
+
 ## Architecture
 
 Dependencies flow in one direction:
@@ -130,8 +173,10 @@ migrated 2026.10.13 schema as its baseline. Completed migrations have been retir
 restore databases. The current migration drops the retired attachment table and
 its index. Upgrading an existing installation also removes legacy app-owned preview
 and picker cache files once. The database is compacted on the first app start or
-foreground return of each local calendar day. The last successful compaction day
-is stored in settings; failed attempts are retried on a later open. Importing an older backup
+foreground return of each local calendar day. Successful completion shows a
+"Vacuum done!" toast. The last successful compaction day is stored in settings;
+same-day skips and failed attempts do not show a success toast. Failed attempts
+are retried on a later open. Importing an older backup
 discards its attachments while preserving other records and the original backup
 file outside the app cache.
 Older, unmigrated databases and backups are no longer automatically upgraded.

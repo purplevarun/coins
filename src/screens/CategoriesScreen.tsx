@@ -24,13 +24,14 @@ import PagedScreenList from "@/components/PagedScreenList";
 import SearchBar from "@/components/SearchBar";
 import SegmentedControl from "@/components/SegmentedControl";
 import appConstants from "@/constants/appConstants";
-import COLORS from "@/constants/colors";
 import dateConstants from "@/constants/dateConstants";
 import financeConstants from "@/constants/financeConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import analysisService from "@/services/analysisService";
 import categoryService from "@/services/categoryService";
 import exchangeRateService from "@/services/exchangeRateService";
@@ -41,6 +42,8 @@ import type Category from "@/types/Category";
 import type CategoryKind from "@/types/CategoryKind";
 import type ExchangeRate from "@/types/ExchangeRate";
 import type IconName from "@/types/IconName";
+import type ThemeColors from "@/types/ThemeColors";
+import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
 import moneyUtils from "@/utils/money";
 const { getAnalysisSummary } = analysisService;
@@ -61,15 +64,17 @@ const KIND_ICON: Readonly<Record<CategoryKind, IconName>> = {
 	REFUND: "arrow-undo-outline",
 };
 
-const KIND_COLOR: Readonly<Record<CategoryKind, string>> = {
-	EXPENSE: COLORS.warning,
-	INCOME: COLORS.success,
-	REFUND: COLORS.blue,
+const KIND_COLOR: Readonly<Record<CategoryKind, keyof ThemeColors>> = {
+	EXPENSE: "warning",
+	INCOME: "success",
+	REFUND: "blue",
 };
 
 const CategoriesScreen = ({
 	navigation,
 }: CategoriesScreenProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const { database, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
 	const [categories, setCategories] = useState<readonly Category[]>([]);
@@ -156,7 +161,7 @@ const CategoriesScreen = ({
 				</View>
 			),
 		});
-	}, [navigation, searchVisible]);
+	}, [navigation, searchVisible, styles]);
 
 	const handleArchive = useCallback(
 		async (id: string): Promise<void> => {
@@ -263,7 +268,7 @@ const CategoriesScreen = ({
 						<View style={styles.row}>
 							<View style={styles.iconBox}>
 								<Ionicons
-									color={KIND_COLOR[category.kind]}
+									color={COLORS[KIND_COLOR[category.kind]]}
 									name={KIND_ICON[category.kind]}
 									size={22}
 								/>
@@ -346,7 +351,14 @@ const CategoriesScreen = ({
 				</Pressable>
 			);
 		},
-		[analysis, handleArchivePress, isNativeCurrency, navigation],
+		[
+			analysis,
+			handleArchivePress,
+			isNativeCurrency,
+			navigation,
+			styles,
+			COLORS,
+		],
 	);
 
 	const listHeader = useMemo(
@@ -436,67 +448,69 @@ const {
 	SPACING,
 } = styleConstants;
 
-const styles = StyleSheet.create({
-	screen: {
-		flex: FLEX.FILL,
-		backgroundColor: COLORS.background,
-	},
-	headerActions: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S8,
-	},
-	row: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.START,
-		gap: SPACING.S12,
-	},
-	iconBox: {
-		width: SIZES.S44,
-		height: SIZES.S44,
-		borderRadius: RADIUS.S15,
-		backgroundColor: COLORS.surfaceRaised,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-	},
-	details: {
-		flex: FLEX.FILL,
-		gap: SPACING.S3,
-	},
-	title: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S16,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	meta: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-	},
-	amount: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S15,
-		fontWeight: FONT_WEIGHT.BLACK,
-		marginTop: SPACING.S3,
-	},
-	actions: {
-		marginTop: SPACING.S12,
-		flexDirection: FLEX.ROW,
-		justifyContent: ALIGN.END,
-		gap: SPACING.S8,
-	},
-	actionIcon: {
-		width: SIZES.S34,
-		height: SIZES.S34,
-		borderRadius: RADIUS.S12,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-		borderWidth: BORDER.THIN,
-		borderColor: COLORS.border,
-		backgroundColor: COLORS.surfaceRaised,
-	},
-	actionIconPressed: {
-		transform: [{ scale: SCALE.STRONG }],
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		screen: {
+			flex: FLEX.FILL,
+			backgroundColor: COLORS.background,
+		},
+		headerActions: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S8,
+		},
+		row: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.START,
+			gap: SPACING.S12,
+		},
+		iconBox: {
+			width: SIZES.S44,
+			height: SIZES.S44,
+			borderRadius: RADIUS.S15,
+			backgroundColor: COLORS.surfaceRaised,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+		},
+		details: {
+			flex: FLEX.FILL,
+			gap: SPACING.S3,
+		},
+		title: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S16,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		meta: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+		},
+		amount: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S15,
+			fontWeight: FONT_WEIGHT.BLACK,
+			marginTop: SPACING.S3,
+		},
+		actions: {
+			marginTop: SPACING.S12,
+			flexDirection: FLEX.ROW,
+			justifyContent: ALIGN.END,
+			gap: SPACING.S8,
+		},
+		actionIcon: {
+			width: SIZES.S34,
+			height: SIZES.S34,
+			borderRadius: RADIUS.S12,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+			borderWidth: BORDER.THIN,
+			borderColor: COLORS.border,
+			backgroundColor: COLORS.surfaceRaised,
+		},
+		actionIconPressed: {
+			transform: [{ scale: SCALE.STRONG }],
+		},
+	}),
+);
 
 export default CategoriesScreen;

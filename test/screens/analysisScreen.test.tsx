@@ -1,4 +1,8 @@
 import dateConstants from "@/constants/dateConstants";
+import themeConstants from "@/constants/themeConstants";
+import THEME_PALETTES, {
+	THEME_CHART_COLORS,
+} from "@/constants/themePaletteConstants";
 import type HeaderIconButtonProps from "@/types/HeaderIconButtonProps";
 import type HeaderOptions from "@test/types/HeaderOptions";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -176,6 +180,26 @@ const findByPredicate = (
 };
 
 describe("AnalysisScreen", () => {
+	it.each(themeConstants.THEME_OPTIONS)(
+		"keeps eight category colors distinct in $label",
+		({ value }) => {
+			const summary = {
+				categories: Array.from({ length: 8 }, (_unused, index) => ({
+					categoryName: `Category ${index}`,
+					net: "-1",
+				})),
+			};
+			const chart = getChartData(
+				THEME_PALETTES[value].colors,
+				summary as any,
+				false,
+				THEME_CHART_COLORS[value],
+			);
+			expect(chart).toHaveLength(8);
+			expect(new Set(chart.map((datum) => datum.color)).size).toBe(8);
+		},
+	);
+
 	beforeEach(() => {
 		reactMocks.useEffect.mockReset();
 		reactMocks.useLayoutEffect.mockReset();
@@ -686,9 +710,9 @@ describe("AnalysisScreen", () => {
 
 		expect(formatSignedMoney("20")).toBe("+INR 20");
 		expect(formatSignedMoney("0")).toBe("INR 0");
-		expect(getInvestmentColor("20")).toBe(COLORS.danger);
-		expect(getInvestmentColor("-20")).toBe(COLORS.success);
-		expect(getInvestmentColor("0")).toBe(COLORS.text);
+		expect(getInvestmentColor(COLORS, "20")).toBe(COLORS.danger);
+		expect(getInvestmentColor(COLORS, "-20")).toBe(COLORS.success);
+		expect(getInvestmentColor(COLORS, "0")).toBe(COLORS.text);
 		expect(
 			isShiftNavigationDisabled("MONTH", anchorDate, -1, undefined, 10),
 		).toBe(false);
@@ -712,9 +736,10 @@ describe("AnalysisScreen", () => {
 			"Update INR exchange rates for USD, EUR before analysis can include those transactions.",
 		);
 
-		expect(getChartData(null, true)).toEqual([]);
+		expect(getChartData(COLORS, null, true)).toEqual([]);
 		expect(
 			getChartData(
+				COLORS,
 				{
 					missingCurrencies: [],
 					totalIncome: "0",
@@ -750,6 +775,7 @@ describe("AnalysisScreen", () => {
 		).toEqual([{ label: "Food", value: 1, color: "#A87CFF" }]);
 
 		const fallbackColorData = getChartData(
+			COLORS,
 			{
 				categories: {
 					filter: () => ({
@@ -780,6 +806,7 @@ describe("AnalysisScreen", () => {
 
 		expect(
 			getSummaryMetrics(
+				COLORS,
 				{
 					missingCurrencies: [],
 					totalIncome: "100",
@@ -797,6 +824,7 @@ describe("AnalysisScreen", () => {
 
 		expect(
 			getSummaryMetrics(
+				COLORS,
 				{
 					missingCurrencies: [],
 					totalIncome: "100",
@@ -819,9 +847,12 @@ describe("AnalysisScreen", () => {
 			"Savings %",
 		]);
 
-		expect(getSummaryMetrics(null, "0", "0", "0")[5]?.value).toBe("—");
+		expect(getSummaryMetrics(COLORS, null, "0", "0", "0")[5]?.value).toBe(
+			"—",
+		);
 
 		const negativeSummaryMetrics = getSummaryMetrics(
+			COLORS,
 			{
 				missingCurrencies: [],
 				totalIncome: "100",
@@ -844,6 +875,7 @@ describe("AnalysisScreen", () => {
 		expect(negativeSummaryMetrics[5]?.value).toBe("-50.0%");
 
 		const positiveSummaryMetrics = getSummaryMetrics(
+			COLORS,
 			{
 				missingCurrencies: [],
 				totalIncome: "100",

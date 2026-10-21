@@ -18,11 +18,12 @@ import ListHeader from "@/components/ListHeader";
 import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
 import SearchBar from "@/components/SearchBar";
-import COLORS from "@/constants/colors";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import categoryService from "@/services/categoryService";
 import investmentService from "@/services/investmentService";
 import sourceService from "@/services/sourceService";
@@ -35,6 +36,7 @@ import type Investment from "@/types/Investment";
 import type RelationKind from "@/types/RelationKind";
 import type Source from "@/types/Source";
 import type Trip from "@/types/Trip";
+import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
 import getRelationLabels from "@/utils/relation";
 const { getArchivedCategories, setCategoryArchived } = categoryService;
@@ -53,6 +55,8 @@ const KIND_ICON: Record<RelationKind, ComponentProps<typeof Ionicons>["name"]> =
 const ArchivedRelationsScreen = (
 	_props: ArchivedRelationsScreenProps,
 ): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const { database, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
 	const [sources, setSources] = useState<readonly Source[]>([]);
@@ -224,7 +228,7 @@ const ArchivedRelationsScreen = (
 				</Pressable>
 			);
 		},
-		[handleRestorePress],
+		[handleRestorePress, styles, COLORS],
 	);
 
 	const listHeader = useMemo(
@@ -282,46 +286,48 @@ const {
 	TEXT_TRANSFORM,
 } = styleConstants;
 
-const styles = StyleSheet.create({
-	screen: {
-		flex: FLEX.FILL,
-		backgroundColor: COLORS.background,
-	},
-	sectionHeading: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-		fontWeight: FONT_WEIGHT.BLACK,
-		letterSpacing: LETTER_SPACING.WIDE,
-		textTransform: TEXT_TRANSFORM.UPPERCASE,
-		marginBottom: SPACING.S6,
-		marginTop: SPACING.S4,
-	},
-	row: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S12,
-	},
-	iconBox: {
-		width: SIZES.S40,
-		height: SIZES.S40,
-		borderRadius: RADIUS.S14,
-		backgroundColor: COLORS.surfaceRaised,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-	},
-	details: {
-		flex: FLEX.FILL,
-		gap: SPACING.S2,
-	},
-	title: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S15,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	meta: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		screen: {
+			flex: FLEX.FILL,
+			backgroundColor: COLORS.background,
+		},
+		sectionHeading: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+			fontWeight: FONT_WEIGHT.BLACK,
+			letterSpacing: LETTER_SPACING.WIDE,
+			textTransform: TEXT_TRANSFORM.UPPERCASE,
+			marginBottom: SPACING.S6,
+			marginTop: SPACING.S4,
+		},
+		row: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S12,
+		},
+		iconBox: {
+			width: SIZES.S40,
+			height: SIZES.S40,
+			borderRadius: RADIUS.S14,
+			backgroundColor: COLORS.surfaceRaised,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+		},
+		details: {
+			flex: FLEX.FILL,
+			gap: SPACING.S2,
+		},
+		title: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S15,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		meta: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+		},
+	}),
+);
 
 export default ArchivedRelationsScreen;

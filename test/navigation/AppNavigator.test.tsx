@@ -20,6 +20,7 @@ vi.mock("@/constants/typography", () => ({
 
 vi.mock("@react-navigation/native", () => ({
 	DarkTheme: {
+		dark: true,
 		colors: {
 			background: "dark-bg",
 			card: "dark-card",
@@ -28,6 +29,7 @@ vi.mock("@react-navigation/native", () => ({
 			text: "dark-text",
 		},
 	},
+	DefaultTheme: { dark: false, colors: {} },
 	NavigationContainer: "NavigationContainer",
 }));
 
@@ -87,6 +89,9 @@ vi.mock("@/screens/TripsScreen", () => ({ default: "TripsScreen" }));
 vi.mock("@/screens/VaultFormScreen", () => ({ default: "VaultFormScreen" }));
 vi.mock("@/screens/VaultScreen", () => ({ default: "VaultScreen" }));
 
+import themeConstants from "@/constants/themeConstants";
+import THEME_PALETTES from "@/constants/themePaletteConstants";
+import useTheme from "@/hooks/useTheme";
 import AppNavigator from "@/navigation/AppNavigator";
 
 const findAllByType = (node: any, type: string, acc: any[] = []): any[] => {
@@ -105,6 +110,33 @@ const findAllByType = (node: any, type: string, acc: any[] = []): any[] => {
 };
 
 describe("AppNavigator", () => {
+	it.each(themeConstants.THEME_OPTIONS)(
+		"themes navigation and headers for $label",
+		({ value }) => {
+			const theme = THEME_PALETTES[value];
+			vi.mocked(useTheme).mockReturnValue(theme);
+			const tree = AppNavigator();
+			const container = findAllByType(tree, "NavigationContainer")[0];
+			expect(container.props.theme.dark).toBe(theme.isDark);
+			expect(container.props.theme.colors).toMatchObject({
+				background: theme.colors.background,
+				text: theme.colors.text,
+				notification: theme.colors.danger,
+			});
+			const options = findAllByType(
+				tree,
+				"Navigator",
+			)[0].props.screenOptions({ navigation: {} });
+			expect(options.headerStyle.backgroundColor).toBe(
+				theme.colors.backgroundElevated,
+			);
+			expect(options.headerTintColor).toBe(theme.colors.text);
+			vi.mocked(useTheme).mockReturnValue(
+				THEME_PALETTES[themeConstants.DEFAULT_THEME_ID],
+			);
+		},
+	);
+
 	it("wires screens, theme, and dynamic title options", () => {
 		const tree = AppNavigator();
 		const containers = findAllByType(tree, "NavigationContainer");
@@ -127,6 +159,33 @@ describe("AppNavigator", () => {
 
 		const byName = (name: string): any =>
 			screens.find((screen) => screen?.props?.name === name);
+		const transactionOptions = byName("TransactionForm").props.options;
+		expect(transactionOptions({ route: { params: undefined } }).title).toBe(
+			"New transaction",
+		);
+		expect(transactionOptions({ route: { params: {} } }).title).toBe(
+			"New transaction",
+		);
+		expect(
+			transactionOptions({
+				route: { params: { transactionId: "transaction" } },
+			}).title,
+		).toBe("Edit transaction");
+		expect(
+			transactionOptions({
+				route: { params: { cloneFromTransactionId: "transaction" } },
+			}).title,
+		).toBe("Clone transaction");
+		expect(
+			transactionOptions({
+				route: {
+					params: {
+						transactionId: "edit",
+						cloneFromTransactionId: "clone",
+					},
+				},
+			}).title,
+		).toBe("Edit transaction");
 		expect(
 			byName("RelationDetails")?.props?.options({
 				route: { params: { entityName: "Holiday" } },

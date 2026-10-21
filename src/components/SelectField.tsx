@@ -4,19 +4,26 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
-import COLORS from "@/constants/colors";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import type SelectFieldProps from "@/types/SelectFieldProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 
 const SelectField = ({
 	label,
 	value,
 	options,
 	onChange,
-	placeholder = "Select",
+	placeholder = MESSAGES.COMMON.SELECT,
 	isOptional = false,
+	isCompact = false,
+	isSearchable = true,
+	isDisabled = false,
 }: SelectFieldProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
 	const selectedOption = options.find((option) => option.value === value);
@@ -42,14 +49,42 @@ const SelectField = ({
 		setSearch("");
 	};
 
+	const renderSwatches = (
+		swatches?: readonly string[],
+	): React.JSX.Element | null =>
+		swatches ? (
+			<View style={styles.swatches}>
+				{swatches.map((color) => (
+					<View
+						key={color}
+						style={[styles.swatch, { backgroundColor: color }]}
+					/>
+				))}
+			</View>
+		) : null;
+
 	return (
-		<View style={styles.container}>
-			<CustomText style={styles.label}>{label}</CustomText>
-			<Pressable onPress={handleOpen} style={styles.trigger}>
+		<View style={[styles.container, isCompact && styles.compactContainer]}>
+			{!isCompact ? (
+				<CustomText style={styles.label}>{label}</CustomText>
+			) : null}
+			<Pressable
+				accessibilityRole="button"
+				accessibilityLabel={`${label}: ${selectedOption?.label ?? placeholder}`}
+				accessibilityState={{ disabled: isDisabled }}
+				disabled={isDisabled}
+				onPress={handleOpen}
+				style={[
+					styles.trigger,
+					isCompact && styles.compactTrigger,
+					isDisabled && styles.disabled,
+				]}
+			>
+				{renderSwatches(selectedOption?.swatches)}
 				<CustomText
-					numberOfLines={1}
 					style={[
 						styles.triggerText,
+						isCompact && styles.compactText,
 						!selectedOption && styles.placeholder,
 					]}
 				>
@@ -75,13 +110,17 @@ const SelectField = ({
 						<CustomText style={styles.sheetTitle}>
 							{label}
 						</CustomText>
-						<CustomTextInput
-							autoFocus
-							onChangeText={setSearch}
-							placeholder={MESSAGES.COMPONENTS.SEARCH_PLACEHOLDER}
-							style={styles.searchInput}
-							value={search}
-						/>
+						{isSearchable ? (
+							<CustomTextInput
+								autoFocus
+								onChangeText={setSearch}
+								placeholder={
+									MESSAGES.COMPONENTS.SEARCH_PLACEHOLDER
+								}
+								style={styles.searchInput}
+								value={search}
+							/>
+						) : null}
 						<ScrollView keyboardShouldPersistTaps="handled">
 							{isOptional ? (
 								<Pressable
@@ -108,6 +147,7 @@ const SelectField = ({
 											styles.selectedOption,
 									]}
 								>
+									{renderSwatches(option.swatches)}
 									<View style={styles.optionContent}>
 										<CustomText style={styles.optionText}>
 											{option.label}
@@ -144,106 +184,144 @@ const {
 	FONT_SIZE,
 	FONT_WEIGHT,
 	LETTER_SPACING,
+	OPACITY,
 	RADIUS,
 	SIZES,
 	SPACING,
 	TEXT_TRANSFORM,
 } = styleConstants;
 
-const styles = StyleSheet.create({
-	container: {
-		gap: SPACING.S7,
-	},
-	label: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-		fontWeight: FONT_WEIGHT.BOLD,
-		textTransform: TEXT_TRANSFORM.UPPERCASE,
-		letterSpacing: LETTER_SPACING.WIDEST,
-	},
-	trigger: {
-		minHeight: SIZES.S50,
-		borderWidth: BORDER.THIN,
-		borderColor: COLORS.border,
-		borderRadius: RADIUS.S15,
-		backgroundColor: COLORS.surfaceLight,
-		paddingHorizontal: SPACING.S14,
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.SPACE_BETWEEN,
-		gap: SPACING.S8,
-	},
-	triggerText: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S15,
-		flex: FLEX.FILL,
-	},
-	placeholder: {
-		color: COLORS.textDim,
-	},
-	overlay: {
-		flex: FLEX.FILL,
-		backgroundColor: COLORS.overlayStrong,
-		justifyContent: ALIGN.START,
-		padding: SPACING.S16,
-		paddingTop: SPACING.S56,
-	},
-	sheet: {
-		maxHeight: SIZES.SHEET,
-		borderRadius: RADIUS.S24,
-		backgroundColor: COLORS.glassStrong,
-		borderWidth: BORDER.THIN,
-		borderColor: COLORS.borderStrong,
-		padding: SPACING.S16,
-	},
-	sheetTitle: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S20,
-		fontWeight: FONT_WEIGHT.HEAVY,
-		marginBottom: SPACING.S12,
-	},
-	searchInput: {
-		backgroundColor: COLORS.surfaceHigh,
-		borderWidth: BORDER.THIN,
-		borderColor: COLORS.border,
-		borderRadius: RADIUS.S12,
-		paddingHorizontal: SPACING.S12,
-		paddingVertical: SPACING.S10,
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S15,
-		marginBottom: SPACING.S8,
-	},
-	noResults: {
-		color: COLORS.textDim,
-		fontSize: FONT_SIZE.S13,
-		padding: SPACING.S12,
-		textAlign: ALIGN.CENTER,
-	},
-	option: {
-		minHeight: SIZES.S54,
-		padding: SPACING.S12,
-		borderRadius: RADIUS.S14,
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.SPACE_BETWEEN,
-		gap: SPACING.S8,
-	},
-	selectedOption: {
-		backgroundColor: COLORS.primaryMuted,
-	},
-	optionContent: {
-		flex: FLEX.FILL,
-		gap: SPACING.S3,
-	},
-	optionText: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S15,
-		fontWeight: FONT_WEIGHT.BOLD,
-	},
-	description: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		disabled: {
+			opacity: OPACITY.MEDIUM,
+		},
+		swatches: {
+			flexDirection: FLEX.ROW,
+			gap: SPACING.S4,
+			flexShrink: 0,
+		},
+		swatch: {
+			width: SIZES.S16,
+			height: SIZES.S16,
+			borderRadius: RADIUS.S4,
+			borderWidth: BORDER.THIN,
+			borderColor: COLORS.borderStrong,
+		},
+		container: {
+			gap: SPACING.S7,
+			maxWidth: "100%",
+		},
+		compactContainer: {
+			minWidth: 0,
+			flexBasis: "auto",
+			alignSelf: ALIGN.START,
+			flexShrink: 1,
+		},
+		compactTrigger: {
+			minHeight: SIZES.S44,
+			borderRadius: RADIUS.S12,
+			paddingHorizontal: SPACING.S8,
+			gap: SPACING.S5,
+		},
+		compactText: {
+			fontSize: FONT_SIZE.S13,
+			fontWeight: FONT_WEIGHT.BOLD,
+			flex: 0,
+			flexShrink: 1,
+		},
+		label: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+			fontWeight: FONT_WEIGHT.BOLD,
+			textTransform: TEXT_TRANSFORM.UPPERCASE,
+			letterSpacing: LETTER_SPACING.WIDEST,
+		},
+		trigger: {
+			minHeight: SIZES.S50,
+			paddingVertical: SPACING.S8,
+			borderWidth: BORDER.THIN,
+			borderColor: COLORS.borderStrong,
+			borderRadius: RADIUS.S15,
+			backgroundColor: COLORS.surfaceLight,
+			paddingHorizontal: SPACING.S14,
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.SPACE_BETWEEN,
+			gap: SPACING.S8,
+		},
+		triggerText: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S15,
+			flex: FLEX.FILL,
+		},
+		placeholder: {
+			color: COLORS.textDim,
+		},
+		overlay: {
+			flex: FLEX.FILL,
+			backgroundColor: COLORS.overlayStrong,
+			justifyContent: ALIGN.START,
+			padding: SPACING.S16,
+			paddingTop: SPACING.S56,
+		},
+		sheet: {
+			maxHeight: SIZES.SHEET,
+			borderRadius: RADIUS.S24,
+			backgroundColor: COLORS.glassStrong,
+			borderWidth: BORDER.THIN,
+			borderColor: COLORS.borderStrong,
+			padding: SPACING.S16,
+		},
+		sheetTitle: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S20,
+			fontWeight: FONT_WEIGHT.HEAVY,
+			marginBottom: SPACING.S12,
+		},
+		searchInput: {
+			backgroundColor: COLORS.surfaceHigh,
+			borderWidth: BORDER.THIN,
+			borderColor: COLORS.border,
+			borderRadius: RADIUS.S12,
+			paddingHorizontal: SPACING.S12,
+			paddingVertical: SPACING.S10,
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S15,
+			marginBottom: SPACING.S8,
+		},
+		noResults: {
+			color: COLORS.textDim,
+			fontSize: FONT_SIZE.S13,
+			padding: SPACING.S12,
+			textAlign: ALIGN.CENTER,
+		},
+		option: {
+			minHeight: SIZES.S54,
+			padding: SPACING.S12,
+			borderRadius: RADIUS.S14,
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.SPACE_BETWEEN,
+			gap: SPACING.S8,
+		},
+		selectedOption: {
+			backgroundColor: COLORS.primaryMuted,
+		},
+		optionContent: {
+			flex: FLEX.FILL,
+			gap: SPACING.S3,
+		},
+		optionText: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S15,
+			fontWeight: FONT_WEIGHT.BOLD,
+		},
+		description: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+		},
+	}),
+);
 
 export default SelectField;

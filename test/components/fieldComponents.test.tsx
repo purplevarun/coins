@@ -113,6 +113,31 @@ describe("field components", () => {
 		expect(setVisible).toHaveBeenCalledWith(false);
 	});
 
+	it("renders a compact date trigger without a separate label", () => {
+		const setVisible = vi.fn();
+		reactMocks.useState.mockImplementationOnce(() => [false, setVisible]);
+		const tree = DateField({
+			label: "Date",
+			value: 1_000,
+			onChange: vi.fn(),
+			isCompact: true,
+		});
+		expect(findAllByType(tree, "CustomText")).toHaveLength(1);
+		expect(tree.props.style[1]).toMatchObject({
+			flexBasis: "auto",
+			alignSelf: "flex-start",
+		});
+		for (const style of tree.props.style)
+			expect(style).not.toHaveProperty("width");
+		const trigger = findAllByType(tree, "Pressable")[0];
+		expect(trigger.props.accessibilityLabel).toBe("Date: 2026-08-25");
+		expect(trigger.props.style[0]).toMatchObject({ borderWidth: 1 });
+		expect(trigger.props.style[1]).not.toHaveProperty("borderWidth");
+		expect(trigger.props.style[1]).not.toHaveProperty("backgroundColor");
+		trigger.props.onPress();
+		expect(setVisible).toHaveBeenCalledWith(true);
+	});
+
 	it("covers FolderPicker create and non-create states", async () => {
 		const setCreating = vi.fn();
 		const setFolderName = vi.fn();

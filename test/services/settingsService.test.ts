@@ -1,3 +1,4 @@
+import themeConstants from "@/constants/themeConstants";
 import type TestAsyncFunction from "@test/types/TestAsyncFunction";
 import type { SQLiteDatabase } from "expo-sqlite";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -25,6 +26,60 @@ describe("settingsService", () => {
 		vi.setSystemTime(new Date("2026-08-25T12:00:00.000Z"));
 		mocks.getSettingRow.mockClear();
 		mocks.upsertSettingRow.mockClear();
+	});
+
+	it.each(themeConstants.THEME_OPTIONS)(
+		"reads the saved $label theme without rewriting it",
+		async ({ value }) => {
+			mocks.getSettingRow.mockResolvedValueOnce(value);
+			expect(await settingsService.getThemeId(database)).toBe(value);
+			expect(mocks.getSettingRow).toHaveBeenCalledWith(
+				database,
+				themeConstants.THEME_SETTING_KEY,
+			);
+			expect(mocks.upsertSettingRow).not.toHaveBeenCalled();
+		},
+	);
+
+	it.each([null, "", "unknown-theme"])(
+		"persists the purple default for missing or invalid theme %s",
+		async (value) => {
+			mocks.getSettingRow.mockResolvedValueOnce(value);
+			expect(await settingsService.getThemeId(database)).toBe(
+				themeConstants.DEFAULT_THEME_ID,
+			);
+			expect(mocks.upsertSettingRow).toHaveBeenCalledWith(
+				database,
+				themeConstants.THEME_SETTING_KEY,
+				themeConstants.DEFAULT_THEME_ID,
+				Date.now(),
+			);
+		},
+	);
+
+	it.each(themeConstants.THEME_OPTIONS)(
+		"persists the $label theme selection",
+		async ({ value }) => {
+			await settingsService.updateThemeId(database, value);
+			expect(mocks.upsertSettingRow).toHaveBeenCalledWith(
+				database,
+				themeConstants.THEME_SETTING_KEY,
+				value,
+				Date.now(),
+			);
+		},
+	);
+
+	it("propagates theme read and write failures", async () => {
+		mocks.getSettingRow.mockRejectedValueOnce(new Error("read failed"));
+		await expect(settingsService.getThemeId(database)).rejects.toThrow(
+			"read failed",
+		);
+		mocks.getSettingRow.mockResolvedValueOnce(null);
+		mocks.upsertSettingRow.mockRejectedValueOnce(new Error("write failed"));
+		await expect(settingsService.getThemeId(database)).rejects.toThrow(
+			"write failed",
+		);
 	});
 
 	it("returns native currency default true and parses stored values", async () => {

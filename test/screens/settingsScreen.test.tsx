@@ -5,6 +5,11 @@ import CustomText from "@/components/CustomText";
 import GlassCard from "@/components/GlassCard";
 import Notice from "@/components/Notice";
 import SelectField from "@/components/SelectField";
+import themeConstants from "@/constants/themeConstants";
+import THEME_PALETTES, {
+	THEME_SELECT_OPTIONS,
+} from "@/constants/themePaletteConstants";
+import useTheme from "@/hooks/useTheme";
 import packageJson from "../../package.json";
 
 const reactMocks = vi.hoisted(() => ({
@@ -23,6 +28,7 @@ const serviceMocks = vi.hoisted(() => ({
 	updateDefaultTripId: vi.fn(),
 	updateFyStartMonth: vi.fn(),
 	updateNativeCurrencyDisplay: vi.fn(),
+	updateThemeId: vi.fn(),
 	getSources: vi.fn(),
 	getTrips: vi.fn(),
 }));
@@ -88,6 +94,7 @@ vi.mock("@/services/settingsService", () => ({
 		updateDefaultTripId: serviceMocks.updateDefaultTripId,
 		updateFyStartMonth: serviceMocks.updateFyStartMonth,
 		updateNativeCurrencyDisplay: serviceMocks.updateNativeCurrencyDisplay,
+		updateThemeId: serviceMocks.updateThemeId,
 	},
 }));
 vi.mock("@/services/sourceService", () => ({
@@ -159,8 +166,114 @@ describe("SettingsScreen", () => {
 		serviceMocks.updateFyStartMonth.mockResolvedValue(undefined);
 		serviceMocks.updateDefaultSourceId.mockResolvedValue(undefined);
 		serviceMocks.updateDefaultTripId.mockResolvedValue(undefined);
+		serviceMocks.updateThemeId.mockResolvedValue(undefined);
+		vi.mocked(useTheme).mockReturnValue(
+			THEME_PALETTES[themeConstants.DEFAULT_THEME_ID],
+		);
 		serviceMocks.exportBackup.mockResolvedValue(undefined);
 		serviceMocks.restoreBackup.mockResolvedValue(true);
+	});
+
+	it.each(themeConstants.THEME_OPTIONS)(
+		"saves the $label selection and refreshes the theme",
+		async ({ value }) => {
+			const currentId =
+				value === themeConstants.DEFAULT_THEME_ID
+					? themeConstants.THEME_IDS.GRAPHITE_MINT
+					: themeConstants.DEFAULT_THEME_ID;
+			vi.mocked(useTheme).mockReturnValue(THEME_PALETTES[currentId]);
+			const tree = SettingsScreen({
+				navigation: { navigate: vi.fn() },
+			} as any);
+			const field = findByPredicate(
+				tree,
+				(node) =>
+					node.type === SelectField && node.props.label === "Theme",
+			)[0];
+			expect(field.props.options).toEqual(THEME_SELECT_OPTIONS);
+			expect(field.props.isSearchable).toBe(false);
+			expect(field.props.value).toBe(currentId);
+			field.props.onChange(value);
+			await flush();
+			expect(serviceMocks.updateThemeId).toHaveBeenCalledExactlyOnceWith(
+				{ id: "db" },
+				value,
+			);
+			expect(hookMocks.refreshData).toHaveBeenCalledOnce();
+		},
+	);
+
+	it("themes the currency-off state and disables theme selection while working", () => {
+		let stateCall = 0;
+		reactMocks.useState.mockImplementation((initial) => {
+			stateCall += 1;
+			return [
+				stateCall === 1 ? false : stateCall === 2 ? true : initial,
+				vi.fn(),
+			];
+		});
+		const tree = SettingsScreen({
+			navigation: { navigate: vi.fn() },
+		} as any);
+		const control = findByPredicate(
+			tree,
+			(node) => typeof node.props?.onValueChange === "function",
+		)[0];
+		expect(control.props.thumbColor).toBe(
+			THEME_PALETTES[themeConstants.DEFAULT_THEME_ID].colors.textMuted,
+		);
+		const field = findByPredicate(
+			tree,
+			(node) => node.type === SelectField && node.props.label === "Theme",
+		)[0];
+		expect(field.props.isDisabled).toBe(true);
+	});
+
+	it("does not rewrite an unchanged theme", async () => {
+		const tree = SettingsScreen({
+			navigation: { navigate: vi.fn() },
+		} as any);
+		const field = findByPredicate(
+			tree,
+			(node) => node.type === SelectField && node.props.label === "Theme",
+		)[0];
+		field.props.onChange(themeConstants.DEFAULT_THEME_ID);
+		await flush();
+		expect(serviceMocks.updateThemeId).not.toHaveBeenCalled();
+		expect(hookMocks.refreshData).not.toHaveBeenCalled();
+	});
+
+	it("retains the active theme when saving fails and re-enables selection", async () => {
+		const setWorking = vi.fn();
+		const setError = vi.fn();
+		let stateCall = 0;
+		reactMocks.useState.mockImplementation((initial) => {
+			stateCall += 1;
+			return [
+				initial,
+				stateCall === 2
+					? setWorking
+					: stateCall === 3
+						? setError
+						: vi.fn(),
+			];
+		});
+		serviceMocks.updateThemeId.mockRejectedValueOnce(
+			new Error("Theme write failed"),
+		);
+		const tree = SettingsScreen({
+			navigation: { navigate: vi.fn() },
+		} as any);
+		const field = findByPredicate(
+			tree,
+			(node) => node.type === SelectField && node.props.label === "Theme",
+		)[0];
+		field.props.onChange(themeConstants.THEME_IDS.GRAPHITE_MINT);
+		await flush();
+		expect(setError).toHaveBeenCalledWith("Theme write failed");
+		expect(setWorking.mock.calls).toEqual([[true], [false]]);
+		expect(field.props.value).toBe(themeConstants.DEFAULT_THEME_ID);
+		expect(hookMocks.refreshData).not.toHaveBeenCalled();
 	});
 
 	it.each([

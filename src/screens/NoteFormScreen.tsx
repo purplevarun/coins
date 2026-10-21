@@ -9,14 +9,15 @@ import GlassCard from "@/components/GlassCard";
 import Notice from "@/components/Notice";
 import ScreenContainer from "@/components/ScreenContainer";
 import TextField from "@/components/TextField";
-import COLORS from "@/constants/colors";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import useFolders from "@/hooks/useFolders";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import noteService from "@/services/noteService";
 import type NoteFormScreenProps from "@/types/NoteFormScreenProps";
+import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
 const { deleteNote, getNote, saveNote } = noteService;
 
@@ -24,6 +25,7 @@ const NoteFormScreen = ({
 	navigation,
 	route,
 }: NoteFormScreenProps): React.JSX.Element => {
+	const styles = useThemedStyles(themedStyles);
 	const noteId = route.params?.noteId;
 	const { database, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
@@ -144,15 +146,17 @@ const NoteFormScreen = ({
 
 const { FONT_SIZE, FONT_WEIGHT, SPACING } = styleConstants;
 
-const styles = StyleSheet.create({
-	form: {
-		gap: SPACING.S16,
-	},
-	heading: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S24,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		form: {
+			gap: SPACING.S16,
+		},
+		heading: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S24,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+	}),
+);
 
 export default NoteFormScreen;

@@ -1,4 +1,5 @@
 import CustomText from "@/components/CustomText";
+import type ThemeColors from "@/types/ThemeColors";
 import { Ionicons } from "@expo/vector-icons";
 import {
 	useCallback,
@@ -11,8 +12,9 @@ import { Modal, Pressable, StyleSheet, View } from "react-native";
 
 import AppButton from "@/components/AppButton";
 import GlassCard from "@/components/GlassCard";
-import COLORS from "@/constants/colors";
 import styleConstants from "@/constants/styleConstants";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import AppDialogContext from "@/providers/AppDialogContext";
 import type ActiveDialog from "@/types/ActiveDialog";
 import type AppDialogConfirmOptions from "@/types/AppDialogConfirmOptions";
@@ -20,10 +22,10 @@ import type AppDialogContextValue from "@/types/AppDialogContextValue";
 import type AppDialogMessageOptions from "@/types/AppDialogMessageOptions";
 import type ButtonVariant from "@/types/ButtonVariant";
 import type DialogAccent from "@/types/DialogAccent";
+import createThemedStyles from "@/utils/createThemedStyles";
 
 const DEFAULT_CANCEL_LABEL = "Cancel";
 const DEFAULT_CLOSE_LABEL = "Close";
-const WARNING_ICON_COLOR = COLORS.warning;
 
 const getDialogAccent = (variant?: ButtonVariant): DialogAccent => {
 	if (variant === "danger") {
@@ -35,17 +37,22 @@ const getDialogAccent = (variant?: ButtonVariant): DialogAccent => {
 	return "warning";
 };
 
-const getDialogIconColor = (variant?: ButtonVariant): string => {
+const getDialogIconColor = (
+	COLORS: ThemeColors,
+	variant?: ButtonVariant,
+): string => {
 	if (variant === "danger") {
 		return COLORS.danger;
 	}
 	if (variant === "success") {
 		return COLORS.success;
 	}
-	return WARNING_ICON_COLOR;
+	return COLORS.warning;
 };
 
 const AppDialogProvider = ({ children }: PropsWithChildren): ReactNode => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const [activeDialog, setActiveDialog] = useState<ActiveDialog | null>(null);
 
 	const handleClose = useCallback((): void => {
@@ -93,13 +100,17 @@ const AppDialogProvider = ({ children }: PropsWithChildren): ReactNode => {
 										styles.iconBox,
 										{
 											backgroundColor: `${getDialogIconColor(
+												COLORS,
 												variant,
 											)}20`,
 										},
 									]}
 								>
 									<Ionicons
-										color={getDialogIconColor(variant)}
+										color={getDialogIconColor(
+											COLORS,
+											variant,
+										)}
 										name={
 											variant === "danger"
 												? "warning-outline"
@@ -181,50 +192,52 @@ const {
 	SPACING,
 } = styleConstants;
 
-const styles = StyleSheet.create({
-	overlay: {
-		flex: FLEX.FILL,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-		padding: SPACING.S22,
-		backgroundColor: COLORS.overlay,
-	},
-	scrim: {
-		...StyleSheet.absoluteFill,
-	},
-	cardHost: {
-		width: SIZES.FULL,
-		maxWidth: SIZES.S420,
-	},
-	content: {
-		gap: SPACING.S14,
-	},
-	iconBox: {
-		width: SIZES.S50,
-		height: SIZES.S50,
-		borderRadius: RADIUS.S17,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-	},
-	copy: {
-		gap: SPACING.S6,
-	},
-	title: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S20,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	message: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S13,
-		lineHeight: LINE_HEIGHT.S20,
-	},
-	actions: {
-		flexDirection: FLEX.ROW,
-		justifyContent: ALIGN.END,
-		gap: SPACING.S8,
-		marginTop: SPACING.S2,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		overlay: {
+			flex: FLEX.FILL,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+			padding: SPACING.S22,
+			backgroundColor: COLORS.overlay,
+		},
+		scrim: {
+			...StyleSheet.absoluteFill,
+		},
+		cardHost: {
+			width: SIZES.FULL,
+			maxWidth: SIZES.S420,
+		},
+		content: {
+			gap: SPACING.S14,
+		},
+		iconBox: {
+			width: SIZES.S50,
+			height: SIZES.S50,
+			borderRadius: RADIUS.S17,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+		},
+		copy: {
+			gap: SPACING.S6,
+		},
+		title: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S20,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		message: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S13,
+			lineHeight: LINE_HEIGHT.S20,
+		},
+		actions: {
+			flexDirection: FLEX.ROW,
+			justifyContent: ALIGN.END,
+			gap: SPACING.S8,
+			marginTop: SPACING.S2,
+		},
+	}),
+);
 
 export default AppDialogProvider;

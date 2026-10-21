@@ -11,17 +11,18 @@ import SegmentedControl from "@/components/SegmentedControl";
 import SelectField from "@/components/SelectField";
 import TextField from "@/components/TextField";
 import appConstants from "@/constants/appConstants";
-import COLORS from "@/constants/colors";
 import financeConstants from "@/constants/financeConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import budgetService from "@/services/budgetService";
 import categoryService from "@/services/categoryService";
 import type BudgetFormScreenProps from "@/types/BudgetFormScreenProps";
 import type BudgetPeriod from "@/types/BudgetPeriod";
 import type Category from "@/types/Category";
 import type SelectOption from "@/types/SelectOption";
+import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
 const { DEFAULT_CURRENCY_CODE } = appConstants;
 const { getBudget, saveBudget } = budgetService;
@@ -33,6 +34,7 @@ const BudgetFormScreen = ({
 	navigation,
 	route,
 }: BudgetFormScreenProps): React.JSX.Element => {
+	const styles = useThemedStyles(themedStyles);
 	const budgetId = route.params?.budgetId;
 	const { database, refreshData } = useDatabaseContext();
 	const [categoryId, setCategoryId] = useState("");
@@ -132,16 +134,18 @@ const BudgetFormScreen = ({
 
 const { FONT_SIZE, FONT_WEIGHT, LETTER_SPACING, SPACING } = styleConstants;
 
-const styles = StyleSheet.create({
-	form: {
-		gap: SPACING.S16,
-	},
-	heading: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S24,
-		fontWeight: FONT_WEIGHT.BLACK,
-		letterSpacing: LETTER_SPACING.TIGHT,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		form: {
+			gap: SPACING.S16,
+		},
+		heading: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S24,
+			fontWeight: FONT_WEIGHT.BLACK,
+			letterSpacing: LETTER_SPACING.TIGHT,
+		},
+	}),
+);
 
 export default BudgetFormScreen;

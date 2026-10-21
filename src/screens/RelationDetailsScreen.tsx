@@ -6,11 +6,12 @@ import HeaderIconButton from "@/components/HeaderIconButton";
 import ListHeader from "@/components/ListHeader";
 import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
-import COLORS from "@/constants/colors";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import investmentService from "@/services/investmentService";
 import investmentTypeService from "@/services/investmentTypeService";
 import platformService from "@/services/platformService";
@@ -19,6 +20,7 @@ import tripTypeService from "@/services/tripTypeService";
 import type Investment from "@/types/Investment";
 import type RootStackParamList from "@/types/RootStackParamList";
 import type Trip from "@/types/Trip";
+import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
@@ -33,6 +35,8 @@ const RelationDetailsScreen = ({
 	RootStackParamList,
 	"RelationDetails"
 >): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const { database, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
 	const { kind, entityId, entityName } = route.params;
@@ -214,25 +218,27 @@ const RelationDetailsScreen = ({
 
 const { ALIGN, FLEX, FONT_SIZE, FONT_WEIGHT, SPACING } = styleConstants;
 
-const styles = StyleSheet.create({
-	screen: { flex: FLEX.FILL, backgroundColor: COLORS.background },
-	row: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S12,
-	},
-	title: {
-		flex: FLEX.FILL,
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S16,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	heading: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S22,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	meta: { color: COLORS.textMuted, fontSize: FONT_SIZE.S12 },
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		screen: { flex: FLEX.FILL, backgroundColor: COLORS.background },
+		row: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S12,
+		},
+		title: {
+			flex: FLEX.FILL,
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S16,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		heading: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S22,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		meta: { color: COLORS.textMuted, fontSize: FONT_SIZE.S12 },
+	}),
+);
 
 export default RelationDetailsScreen;

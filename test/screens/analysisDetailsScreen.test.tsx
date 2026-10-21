@@ -1,3 +1,4 @@
+import COLORS from "@/constants/colors";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const reactMocks = vi.hoisted(() => ({
@@ -134,13 +135,13 @@ describe("AnalysisDetailsScreen", () => {
 	it("formats category and investment values with the correct accents and text", () => {
 		expect(getCategoryAccent("10")).toBe("success");
 		expect(getCategoryAccent("-10")).toBe("danger");
-		expect(getCategoryNetColor("10")).toBe("#52D6A3");
-		expect(getCategoryNetColor("-10")).toBe("#FF6B86");
+		expect(getCategoryNetColor(COLORS, "10")).toBe("#52D6A3");
+		expect(getCategoryNetColor(COLORS, "-10")).toBe("#FF6B86");
 		expect(getInvestmentAccent("40")).toBe("danger");
 		expect(getInvestmentAccent("-40")).toBe("success");
-		expect(getInvestmentColor("40")).toBe("#FF6B86");
-		expect(getInvestmentColor("-40")).toBe("#52D6A3");
-		expect(getInvestmentColor("0")).toBe("#F4F1FF");
+		expect(getInvestmentColor(COLORS, "40")).toBe("#FF6B86");
+		expect(getInvestmentColor(COLORS, "-40")).toBe("#52D6A3");
+		expect(getInvestmentColor(COLORS, "0")).toBe("#F4F1FF");
 		expect(
 			getCategoryBreakdownText({
 				categoryId: "1",
@@ -177,7 +178,7 @@ describe("AnalysisDetailsScreen", () => {
 			investments: [],
 		};
 		expect(getInvestmentAccent("0")).toBe("default");
-		expect(getInvestmentColor("0")).toBe("#F4F1FF");
+		expect(getInvestmentColor(COLORS, "0")).toBe("#F4F1FF");
 		reactMocks.useState.mockImplementation((initial: any) => {
 			if (initial === null) return [summary, vi.fn()];
 			return [initial, vi.fn()];

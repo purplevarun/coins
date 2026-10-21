@@ -1,5 +1,6 @@
 import categoryService from "@/services/categoryService";
 import type ListItemProps from "@/types/ListItemProps";
+import type ThemeColors from "@/types/ThemeColors";
 
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -16,11 +17,12 @@ import ListHeader from "@/components/ListHeader";
 import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
 import TransactionCard from "@/components/TransactionCard";
-import COLORS from "@/constants/colors";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useTheme from "@/hooks/useTheme";
+import useThemedStyles from "@/hooks/useThemedStyles";
 import investmentService from "@/services/investmentService";
 import sourceService from "@/services/sourceService";
 import transactionService from "@/services/transactionService";
@@ -28,6 +30,7 @@ import tripService from "@/services/tripService";
 import type LinkedTransactionsScreenProps from "@/types/LinkedTransactionsScreenProps";
 import type RelationKind from "@/types/RelationKind";
 import type Transaction from "@/types/Transaction";
+import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
 import getRelationLabels from "@/utils/relation";
 import runAfterRender from "@/utils/runAfterRender";
@@ -52,7 +55,7 @@ const getRelationIcon = (
 	return "trending-up";
 };
 
-const getRelationColor = (kind: RelationKind): string => {
+const getRelationColor = (COLORS: ThemeColors, kind: RelationKind): string => {
 	if (kind === "SOURCE") {
 		return COLORS.blue;
 	}
@@ -69,6 +72,8 @@ const LinkedTransactionsScreen = ({
 	navigation,
 	route,
 }: LinkedTransactionsScreenProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
 	const {
 		entityId,
 		entityName,
@@ -182,12 +187,12 @@ const LinkedTransactionsScreen = ({
 							style={[
 								styles.iconBox,
 								{
-									backgroundColor: `${getRelationColor(kind)}20`,
+									backgroundColor: `${getRelationColor(COLORS, kind)}20`,
 								},
 							]}
 						>
 							<Ionicons
-								color={getRelationColor(kind)}
+								color={getRelationColor(COLORS, kind)}
 								name={getRelationIcon(kind)}
 								size={23}
 							/>
@@ -215,6 +220,7 @@ const LinkedTransactionsScreen = ({
 							isCompact
 							label={MESSAGES.COMMON.EDIT}
 							onPress={handleEdit}
+							style={styles.action}
 							variant="secondary"
 						/>
 						{isConvertible ? (
@@ -223,6 +229,7 @@ const LinkedTransactionsScreen = ({
 								isCompact
 								label={MESSAGES.RELATION_ACTIONS.CONVERT}
 								onPress={() => setIsConvertOpen(true)}
+								style={styles.action}
 								variant="secondary"
 							/>
 						) : null}
@@ -231,6 +238,7 @@ const LinkedTransactionsScreen = ({
 							isCompact
 							label={MESSAGES.COMMON.DELETE}
 							onPress={handleDelete}
+							style={styles.action}
 							variant="danger"
 						/>
 					</View>
@@ -247,6 +255,8 @@ const LinkedTransactionsScreen = ({
 			isConvertible,
 			kind,
 			transactions.length,
+			styles,
+			COLORS,
 		],
 	);
 
@@ -322,47 +332,56 @@ const LinkedTransactionsScreen = ({
 const { ALIGN, FLEX, FONT_SIZE, FONT_WEIGHT, RADIUS, SIZES, SPACING } =
 	styleConstants;
 
-const styles = StyleSheet.create({
-	screen: {
-		flex: FLEX.FILL,
-		backgroundColor: COLORS.background,
-	},
-	summaryRow: {
-		flexDirection: FLEX.ROW,
-		alignItems: ALIGN.CENTER,
-		gap: SPACING.S12,
-	},
-	iconBox: {
-		width: SIZES.S48,
-		height: SIZES.S48,
-		borderRadius: RADIUS.S16,
-		alignItems: ALIGN.CENTER,
-		justifyContent: ALIGN.CENTER,
-	},
-	summaryDetails: {
-		flex: FLEX.FILL,
-		gap: SPACING.S3,
-	},
-	title: {
-		color: COLORS.text,
-		fontSize: FONT_SIZE.S18,
-		fontWeight: FONT_WEIGHT.BLACK,
-	},
-	dateRange: {
-		color: COLORS.primaryBright,
-		fontSize: FONT_SIZE.S11,
-		fontWeight: FONT_WEIGHT.BOLD,
-	},
-	subtitle: {
-		color: COLORS.textMuted,
-		fontSize: FONT_SIZE.S12,
-	},
-	actions: {
-		flexDirection: FLEX.ROW,
-		justifyContent: ALIGN.END,
-		gap: SPACING.S8,
-		marginTop: SPACING.S14,
-	},
-});
+const themedStyles = createThemedStyles((COLORS) =>
+	StyleSheet.create({
+		screen: {
+			flex: FLEX.FILL,
+			backgroundColor: COLORS.background,
+		},
+		summaryRow: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S12,
+		},
+		iconBox: {
+			width: SIZES.S48,
+			height: SIZES.S48,
+			borderRadius: RADIUS.S16,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.CENTER,
+		},
+		summaryDetails: {
+			flex: FLEX.FILL,
+			gap: SPACING.S3,
+		},
+		title: {
+			color: COLORS.text,
+			fontSize: FONT_SIZE.S18,
+			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		dateRange: {
+			color: COLORS.primaryBright,
+			fontSize: FONT_SIZE.S11,
+			fontWeight: FONT_WEIGHT.BOLD,
+		},
+		subtitle: {
+			color: COLORS.textMuted,
+			fontSize: FONT_SIZE.S12,
+		},
+		actions: {
+			flexDirection: FLEX.ROW,
+			flexWrap: FLEX.WRAP,
+			justifyContent: ALIGN.END,
+			gap: SPACING.S8,
+			marginTop: SPACING.S14,
+		},
+		action: {
+			flexGrow: FLEX.FILL,
+			flexBasis: SIZES.S120,
+			minWidth: SIZES.S120,
+			maxWidth: "100%",
+		},
+	}),
+);
 
 export default LinkedTransactionsScreen;

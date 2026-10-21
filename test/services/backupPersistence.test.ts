@@ -62,11 +62,13 @@ vi.mock("expo-file-system", () => {
 	};
 });
 
+import themeConstants from "@/constants/themeConstants";
 import SCHEMA_MIGRATIONS from "@/database/migrations";
 import SCHEMA_SQL from "@/database/schema";
 import financeRepository from "@/repositories/financeRepository";
 import analysisService from "@/services/analysisService";
 import backupService from "@/services/backupService";
+import settingsService from "@/services/settingsService";
 import sourceService from "@/services/sourceService";
 import transactionService from "@/services/transactionService";
 
@@ -130,6 +132,69 @@ describe("real SQLite backup restore", () => {
 	beforeEach(() => {
 		native.getDocumentAsync.mockReset();
 		native.openDatabaseAsync.mockReset();
+	});
+
+	it.each(themeConstants.THEME_OPTIONS)(
+		"persists $label across reopen and restore",
+		async ({ value }) => {
+			const directory = setupRestore();
+			const path = join(directory, "theme.pc");
+			const fixture = await initializeFixture(path);
+			expect(await settingsService.getThemeId(fixture.database)).toBe(
+				themeConstants.DEFAULT_THEME_ID,
+			);
+			await settingsService.updateThemeId(fixture.database, value);
+			await fixture.database.closeAsync();
+			const reopened = createTestDatabase(path);
+			expect(await settingsService.getThemeId(reopened.database)).toBe(
+				value,
+			);
+			expect(
+				reopened.sqlite
+					.prepare(
+						"SELECT COUNT(*) AS count FROM settings WHERE key = ?;",
+					)
+					.get(themeConstants.THEME_SETTING_KEY),
+			).toEqual({ count: 1 });
+			await reopened.database.closeAsync();
+			const original = readFileSync(path);
+			const live = await initializeFixture();
+			await settingsService.updateThemeId(
+				live.database,
+				themeConstants.THEME_IDS.GRAPHITE_MINT,
+			);
+			selectBackup(path);
+			expect(await backupService.restoreBackup(live.database)).toBe(true);
+			expect(await settingsService.getThemeId(live.database)).toBe(value);
+			expect(readFileSync(path)).toEqual(original);
+		},
+	);
+
+	it("defaults older restored backups to purple without duplicating the theme row", async () => {
+		const directory = setupRestore();
+		const path = join(directory, "older.pc");
+		const fixture = await initializeFixture(path);
+		await fixture.database.closeAsync();
+		const live = await initializeFixture();
+		await settingsService.updateThemeId(
+			live.database,
+			themeConstants.THEME_IDS.GRAPHITE_MINT,
+		);
+		selectBackup(path);
+		expect(await backupService.restoreBackup(live.database)).toBe(true);
+		expect(await settingsService.getThemeId(live.database)).toBe(
+			themeConstants.DEFAULT_THEME_ID,
+		);
+		expect(await settingsService.getThemeId(live.database)).toBe(
+			themeConstants.DEFAULT_THEME_ID,
+		);
+		expect(
+			live.sqlite
+				.prepare(
+					"SELECT COUNT(*) AS count FROM settings WHERE key = ?;",
+				)
+				.get(themeConstants.THEME_SETTING_KEY),
+		).toEqual({ count: 1 });
 	});
 
 	it("restores a mixed-currency and financial-year regression fixture exactly", async () => {
