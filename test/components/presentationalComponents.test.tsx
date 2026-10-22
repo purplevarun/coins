@@ -308,6 +308,8 @@ describe("presentational components", () => {
 		} as any) as any;
 
 		expect(findFirstByType(nav, "BlurView")).toBeNull();
+		expect(nav.type).toBe("SafeAreaView");
+		expect(nav.props.edges).toEqual(["bottom"]);
 		expect(nav.props.style).toMatchObject({ borderTopWidth: 1 });
 		expect(nav.props.style).not.toHaveProperty("borderRadius");
 		expect(nav.props.style).not.toHaveProperty("elevation");

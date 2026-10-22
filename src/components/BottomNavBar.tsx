@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import CustomText from "@/components/CustomText";
 import styleConstants from "@/constants/styleConstants";
@@ -33,7 +34,7 @@ const BottomNavBar = ({
 	const { colors: COLORS } = useTheme();
 	const styles = useThemedStyles(themedStyles);
 	return (
-		<View style={styles.dock}>
+		<SafeAreaView edges={["bottom"]} style={styles.dock}>
 			<View style={styles.bar}>
 				{options.map((option) => {
 					const isActive = option.mode === activeMode;
@@ -83,7 +84,7 @@ const BottomNavBar = ({
 					);
 				})}
 			</View>
-		</View>
+		</SafeAreaView>
 	);
 };
 

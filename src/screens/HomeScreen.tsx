@@ -192,7 +192,10 @@ const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
 			]}
 			style={styles.background}
 		>
-			<SafeAreaView style={styles.safeArea}>
+			<SafeAreaView
+				edges={["top", "left", "right"]}
+				style={styles.safeArea}
+			>
 				<ScreenContainer>
 					<View style={styles.header}>
 						<CustomText style={styles.appName}>

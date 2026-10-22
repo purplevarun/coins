@@ -166,6 +166,11 @@ describe("HomeScreen", () => {
 				Array.isArray(node?.props?.options),
 		)[0];
 
+		expect(tree.props.children.props.edges).toEqual([
+			"top",
+			"left",
+			"right",
+		]);
 		expect(navBar).toBeTruthy();
 		const dock = findByPredicate(
 			tree,
