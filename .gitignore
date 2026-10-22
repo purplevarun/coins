@@ -59,8 +59,6 @@ coverage/
 *.pc-wal
 __pycache__/
 
-store/
-
 .claude/
 
 /bun.lock

@@ -96,9 +96,6 @@ vi.mock("@/components/FolderPicker", () => ({
 vi.mock("@/components/GlassCard", () => ({
 	default: (props: any) => ({ type: "GlassCard", props }),
 }));
-vi.mock("@/components/InvestmentTypePicker", () => ({
-	default: (props: unknown) => ({ type: "InvestmentTypePicker", props }),
-}));
 vi.mock("@/components/SimpleEntityForm", () => ({
 	default: (props: unknown) => ({ type: "SimpleEntityForm", props }),
 }));
