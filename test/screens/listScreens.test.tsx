@@ -333,6 +333,7 @@ import RelationDetailsScreen from "@/screens/RelationDetailsScreen";
 import SourcesScreen from "@/screens/SourcesScreen";
 import TodosScreen from "@/screens/TodosScreen";
 import TripsScreen from "@/screens/TripsScreen";
+import dateUtils from "@/utils/date";
 
 const flush = async (): Promise<void> => {
 	await Promise.resolve();
@@ -1930,6 +1931,18 @@ describe("list screens", () => {
 				const card = findElement<Pick<GlassCardProps, "accent">>(
 					row,
 					(props) => typeof props.accent === "string",
+				);
+				const validation = findElement<{ children: string }>(
+					row,
+					(props) =>
+						typeof props.children === "string" &&
+						(props.children === "Not validated" ||
+							props.children.startsWith("Validated on ")),
+				);
+				expect(validation.props.children).toBe(
+					source.validatedAt === null
+						? "Not validated"
+						: `Validated on ${dateUtils.formatDateTime(source.validatedAt)}`,
 				);
 				expect(card.props.accent).toBe(
 					["Bank", "Wallet", "Empty Account"].includes(source.name)

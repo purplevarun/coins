@@ -36,11 +36,13 @@ import type ExchangeRate from "@/types/ExchangeRate";
 import type Source from "@/types/Source";
 import type SourcesScreenProps from "@/types/SourcesScreenProps";
 import createThemedStyles from "@/utils/createThemedStyles";
+import dateUtils from "@/utils/date";
 import getErrorMessage from "@/utils/error";
 import moneyUtils from "@/utils/money";
 const { getExchangeRates } = exchangeRateService;
 const { getNativeCurrencyDisplay } = settingsService;
 const { getSources, setSourceArchived, validateSource } = sourceService;
+const { formatDateTime } = dateUtils;
 const { formatMoney } = moneyUtils;
 
 const { SOURCE_FILTER_OPTIONS } = financeConstants;
@@ -276,6 +278,11 @@ const SourcesScreen = ({
 											);
 										})()
 									: null}
+								<CustomText style={styles.meta}>
+									{source.validatedAt === null
+										? "Not validated"
+										: `Validated on ${formatDateTime(source.validatedAt)}`}
+								</CustomText>
 							</View>
 						</View>
 						<View style={styles.actions}>
