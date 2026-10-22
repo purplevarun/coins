@@ -6,6 +6,7 @@ type TransactionInput = Readonly<{
 	id?: string;
 	classification: TransactionClassification;
 	type: TransactionType;
+	isApplicable?: boolean;
 	sourceId: string;
 	destinationSourceId?: string;
 	amount: string;

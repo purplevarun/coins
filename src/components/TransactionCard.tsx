@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import GlassCard from "@/components/GlassCard";
+import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useTheme from "@/hooks/useTheme";
 import useThemedStyles from "@/hooks/useThemedStyles";
@@ -86,6 +87,18 @@ const TransactionCard = ({
 					</View>
 					<View style={styles.details}>
 						<View style={styles.headingRow}>
+							{transaction.isApplicable === false ? (
+								<Ionicons
+									accessible
+									accessibilityRole="image"
+									accessibilityLabel={
+										MESSAGES.TRANSACTION_FORM.NOT_APPLICABLE
+									}
+									color={COLORS.warning}
+									name="warning"
+									size={20}
+								/>
+							) : null}
 							<CustomText style={styles.reason}>
 								{getTransactionDisplayReason(transaction)}
 							</CustomText>

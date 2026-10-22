@@ -1,7 +1,7 @@
 import * as DocumentPicker from "expo-document-picker";
 
 import appConstants from "@/constants/appConstants";
-import SCHEMA_MIGRATIONS from "@/database/migrations";
+import { migrateDatabase } from "@/database/migrations";
 import SCHEMA_SQL from "@/database/schema";
 import AppError from "@/errors/AppError";
 import type DatabaseCountRow from "@/types/DatabaseCountRow";
@@ -96,9 +96,7 @@ const restoreBackup = async (database: SQLiteDatabase): Promise<boolean> => {
 			);
 		}
 		await tempDatabase.execAsync(SCHEMA_SQL);
-		for (const migration of SCHEMA_MIGRATIONS) {
-			await tempDatabase.execAsync(migration);
-		}
+		await migrateDatabase(tempDatabase);
 		const tempTables = await tempDatabase.getAllAsync<SqliteTableRow>(
 			`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';`,
 		);

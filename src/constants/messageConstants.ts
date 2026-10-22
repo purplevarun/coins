@@ -137,6 +137,8 @@ const VAULT = {
 } as const;
 
 const TRANSACTION_FORM = {
+	APPLICABLE: "Applicable",
+	NOT_APPLICABLE: "Not applicable",
 	ADD_ITEM: "Add item",
 	CATEGORY_LABEL: "Category",
 	CLASSIFICATION_LABEL: "Transaction type",

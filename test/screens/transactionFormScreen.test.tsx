@@ -46,6 +46,7 @@ vi.mock("react", async (importOriginal) => {
 
 vi.mock("react-native", () => ({
 	StyleSheet: { create: (styles: any) => styles },
+	Switch: "Switch",
 	View: (props: any) => ({ type: "View", props }),
 }));
 
@@ -232,6 +233,54 @@ const createFormHarness = (
 };
 
 describe("TransactionFormScreen", () => {
+	it.each([true, false])(
+		"shows and saves applicability changes from %s",
+		async (isApplicable) => {
+			const harness = createFormHarness(
+				new Map<number, unknown>([
+					[
+						18,
+						[
+							{
+								key: "pending",
+								amount: "12.50",
+								categoryId: "food",
+							},
+						],
+					],
+					[20, isApplicable],
+				]),
+			);
+			let tree = harness.render();
+			const toggle = findByPredicate(
+				tree,
+				(node) => node.type === "Switch",
+			)[0];
+			expect(toggle.props.accessibilityLabel).toBe("Applicable");
+			expect(toggle.props.value).toBe(isApplicable);
+			toggle.props.onValueChange(!isApplicable);
+			tree = harness.render();
+			formElements<ComponentProps<typeof AppButton>>(tree, AppButton)
+				.find((button) => button.props.label === "Save transaction")
+				?.props.onPress();
+			await flush();
+			expect(serviceMocks.saveTransaction).toHaveBeenCalledWith(
+				{ id: "db" },
+				expect.objectContaining({
+					isApplicable: !isApplicable,
+					amount: "12.5",
+				}),
+			);
+			harness.values.set(16, true);
+			expect(
+				findByPredicate(
+					harness.render(),
+					(node) => node.type === "Switch",
+				)[0].props.disabled,
+			).toBe(true);
+		},
+	);
+
 	beforeEach(() => {
 		reactMocks.useEffect.mockReset();
 		reactMocks.useLayoutEffect.mockReset();
@@ -565,6 +614,7 @@ describe("TransactionFormScreen", () => {
 			serviceMocks.getTransaction.mockResolvedValue({
 				classification: "GENERAL",
 				type: "DEBIT",
+				isApplicable: false,
 				sourceId: "s1",
 				amount: "200",
 				reason: "Supermart",
@@ -596,6 +646,7 @@ describe("TransactionFormScreen", () => {
 				{ id: clone ? undefined : "two", amount: "100" },
 			]);
 			expect(harness.values.get(11)).toBe(clone ? 100 : 42);
+			expect(harness.values.get(20)).toBe(false);
 			const categories = formElements<ComponentProps<typeof SelectField>>(
 				tree,
 				SelectField,
@@ -613,6 +664,7 @@ describe("TransactionFormScreen", () => {
 				expect.objectContaining({
 					id: clone ? undefined : "payment",
 					amount: "200",
+					isApplicable: false,
 				}),
 			);
 		},
@@ -999,6 +1051,7 @@ describe("TransactionFormScreen", () => {
 				id: "tx1",
 				classification: "GENERAL",
 				type: "TRANSFER",
+				isApplicable: true,
 				sourceId: "s1",
 				destinationSourceId: "s2",
 				amount: "100",
@@ -1089,6 +1142,7 @@ describe("TransactionFormScreen", () => {
 				id: undefined,
 				classification: "INVESTMENT",
 				type: "CREDIT",
+				isApplicable: true,
 				sourceId: "s1",
 				destinationSourceId: undefined,
 				amount: "250",
@@ -1437,6 +1491,7 @@ describe("TransactionFormScreen", () => {
 				id: undefined,
 				classification: "GENERAL",
 				type: "DEBIT",
+				isApplicable: true,
 				sourceId: "s1",
 				destinationSourceId: undefined,
 				amount: "300",

@@ -9,6 +9,7 @@ import SCHEMA_MIGRATIONS from "@/database/migrations";
 import SCHEMA_SQL from "@/database/schema";
 import financeRepository from "@/repositories/financeRepository";
 import analysisService from "@/services/analysisService";
+import categoryService from "@/services/categoryService";
 import sourceService from "@/services/sourceService";
 import transactionService from "@/services/transactionService";
 import tripTotalService from "@/services/tripTotalService";
@@ -46,6 +47,285 @@ const expense: TransactionInput = {
 };
 
 describe("split expense persistence", () => {
+	it("keeps excluded payments linked and prevents deleting their required relations", async () => {
+		const { database } = await createFixture();
+		const id = await transactionService.saveTransaction(database, {
+			...expense,
+			isApplicable: false,
+		});
+		expect(
+			await transactionService.getLinkedTransactions(database, {
+				kind: "CATEGORY",
+				entityId: "food",
+			}),
+		).toMatchObject([{ id, isApplicable: false }]);
+		await expect(
+			sourceService.deleteSource(database, "bank"),
+		).rejects.toThrow("Source is referenced by transactions");
+		await expect(
+			categoryService.deleteCategory(database, "food"),
+		).rejects.toThrow();
+	});
+
+	it("excludes every non-applicable payment mode from balances, analysis, trip totals, trends, dates, and missing rates", async () => {
+		const { database, sqlite } = await createFixture();
+		const tripId = randomUUID();
+		const investmentId = randomUUID();
+		sqlite
+			.prepare("INSERT INTO trips (id, name) VALUES (?, 'Pending trip');")
+			.run(tripId);
+		sqlite
+			.prepare(
+				"INSERT INTO investments (id, name) VALUES (?, 'Pending fund');",
+			)
+			.run(investmentId);
+		const foreignSourceId = await sourceService.createSource(
+			database,
+			"Foreign pending source",
+			"USD",
+		);
+		const credit: TransactionInput = {
+			classification: "GENERAL",
+			type: "CREDIT",
+			sourceId: "bank",
+			amount: "100",
+			categoryId: "salary",
+			reason: "Applied income",
+			transactionAt: 100,
+		};
+		await transactionService.saveTransaction(database, credit);
+		await transactionService.saveTransaction(database, {
+			...expense,
+			items: [{ categoryId: "food", amount: "30" }],
+		});
+		const pending: readonly TransactionInput[] = [
+			{ ...expense, tripId, transactionAt: 9000 },
+			{ ...credit, amount: "600", tripId, transactionAt: 9000 },
+			{
+				...credit,
+				sourceId: foreignSourceId,
+				amount: "50",
+				transactionAt: 9000,
+			},
+			{
+				classification: "INVESTMENT",
+				type: "DEBIT",
+				sourceId: "bank",
+				amount: "100",
+				investmentId,
+				reason: "Pending investment",
+				transactionAt: 9000,
+			},
+			{
+				classification: "INVESTMENT",
+				type: "CREDIT",
+				sourceId: "bank",
+				amount: "20",
+				investmentId,
+				reason: "Pending redemption",
+				transactionAt: 9000,
+			},
+			{
+				classification: "GENERAL",
+				type: "TRANSFER",
+				sourceId: "bank",
+				destinationSourceId: foreignSourceId,
+				amount: "400",
+				toAmount: "5",
+				reason: "Pending transfer",
+				transactionAt: 9000,
+			},
+		];
+		for (const input of pending)
+			await transactionService.saveTransaction(database, {
+				...input,
+				isApplicable: false,
+			});
+		const transactions = await transactionService.getTransactions(database);
+		expect(transactions).toHaveLength(8);
+		expect(
+			transactions.filter(
+				(transaction) => transaction.isApplicable === false,
+			),
+		).toHaveLength(6);
+		expect(
+			await financeRepository.getApplicableTransactionRows(database),
+		).toHaveLength(2);
+		expect(await sourceService.getSources(database)).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ id: "bank", balance: "70" }),
+				expect.objectContaining({ id: foreignSourceId, balance: "0" }),
+			]),
+		);
+		expect(
+			await financeRepository.getTransactionMinMaxDate(database),
+		).toEqual({ minDate: 100, maxDate: 100 });
+		expect(
+			await financeRepository.getTransactionCurrencyRows(
+				database,
+				0,
+				10000,
+			),
+		).toEqual([{ currencyCode: "INR" }]);
+		expect(await tripTotalService.getTripTotals(database)).toEqual([]);
+		const summary = await analysisService.getAnalysisSummary(database, {
+			dateRange: { start: 0, end: 10000 },
+			isNativeCurrency: false,
+		});
+		expect(summary).toMatchObject({
+			totalIncome: "100",
+			totalExpense: "30",
+			netProfit: "70",
+			investments: [],
+			missingCurrencies: [],
+		});
+		expect(
+			summary.categories.find(
+				(category) => category.categoryId === "food",
+			),
+		).toMatchObject({ debits: "30" });
+		expect(getTrendSeries(transactions)).toMatchObject([
+			{ income: "100", expenses: "30", networth: "70" },
+		]);
+		await sourceService.setSourceArchived(database, "bank", true);
+		expect(await sourceService.getArchivedSources(database)).toMatchObject([
+			{ id: "bank", balance: "70" },
+		]);
+	});
+
+	it("ignores excluded writes for source validation but invalidates both sides when applicability changes", async () => {
+		const { database } = await createFixture();
+		const destinationSourceId = await sourceService.createSource(
+			database,
+			"Pending destination",
+			"INR",
+		);
+		const transfer: TransactionInput = {
+			classification: "GENERAL",
+			type: "TRANSFER",
+			sourceId: "bank",
+			destinationSourceId,
+			amount: "15",
+			reason: "Pending",
+			transactionAt: 500,
+			isApplicable: false,
+		};
+		for (const sourceId of ["bank", destinationSourceId])
+			await sourceService.validateSource(database, sourceId);
+		const id = await transactionService.saveTransaction(database, transfer);
+		await transactionService.saveTransaction(database, {
+			...transfer,
+			id,
+			amount: "20",
+		});
+		for (const sourceId of ["bank", destinationSourceId]) {
+			expect(
+				await sourceService.getSource(database, sourceId),
+			).toMatchObject({
+				validatedAt: expect.any(Number),
+				latestTransactionCreatedAt: null,
+			});
+		}
+		await transactionService.saveTransaction(database, {
+			...transfer,
+			id,
+			isApplicable: true,
+		});
+		for (const sourceId of ["bank", destinationSourceId]) {
+			expect(
+				(await sourceService.getSource(database, sourceId))
+					?.validatedAt,
+			).toBeNull();
+			await sourceService.validateSource(database, sourceId);
+		}
+		expect(await sourceService.getSources(database)).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ id: "bank", balance: "-15" }),
+				expect.objectContaining({
+					id: destinationSourceId,
+					balance: "15",
+				}),
+			]),
+		);
+		await transactionService.saveTransaction(database, { ...transfer, id });
+		for (const sourceId of ["bank", destinationSourceId]) {
+			expect(
+				(await sourceService.getSource(database, sourceId))
+					?.validatedAt,
+			).toBeNull();
+			await sourceService.validateSource(database, sourceId);
+		}
+		await transactionService.deleteTransaction(database, id);
+		for (const sourceId of ["bank", destinationSourceId])
+			expect(
+				(await sourceService.getSource(database, sourceId))
+					?.validatedAt,
+			).not.toBeNull();
+	});
+
+	it.each([true, false])(
+		"persists applicability %s while retaining transactions and split items in lists",
+		async (isApplicable) => {
+			const { database, sqlite } = await createFixture();
+			const id = await transactionService.saveTransaction(database, {
+				...expense,
+				isApplicable,
+			});
+			expect(
+				sqlite
+					.prepare(
+						"SELECT is_applicable FROM transactions WHERE id = ?;",
+					)
+					.get(id),
+			).toEqual({ is_applicable: Number(isApplicable) });
+			expect(
+				await transactionService.getTransaction(database, id),
+			).toMatchObject({
+				id,
+				isApplicable,
+				items: [{ amount: "100" }, { amount: "100" }],
+			});
+			expect(
+				await transactionService.getTransactions(database),
+			).toMatchObject([{ id, isApplicable }]);
+			expect(
+				(await transactionService.getTransactionPage(database))
+					.transactions,
+			).toMatchObject([{ id, isApplicable }]);
+		},
+	);
+
+	it("defaults new payments to applicable and preserves explicit exclusions when editing without a flag", async () => {
+		const { database } = await createFixture();
+		const id = await transactionService.saveTransaction(database, expense);
+		expect(
+			(await transactionService.getTransaction(database, id))
+				?.isApplicable,
+		).toBe(true);
+		await transactionService.saveTransaction(database, {
+			...expense,
+			id,
+			isApplicable: false,
+		});
+		await transactionService.saveTransaction(database, {
+			...expense,
+			id,
+			reason: "Still pending",
+		});
+		expect(
+			await transactionService.getTransaction(database, id),
+		).toMatchObject({ isApplicable: false, reason: "Still pending" });
+		await transactionService.saveTransaction(database, {
+			...expense,
+			id,
+			isApplicable: true,
+		});
+		expect(
+			(await transactionService.getTransaction(database, id))
+				?.isApplicable,
+		).toBe(true);
+	});
+
 	it.each(["edit", "delete"])(
 		"clears source validation after a payment %s",
 		async (operation) => {

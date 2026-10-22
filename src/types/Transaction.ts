@@ -7,6 +7,7 @@ type Transaction = Readonly<{
 	id: string;
 	classification: TransactionClassification;
 	type: TransactionType;
+	isApplicable?: boolean;
 	sourceId: string;
 	destinationSourceId: string | null;
 	amount: string;

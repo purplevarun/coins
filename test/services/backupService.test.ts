@@ -28,7 +28,8 @@ vi.mock("@/constants/appConstants", () => ({
 }));
 
 vi.mock("@/database/migrations", () => ({
-	default: ["FUTURE_MIGRATION_SQL"],
+	migrateDatabase: (database: any): Promise<void> =>
+		database.execAsync("FUTURE_MIGRATION_SQL"),
 }));
 
 vi.mock("@/database/schema", () => ({

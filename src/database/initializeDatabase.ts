@@ -1,7 +1,7 @@
 import appConstants from "@/constants/appConstants";
 import MESSAGES from "@/constants/messageConstants";
 
-import SCHEMA_MIGRATIONS from "@/database/migrations";
+import { migrateDatabase } from "@/database/migrations";
 import SCHEMA_SQL from "@/database/schema";
 import settingsRepository from "@/repositories/settingsRepository";
 import type SqliteTableRow from "@/types/SqliteTableRow";
@@ -65,9 +65,7 @@ const initializeDatabase = async (): Promise<SQLiteDatabase> => {
 		}
 		await database.execAsync(SCHEMA_SQL);
 
-		for (const migration of SCHEMA_MIGRATIONS) {
-			await database.execAsync(migration);
-		}
+		await migrateDatabase(database);
 		await vacuumDatabaseIfNeeded(database);
 		return database;
 	} catch (error) {

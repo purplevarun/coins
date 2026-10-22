@@ -152,6 +152,55 @@ const findByPredicate = (
 };
 
 describe("GlobalSearchScreen", () => {
+	it.each([undefined, true, false])(
+		"keeps applicability %s visible in search with the correct marker",
+		async (isApplicable) => {
+			const setResults = vi.fn();
+			reactMocks.useState.mockImplementation((initial) => [
+				initial,
+				Array.isArray(initial) ? setResults : vi.fn(),
+			]);
+			serviceMocks.getTransactions.mockResolvedValue([
+				{
+					id: "pending",
+					isApplicable,
+					reason: "Future payment",
+					sourceName: "Bank",
+					amount: "20",
+					sourceCurrencyCode: "INR",
+					transactionAt: 200,
+					items: [],
+				},
+			]);
+			const tree = GlobalSearchScreen({
+				navigation: { navigate: vi.fn() },
+			} as any);
+			await flush();
+			const result = setResults.mock.lastCall?.[0].find(
+				(entry: any) => entry.id === "pending",
+			);
+			expect(result.icon).toBe(
+				isApplicable === false ? "warning" : "swap-horizontal",
+			);
+			expect(result.color).toBe(
+				isApplicable === false ? "#F5B95B" : "#A87CFF",
+			);
+			const list = findByPredicate(
+				tree,
+				(node) => typeof node.props?.renderItem === "function",
+			)[0];
+			const row = list.props.renderItem({ item: result });
+			const icon = findByPredicate(
+				row,
+				(node) => node.props?.name === result.icon,
+			)[0];
+			expect(icon.props.accessible).toBe(isApplicable === false);
+			expect(icon.props.accessibilityLabel).toBe(
+				isApplicable === false ? "Not applicable" : undefined,
+			);
+		},
+	);
+
 	beforeEach(() => {
 		vi.spyOn(globalThis, "setTimeout").mockImplementation(((fn: any) => {
 			fn();

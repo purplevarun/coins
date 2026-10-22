@@ -12,7 +12,7 @@ const {
 	getArchivedSourceRows,
 	getSourceRow,
 	getSourceRows,
-	getTransactionRows,
+	getApplicableTransactionRows,
 	setSourceArchivedRow,
 	sourceInUseRow,
 	sourceNameExistsRow,
@@ -66,7 +66,7 @@ const getSources = async (
 ): Promise<readonly Source[]> => {
 	const [sources, transactions] = await Promise.all([
 		getSourceRows(database),
-		getTransactionRows(database),
+		getApplicableTransactionRows(database),
 	]);
 	const balances = getBalanceBySourceId(transactions);
 	return sources.map((source) => ({
@@ -81,7 +81,7 @@ const getArchivedSources = async (
 ): Promise<readonly Source[]> => {
 	const [sources, transactions] = await Promise.all([
 		getArchivedSourceRows(database),
-		getTransactionRows(database),
+		getApplicableTransactionRows(database),
 	]);
 	const balances = getBalanceBySourceId(transactions);
 	return sources.map((source) => ({

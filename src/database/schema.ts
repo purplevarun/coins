@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS transactions (
 	id TEXT,
 	classification TEXT,
 	type TEXT,
+	is_applicable INTEGER,
 	source_id TEXT,
 	destination_source_id TEXT,
 	amount TEXT,

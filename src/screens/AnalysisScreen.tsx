@@ -51,8 +51,11 @@ import moneyUtils from "@/utils/money";
 import runAfterRender from "@/utils/runAfterRender";
 import { getTrendSeries } from "@/utils/trends";
 const { DEFAULT_CURRENCY_CODE } = appConstants;
-const { getExchangeRateRows, getTransactionMinMaxDate, getTransactionRows } =
-	financeRepository;
+const {
+	getExchangeRateRows,
+	getTransactionMinMaxDate,
+	getApplicableTransactionRows,
+} = financeRepository;
 const { getAnalysisSummary } = analysisService;
 const { getFyStartMonth } = settingsService;
 const {
@@ -306,7 +309,7 @@ const AnalysisScreen = ({
 					}),
 					getTransactionMinMaxDate(database),
 					getFyStartMonth(database),
-					getTransactionRows(database),
+					getApplicableTransactionRows(database),
 					getExchangeRateRows(database),
 				]);
 			setSummary(summaryResult);

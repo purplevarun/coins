@@ -84,6 +84,48 @@ const balanceAndValidation = async (
 	}));
 
 describe("relation conversion persistence", () => {
+	it("preserves exclusions when splitting and round-tripping category history", async () => {
+		const { database, sqlite } = await createFixture();
+		sqlite.exec(
+			"UPDATE transactions SET is_applicable = 0 WHERE id IN ('pf-credit', 'pf-debit', 'mixed');",
+		);
+		const before = await balanceAndValidation(database);
+		const investmentId = await convertCategoryToInvestment(database, "pf", {
+			id: null,
+			name: "Pending fund",
+			investmentTypeId: null,
+			platformId: null,
+		});
+		const converted = sqlite
+			.prepare(
+				"SELECT is_applicable FROM transactions WHERE investment_id = ?;",
+			)
+			.all(investmentId);
+		expect(converted).toHaveLength(3);
+		expect(converted.every((row) => row.is_applicable === 0)).toBe(true);
+		expect(
+			sqlite
+				.prepare(
+					"SELECT is_applicable FROM transactions WHERE id = 'mixed';",
+				)
+				.get(),
+		).toEqual({ is_applicable: 0 });
+		expect(await balanceAndValidation(database)).toEqual(before);
+		await convertInvestmentToCategory(database, investmentId, {
+			id: "food",
+			name: "Food",
+			kind: "EXPENSE",
+		});
+		expect(
+			sqlite
+				.prepare(
+					"SELECT COUNT(*) AS count FROM transactions WHERE is_applicable = 0;",
+				)
+				.get(),
+		).toEqual({ count: 4 });
+		expect(await balanceAndValidation(database)).toEqual(before);
+	});
+
 	it("converts a category to a new investment without changing balances", async () => {
 		const { database, sqlite } = await createFixture();
 		const before = await balanceAndValidation(database);
@@ -384,6 +426,26 @@ describe("relation conversion persistence", () => {
 });
 
 describe("category merge persistence", () => {
+	it("keeps merged excluded payments excluded", async () => {
+		const { database, sqlite } = await createFixture();
+		sqlite.exec(
+			"UPDATE transactions SET is_applicable = 0 WHERE id IN ('grocery-refund', 'grocery-item');",
+		);
+		const before = await balanceAndValidation(database);
+		await categoryService.mergeCategories(database, "grocery", "food");
+		expect(
+			sqlite
+				.prepare(
+					"SELECT COUNT(*) AS count FROM transactions WHERE id IN ('grocery-refund', 'grocery-item') AND is_applicable = 0;",
+				)
+				.get(),
+		).toEqual({ count: 2 });
+		expect(itemCategories(sqlite, "grocery-item")).toEqual([
+			{ category_id: "food", amount: "25" },
+		]);
+		expect(await balanceAndValidation(database)).toEqual(before);
+	});
+
 	it("moves transactions, items and non-conflicting budgets", async () => {
 		const { database, sqlite } = await createFixture();
 		const before = await balanceAndValidation(database);

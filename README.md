@@ -83,6 +83,24 @@ Transaction category and investment fields use the shorter "Select" placeholder
 because their labels already identify the field. The layout may reflow on smaller
 or zoomed displays while keeping the same actions and complete text available.
 
+### Applicability
+
+Transactions are applicable by default. Turn off **Applicable** in the transaction
+form to retain a planned or excluded payment without counting it. These entries
+remain visible and editable, with a yellow warning triangle in transaction lists
+and search, but do not contribute to source balances, category/budget spending,
+trip totals, investment totals, analysis, trends, or required exchange rates.
+Excluded transfers affect neither account. The amount shown in the form and list
+remains the planned amount.
+
+The flag is stored as `transactions.is_applicable` and survives edits, clones,
+merges, conversions, restarts, and backups. Existing transactions and older backups
+remain applicable. Changing the transaction date does not automatically change the
+flag. Enabling applicability adds the payment to calculations; disabling it removes
+its effect. Either transition invalidates affected source validation, while edits
+or deletion of an already excluded payment do not. References still protect sources
+and categories from deletion even when the linked payment is excluded.
+
 ## Themes
 
 Settings > Configuration > Theme offers Midnight Amethyst (the original purple),
@@ -169,9 +187,11 @@ longer supported or included in new backups.
 
 The app creates any missing current-schema tables automatically using the fully
 migrated 2026.10.13 schema as its baseline. Completed migrations have been retired.
-`SCHEMA_MIGRATIONS` runs after schema creation for fresh databases and temporary
-restore databases. The current migration drops the retired attachment table and
-its index. Upgrading an existing installation also removes legacy app-owned preview
+`migrateDatabase` runs after schema creation for fresh databases and temporary
+restore databases. It drops the retired attachment table and its index, adds the
+plain integer `is_applicable` column when absent, and backfills only missing values
+to `1`. Column detection uses prepared-statement metadata, without a new PRAGMA or
+DDL constraint. Explicit exclusions are preserved. Upgrading an existing installation also removes legacy app-owned preview
 and picker cache files once. The database is compacted on the first app start or
 foreground return of each local calendar day. Successful completion shows a
 "Vacuum done!" toast. The last successful compaction day is stored in settings;

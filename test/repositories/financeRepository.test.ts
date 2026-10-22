@@ -97,8 +97,8 @@ describe("financeRepository", () => {
 			.mockResolvedValueOnce(items);
 		const database = { getAllAsync } as unknown as SQLiteDatabase;
 		expect(await getTransactionPageRows(database, 2)).toEqual([
-			{ ...headers[0], items },
-			{ ...headers[1], items: [] },
+			{ ...headers[0], isApplicable: true, items },
+			{ ...headers[1], isApplicable: true, items: [] },
 		]);
 		expect(getAllAsync).toHaveBeenLastCalledWith(
 			expect.stringContaining(
@@ -428,10 +428,11 @@ describe("financeRepository", () => {
 			maxDate: 20,
 		});
 		expect(await getTransactionRows(database)).toEqual([
-			{ id: "tx1", items: [] },
+			{ id: "tx1", isApplicable: true, items: [] },
 		]);
 		expect(await getTransactionRow(database, "tx1")).toEqual({
 			id: "tx1",
+			isApplicable: true,
 			items: [],
 		});
 		expect(await getBudgetRows(database)).toEqual([{ id: "b1" }]);
@@ -634,6 +635,7 @@ describe("financeRepository", () => {
 			100,
 			111,
 			111,
+			1,
 		);
 
 		await updateTransactionRow(
@@ -668,6 +670,7 @@ describe("financeRepository", () => {
 			"salary",
 			200,
 			222,
+			1,
 			"tx1",
 		);
 
@@ -703,6 +706,7 @@ describe("financeRepository", () => {
 			"snack",
 			300,
 			333,
+			1,
 			"tx2",
 		);
 

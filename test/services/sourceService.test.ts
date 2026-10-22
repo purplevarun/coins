@@ -35,7 +35,7 @@ vi.mock("@/repositories/financeRepository", () => ({
 		getArchivedSourceRows: mocks.getArchivedSourceRows,
 		getSourceRow: mocks.getSourceRow,
 		getSourceRows: mocks.getSourceRows,
-		getTransactionRows: mocks.getTransactionRows,
+		getApplicableTransactionRows: mocks.getTransactionRows,
 		setSourceArchivedRow: mocks.setSourceArchivedRow,
 		sourceInUseRow: mocks.sourceInUseRow,
 		sourceNameExistsRow: mocks.sourceNameExistsRow,

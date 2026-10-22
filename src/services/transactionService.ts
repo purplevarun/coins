@@ -313,13 +313,18 @@ const saveTransaction = async (
 			if (item.id) retainedIds.add(item.id);
 		}
 		const now = Date.now();
+		const applicableInput = {
+			...preparedInput,
+			isApplicable:
+				preparedInput.isApplicable ?? existing?.isApplicable ?? true,
+		};
 		if (existing) {
 			await deleteTransactionItemRows(transaction, id);
 		}
 		if (existing) {
-			await updateTransactionRow(transaction, preparedInput, id, now);
+			await updateTransactionRow(transaction, applicableInput, id, now);
 		} else {
-			await createTransactionRow(transaction, preparedInput, id, now);
+			await createTransactionRow(transaction, applicableInput, id, now);
 		}
 		for (const [position, item] of (preparedInput.items ?? []).entries()) {
 			await createTransactionItemRow(transaction, {

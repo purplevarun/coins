@@ -100,7 +100,7 @@ vi.mock("@/repositories/financeRepository", () => ({
 	default: {
 		getExchangeRateRows: serviceMocks.getExchangeRateRows,
 		getTransactionMinMaxDate: serviceMocks.getTransactionMinMaxDate,
-		getTransactionRows: serviceMocks.getTransactionRows,
+		getApplicableTransactionRows: serviceMocks.getTransactionRows,
 	},
 }));
 vi.mock("@/services/analysisService", () => ({

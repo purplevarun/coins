@@ -1,7 +1,7 @@
 import CustomText from "@/components/CustomText";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Switch, View } from "react-native";
 
 import AppButton from "@/components/AppButton";
 import DateField from "@/components/DateField";
@@ -16,6 +16,7 @@ import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useTheme from "@/hooks/useTheme";
 import useThemedStyles from "@/hooks/useThemedStyles";
 import categoryService from "@/services/categoryService";
 import investmentService from "@/services/investmentService";
@@ -64,6 +65,7 @@ const TransactionFormScreen = ({
 	navigation,
 	route,
 }: TransactionFormScreenProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
 	const styles = useThemedStyles(themedStyles);
 	const transactionId = route.params?.transactionId;
 	const cloneFromTransactionId = route.params?.cloneFromTransactionId;
@@ -95,6 +97,7 @@ const TransactionFormScreen = ({
 		createItemDraft("", initialCategoryId ?? ""),
 	]);
 	const [focusedItemKey, setFocusedItemKey] = useState<string | null>(null);
+	const [isApplicable, setIsApplicable] = useState(true);
 	const saving = useRef(false);
 
 	useEffect(() => {
@@ -159,6 +162,7 @@ const TransactionFormScreen = ({
 				setTripId(existingTransaction.tripId ?? "");
 				setInvestmentId(existingTransaction.investmentId ?? "");
 				setReason(existingTransaction.reason);
+				setIsApplicable(existingTransaction.isApplicable ?? true);
 				if (
 					existingTransaction.classification === "GENERAL" &&
 					existingTransaction.type === "DEBIT"
@@ -328,6 +332,7 @@ const TransactionFormScreen = ({
 				id: transactionId,
 				classification,
 				type,
+				isApplicable,
 				sourceId,
 				destinationSourceId:
 					isTransfer && destinationSourceId
@@ -494,6 +499,28 @@ const TransactionFormScreen = ({
 								value={tripId}
 							/>
 						) : null}
+						<View style={styles.applicability}>
+							<CustomText style={styles.applicabilityLabel}>
+								{MESSAGES.TRANSACTION_FORM.APPLICABLE}
+							</CustomText>
+							<Switch
+								accessibilityLabel={
+									MESSAGES.TRANSACTION_FORM.APPLICABLE
+								}
+								value={isApplicable}
+								onValueChange={setIsApplicable}
+								disabled={isSaving}
+								trackColor={{
+									false: COLORS.borderStrong,
+									true: COLORS.primaryMuted,
+								}}
+								thumbColor={
+									isApplicable
+										? COLORS.primary
+										: COLORS.textMuted
+								}
+							/>
+						</View>
 					</View>
 					{!isExpense ? (
 						<View style={styles.itemFields}>
@@ -692,10 +719,23 @@ const TransactionFormScreen = ({
 	);
 };
 
-const { ALIGN, FLEX, FONT_SIZE, FONT_WEIGHT, SIZES, SPACING } = styleConstants;
+const { ALIGN, BORDER, FLEX, FONT_SIZE, FONT_WEIGHT, RADIUS, SIZES, SPACING } =
+	styleConstants;
 
 const themedStyles = createThemedStyles((COLORS) =>
 	StyleSheet.create({
+		applicability: {
+			minHeight: SIZES.S44,
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S8,
+			paddingHorizontal: SPACING.S8,
+			borderWidth: BORDER.THIN,
+			borderRadius: RADIUS.S12,
+			borderColor: COLORS.borderStrong,
+			backgroundColor: COLORS.surfaceLight,
+		},
+		applicabilityLabel: { color: COLORS.text, fontSize: FONT_SIZE.S13 },
 		metadata: {
 			flexDirection: FLEX.ROW,
 			flexWrap: FLEX.WRAP,

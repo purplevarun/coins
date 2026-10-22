@@ -150,6 +150,7 @@ const convertCategoryToInvestment = async (
 				{
 					classification: "INVESTMENT",
 					type: transaction.type,
+					isApplicable: transaction.isApplicable,
 					sourceId: transaction.sourceId,
 					amount: sumMoney(convertedItems.map((item) => item.amount)),
 					investmentId,

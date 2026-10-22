@@ -146,8 +146,14 @@ const GlobalSearchScreen = ({
 						transaction.amount,
 						transaction.sourceCurrencyCode,
 					)} · ${formatDate(transaction.transactionAt)}`,
-					icon: "swap-horizontal",
-					color: COLORS.primary,
+					icon:
+						transaction.isApplicable === false
+							? "warning"
+							: "swap-horizontal",
+					color:
+						transaction.isApplicable === false
+							? COLORS.warning
+							: COLORS.primary,
 					searchExtra: `${transaction.amount} ${formatMoney(transaction.amount, transaction.sourceCurrencyCode).replace(/,/g, "")} ${transaction.categoryName ?? ""} ${transaction.items.map((item) => `${item.amount} ${item.categoryName}`).join(" ")} ${transaction.tripName ?? ""} ${transaction.investmentName ?? ""} ${transaction.destinationSourceName ?? ""}`,
 				})),
 				...sources.map((source): GlobalSearchResult => ({
@@ -310,6 +316,13 @@ const GlobalSearchScreen = ({
 							]}
 						>
 							<Ionicons
+								accessible={result.icon === "warning"}
+								accessibilityLabel={
+									result.icon === "warning"
+										? MESSAGES.TRANSACTION_FORM
+												.NOT_APPLICABLE
+										: undefined
+								}
 								color={result.color}
 								name={result.icon}
 								size={22}

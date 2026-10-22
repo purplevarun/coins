@@ -63,7 +63,7 @@ vi.mock("expo-file-system", () => {
 });
 
 import themeConstants from "@/constants/themeConstants";
-import SCHEMA_MIGRATIONS from "@/database/migrations";
+import { migrateDatabase } from "@/database/migrations";
 import SCHEMA_SQL from "@/database/schema";
 import financeRepository from "@/repositories/financeRepository";
 import analysisService from "@/services/analysisService";
@@ -77,9 +77,7 @@ const initializeFixture = async (
 ): Promise<ReturnType<typeof createTestDatabase>> => {
 	const fixture = createTestDatabase(path);
 	await fixture.database.execAsync(SCHEMA_SQL);
-	for (const migration of SCHEMA_MIGRATIONS) {
-		await fixture.database.execAsync(migration);
-	}
+	await migrateDatabase(fixture.database);
 	return fixture;
 };
 
@@ -133,6 +131,44 @@ describe("real SQLite backup restore", () => {
 		native.getDocumentAsync.mockReset();
 		native.openDatabaseAsync.mockReset();
 	});
+
+	it.each([null, 0, 1])(
+		"restores transaction applicability %s without losing financial data",
+		async (applicable) => {
+			const directory = setupRestore();
+			const path = join(directory, "applicability.pc");
+			const fixture = await initializeFixture(path);
+			await addExpense(fixture, "12.50");
+			if (applicable === null) {
+				fixture.sqlite.exec(
+					"ALTER TABLE transactions DROP COLUMN is_applicable;",
+				);
+			} else {
+				fixture.sqlite
+					.prepare("UPDATE transactions SET is_applicable = ?;")
+					.run(applicable);
+			}
+			const original = fixture.sqlite
+				.prepare("SELECT id, amount, reason FROM transactions;")
+				.all();
+			await fixture.database.closeAsync();
+			const bytes = readFileSync(path);
+			const live = await initializeFixture();
+			selectBackup(path);
+			expect(await backupService.restoreBackup(live.database)).toBe(true);
+			expect(
+				live.sqlite
+					.prepare("SELECT id, amount, reason FROM transactions;")
+					.all(),
+			).toEqual(original);
+			expect(
+				live.sqlite
+					.prepare("SELECT is_applicable FROM transactions;")
+					.get(),
+			).toEqual({ is_applicable: applicable ?? 1 });
+			expect(readFileSync(path)).toEqual(bytes);
+		},
+	);
 
 	it.each(themeConstants.THEME_OPTIONS)(
 		"persists $label across reopen and restore",
@@ -417,9 +453,16 @@ describe("real SQLite backup restore", () => {
 			expect(tables.map(({ name }) => name)).not.toContain("attachments");
 			for (const { name } of tables) {
 				const quotedTable = `"${name.replace(/"/g, '""')}"`;
+				const referenceColumns = new Set(
+					reference.sqlite
+						.prepare(`SELECT * FROM ${quotedTable} LIMIT 0`)
+						.columns()
+						.map((column) => column.name),
+				);
 				const columns = live.sqlite
 					.prepare(`SELECT * FROM ${quotedTable} LIMIT 0`)
 					.columns()
+					.filter((column) => referenceColumns.has(column.name))
 					.map((column) => `"${column.name.replace(/"/g, '""')}"`)
 					.join(", ");
 				const query = `SELECT ${columns} FROM ${quotedTable} ORDER BY ${columns};`;
@@ -429,6 +472,18 @@ describe("real SQLite backup restore", () => {
 						.digest("hex"),
 				);
 				expect(hashes[0], `Restored ${name} content`).toBe(hashes[1]);
+				if (
+					name === "transactions" &&
+					!referenceColumns.has("is_applicable")
+				) {
+					expect(
+						live.sqlite
+							.prepare(
+								"SELECT COUNT(*) AS count FROM transactions WHERE is_applicable IS NULL OR is_applicable <> 1;",
+							)
+							.get(),
+					).toEqual({ count: 0 });
+				}
 			}
 			const summary = await analysisService.getAnalysisSummary(
 				live.database,

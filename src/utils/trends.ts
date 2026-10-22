@@ -13,13 +13,13 @@ const {
 const getYear = (timestamp: number): string =>
 	String(new Date(timestamp).getFullYear());
 
-// Aggregates every transaction into yearly points, independent of any selected analysis period.
 const getTrendSeries = (
 	transactions: readonly Transaction[],
 	rateMap: ReadonlyMap<string, string> = new Map(),
 ): readonly TrendPoint[] => {
 	const yearlyTotals = new Map<string, TrendPoint>();
 	transactions.forEach((transaction) => {
+		if (transaction.isApplicable === false) return;
 		const rate = getConversionRate(
 			transaction.sourceCurrencyCode,
 			false,

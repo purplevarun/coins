@@ -1,11 +1,72 @@
 import financeConstants from "@/constants/financeConstants";
-import SCHEMA_MIGRATIONS from "@/database/migrations";
+import SCHEMA_MIGRATIONS, { migrateDatabase } from "@/database/migrations";
 import SCHEMA_SQL from "@/database/schema";
 import createTestDatabase from "@test/helpers/sqliteTestDatabase";
 import { randomUUID } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 describe("migration baseline", () => {
+	it("defaults legacy transactions to applicable and preserves exclusions on repeated migration", async () => {
+		const { database, sqlite } = createTestDatabase();
+		await database.execAsync(SCHEMA_SQL);
+		sqlite.exec("ALTER TABLE transactions DROP COLUMN is_applicable;");
+		const transactionId = randomUUID();
+		sqlite
+			.prepare(
+				"INSERT INTO transactions (id, amount, reason) VALUES (?, '12.50', 'Kept transaction');",
+			)
+			.run(transactionId);
+		await migrateDatabase(database);
+		expect(
+			sqlite
+				.prepare(
+					"SELECT id, amount, reason, is_applicable FROM transactions;",
+				)
+				.all(),
+		).toEqual([
+			{
+				id: transactionId,
+				amount: "12.50",
+				reason: "Kept transaction",
+				is_applicable: 1,
+			},
+		]);
+		sqlite
+			.prepare("UPDATE transactions SET is_applicable = 0 WHERE id = ?;")
+			.run(transactionId);
+		await migrateDatabase(database);
+		expect(
+			sqlite.prepare("SELECT is_applicable FROM transactions;").get(),
+		).toEqual({ is_applicable: 0 });
+	});
+
+	it("normalizes missing applicability on fresh schemas without SQL defaults", async () => {
+		const { database, sqlite } = createTestDatabase();
+		await database.execAsync(SCHEMA_SQL);
+		sqlite
+			.prepare("INSERT INTO transactions (id) VALUES (?);")
+			.run(randomUUID());
+		await migrateDatabase(database);
+		expect(
+			sqlite.prepare("SELECT is_applicable FROM transactions;").get(),
+		).toEqual({ is_applicable: 1 });
+	});
+
+	it("finalizes metadata statements and propagates migration failures", async () => {
+		const { database } = createTestDatabase();
+		const finalizeAsync = vi.fn().mockResolvedValue(undefined);
+		vi.spyOn(database, "prepareAsync").mockResolvedValueOnce({
+			getColumnNamesAsync: vi
+				.fn()
+				.mockRejectedValue(new Error("metadata failed")),
+			finalizeAsync,
+		} as any);
+		await expect(migrateDatabase(database)).rejects.toThrow(
+			"metadata failed",
+		);
+		expect(finalizeAsync).toHaveBeenCalledOnce();
+	});
+
 	it("removes legacy attachment data and its index without changing records", async () => {
 		const { database, sqlite } = createTestDatabase();
 		await database.execAsync(SCHEMA_SQL);

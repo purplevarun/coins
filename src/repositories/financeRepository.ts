@@ -26,6 +26,7 @@ const TRANSACTION_SELECT = `
 		t.id,
 		t.classification,
 		t.type,
+		COALESCE(t.is_applicable, 1) AS isApplicable,
 		t.source_id AS sourceId,
 		t.destination_source_id AS destinationSourceId,
 		t.amount,
@@ -72,8 +73,8 @@ const getSourceRows = async (
 			'0' AS balance
 		FROM sources source
 		LEFT JOIN transactions txn
-			ON txn.source_id = source.id
-			OR txn.destination_source_id = source.id
+			ON (txn.source_id = source.id OR txn.destination_source_id = source.id)
+			AND COALESCE(txn.is_applicable, 1) = 1
 		WHERE COALESCE(source.archived, 0) = 0
 		GROUP BY source.id
 		ORDER BY
@@ -98,8 +99,8 @@ const getArchivedSourceRows = async (
 			'0' AS balance
 		FROM sources source
 		LEFT JOIN transactions txn
-			ON txn.source_id = source.id
-			OR txn.destination_source_id = source.id
+			ON (txn.source_id = source.id OR txn.destination_source_id = source.id)
+			AND COALESCE(txn.is_applicable, 1) = 1
 		WHERE COALESCE(source.archived, 0) = 1
 		GROUP BY source.id
 		ORDER BY lower(source.name) ASC;
@@ -123,8 +124,8 @@ const getSourceRow = async (
 				'0' AS balance
 			FROM sources source
 			LEFT JOIN transactions txn
-				ON txn.source_id = source.id
-				OR txn.destination_source_id = source.id
+				ON (txn.source_id = source.id OR txn.destination_source_id = source.id)
+				AND COALESCE(txn.is_applicable, 1) = 1
 			WHERE source.id = ?
 			GROUP BY source.id;
 		`,
@@ -253,10 +254,12 @@ const getCategoryRows = async (
 			COALESCE(category.archived, 0) AS archived
 		FROM categories category
 		LEFT JOIN (
-			SELECT id, category_id, created_at FROM transactions WHERE category_id IS NOT NULL
+			SELECT id, category_id, created_at FROM transactions
+			WHERE category_id IS NOT NULL AND COALESCE(is_applicable, 1) = 1
 			UNION
 			SELECT txn.id, item.category_id, txn.created_at
 			FROM transaction_items item JOIN transactions txn ON txn.id = item.transaction_id
+			WHERE COALESCE(txn.is_applicable, 1) = 1
 		) txn ON txn.category_id = category.id
 		WHERE COALESCE(category.archived, 0) = 0
 			${kind === undefined ? "" : "AND category.kind = ?"}
@@ -457,7 +460,7 @@ const getTripRows = async (
 			COALESCE(trip.archived, 0) AS archived
 		FROM trips trip
 		LEFT JOIN trip_types trip_type ON trip_type.id = trip.trip_type_id
-		LEFT JOIN transactions txn ON txn.trip_id = trip.id
+		LEFT JOIN transactions txn ON txn.trip_id = trip.id AND COALESCE(txn.is_applicable, 1) = 1
 		WHERE COALESCE(trip.archived, 0) = 0
 		GROUP BY trip.id
 		ORDER BY
@@ -517,7 +520,7 @@ const getInvestmentRows = async (
 			investment.updated_at AS updatedAt,
 			COALESCE(investment.archived, 0) AS archived
 		FROM investments investment
-		LEFT JOIN transactions txn ON txn.investment_id = investment.id
+		LEFT JOIN transactions txn ON txn.investment_id = investment.id AND COALESCE(txn.is_applicable, 1) = 1
 		LEFT JOIN investment_types investment_type
 			ON investment_type.id = investment.investment_type_id
 		LEFT JOIN investment_platforms platform ON platform.id = investment.platform_id
@@ -753,23 +756,33 @@ const getTransactionMinMaxDate = async (
 	database: SQLiteDatabase,
 ): Promise<TransactionDateBounds | null> =>
 	database.getFirstAsync<TransactionDateBounds>(
-		`SELECT MIN(transaction_at) AS minDate, MAX(transaction_at) AS maxDate FROM transactions;`,
+		`SELECT MIN(transaction_at) AS minDate, MAX(transaction_at) AS maxDate FROM transactions WHERE COALESCE(is_applicable, 1) = 1;`,
 	);
 
 const getTransactionRows = async (
 	database: SQLiteDatabase,
 	start?: number,
 	end?: number,
-): Promise<readonly Transaction[]> =>
-	hydrateTransactionItems(
+	applicableOnly = false,
+): Promise<readonly Transaction[]> => {
+	const hasDateRange = start !== undefined && end !== undefined;
+	const conditions = [
+		...(hasDateRange ? ["t.transaction_at BETWEEN ? AND ?"] : []),
+		...(applicableOnly ? ["COALESCE(t.is_applicable, 1) = 1"] : []),
+	];
+	return hydrateTransactionItems(
 		database,
 		await database.getAllAsync<Omit<Transaction, "items">>(
-			start === undefined || end === undefined
-				? `${TRANSACTION_SELECT} ORDER BY t.transaction_at DESC, t.created_at DESC;`
-				: `${TRANSACTION_SELECT} WHERE t.transaction_at BETWEEN ? AND ? ORDER BY t.transaction_at DESC, t.created_at DESC;`,
-			...(start === undefined || end === undefined ? [] : [start, end]),
+			`${TRANSACTION_SELECT} ${conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""} ORDER BY t.transaction_at DESC, t.created_at DESC;`,
+			...(hasDateRange ? [start, end] : []),
 		),
 	);
+};
+
+const getApplicableTransactionRows = async (
+	database: SQLiteDatabase,
+): Promise<readonly Transaction[]> =>
+	getTransactionRows(database, undefined, undefined, true);
 
 const getTransactionPageRows = async (
 	database: SQLiteDatabase,
@@ -821,12 +834,14 @@ const getCategoryAnalysisRows = async (
 			INNER JOIN transactions t ON t.id = item.transaction_id
 			INNER JOIN sources source ON source.id = t.source_id
 			WHERE t.classification = 'GENERAL' AND t.type = 'DEBIT'
+				AND COALESCE(t.is_applicable, 1) = 1
 				AND t.transaction_at BETWEEN ? AND ?
 			UNION ALL
 			SELECT t.category_id, t.amount, t.type, source.currency_code
 			FROM transactions t
 			INNER JOIN sources source ON source.id = t.source_id
 			WHERE t.classification = 'GENERAL' AND t.type = 'CREDIT'
+				AND COALESCE(t.is_applicable, 1) = 1
 				AND t.category_id IS NOT NULL
 				AND t.transaction_at BETWEEN ? AND ?
 		) allocation
@@ -856,6 +871,7 @@ const getInvestmentAnalysisRows = async (
 		INNER JOIN investments investment ON investment.id = t.investment_id
 		INNER JOIN sources source ON source.id = t.source_id
 		WHERE t.classification = 'INVESTMENT'
+			AND COALESCE(t.is_applicable, 1) = 1
 			AND t.transaction_at BETWEEN ? AND ?
 		ORDER BY investment.id, source.currency_code;
 	`,
@@ -875,6 +891,7 @@ const getTripTotalRows = async (
 		FROM transactions t
 		INNER JOIN sources source ON source.id = t.source_id
 		WHERE t.classification = 'GENERAL'
+			AND COALESCE(t.is_applicable, 1) = 1
 			AND t.type != 'TRANSFER'
 			AND t.trip_id IS NOT NULL
 		ORDER BY source.currency_code, t.trip_id;
@@ -891,6 +908,7 @@ const getTransactionCurrencyRows = async (
 		FROM transactions t
 		INNER JOIN sources source ON source.id = t.source_id
 		WHERE t.type != 'TRANSFER'
+			AND COALESCE(t.is_applicable, 1) = 1
 			AND t.transaction_at BETWEEN ? AND ?
 		ORDER BY currencyCode;
 	`,
@@ -955,6 +973,7 @@ const hydrateTransactionItems = async (
 	}
 	return transactions.map((transaction) => ({
 		...transaction,
+		isApplicable: Boolean(transaction.isApplicable ?? true),
 		items: itemsByTransaction.get(transaction.id) ?? [],
 	}));
 };
@@ -1042,8 +1061,8 @@ const invalidateTransactionSources = async (
 ): Promise<void> => {
 	await database.runAsync(
 		`UPDATE sources SET validated_at = NULL WHERE id IN (
-			SELECT source_id FROM transactions WHERE id = ?
-			UNION SELECT destination_source_id FROM transactions WHERE id = ?
+			SELECT source_id FROM transactions WHERE id = ? AND COALESCE(is_applicable, 1) = 1
+			UNION SELECT destination_source_id FROM transactions WHERE id = ? AND COALESCE(is_applicable, 1) = 1
 		);`,
 		id,
 		id,
@@ -1061,8 +1080,8 @@ const insertTransactionRow = async (
 			INSERT INTO transactions (
 				id, classification, type, source_id, destination_source_id,
 				amount, to_amount, category_id, trip_id, investment_id,
-				reason, transaction_at, created_at, updated_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+				reason, transaction_at, created_at, updated_at, is_applicable
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 		`,
 		id,
 		transaction.classification,
@@ -1078,6 +1097,7 @@ const insertTransactionRow = async (
 		transaction.transactionAt,
 		now,
 		now,
+		Number(transaction.isApplicable ?? true),
 	);
 };
 
@@ -1112,7 +1132,8 @@ const updateTransactionRow = async (
 				investment_id = ?,
 				reason = ?,
 				transaction_at = ?,
-				updated_at = ?
+				updated_at = ?,
+				is_applicable = ?
 			WHERE id = ?;
 		`,
 		transaction.classification,
@@ -1127,6 +1148,7 @@ const updateTransactionRow = async (
 		transaction.reason,
 		transaction.transactionAt,
 		now,
+		Number(transaction.isApplicable ?? true),
 		id,
 	);
 	await invalidateTransactionSources(database, id);
@@ -1319,6 +1341,7 @@ const financeRepository = {
 	getTransactionPageRows,
 	getTransactionRow,
 	getTransactionRows,
+	getApplicableTransactionRows,
 	getTripRow,
 	getTripRows,
 	getTripTotalRows,

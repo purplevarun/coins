@@ -172,6 +172,28 @@ describe("advanced components", () => {
 		expect(findAllByType(chartWithoutData, "Circle")).toHaveLength(1);
 	});
 
+	it.each([undefined, true, false])(
+		"marks transaction applicability %s only when excluded",
+		(isApplicable) => {
+			const tree = TransactionCard({
+				transaction: { ...baseTransaction, isApplicable },
+				onPress: vi.fn(),
+			});
+			const warnings = findAllByType(tree, "Ionicons").filter(
+				(icon) => icon.props.name === "warning",
+			);
+			expect(warnings).toHaveLength(isApplicable === false ? 1 : 0);
+			if (isApplicable === false) {
+				expect(warnings[0].props).toMatchObject({
+					accessible: true,
+					accessibilityRole: "image",
+					accessibilityLabel: "Not applicable",
+					color: "#F5B95B",
+				});
+			}
+		},
+	);
+
 	it("covers TransactionCard icon/meta/amount branches", () => {
 		const onPress = vi.fn();
 		const onLongPress = vi.fn();
