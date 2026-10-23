@@ -141,7 +141,7 @@ describe("AppNavigator", () => {
 		const tree = AppNavigator();
 		const containers = findAllByType(tree, "NavigationContainer");
 		expect(containers).toHaveLength(1);
-		expect(containers[0]?.props?.theme?.colors?.background).toBe("#080B14");
+		expect(containers[0]?.props?.theme?.colors?.background).toBe("#1C1C1C");
 
 		const navigators = findAllByType(tree, "Navigator");
 		expect(navigators).toHaveLength(1);

@@ -772,7 +772,7 @@ describe("AnalysisScreen", () => {
 				},
 				false,
 			),
-		).toEqual([{ label: "Food", value: 1, color: "#A87CFF" }]);
+		).toEqual([{ label: "Food", value: 1, color: "#A882FF" }]);
 
 		const fallbackColorData = getChartData(
 			COLORS,

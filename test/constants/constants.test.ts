@@ -18,7 +18,7 @@ describe("constants", () => {
 	});
 
 	it("exposes visual constants", () => {
-		expect(COLORS.background).toBe("#080B14");
+		expect(COLORS.background).toBe("#1C1C1C");
 		expect(COLORS.white).toBe("#FFFFFF");
 	});
 

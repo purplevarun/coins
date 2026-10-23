@@ -188,7 +188,7 @@ describe("advanced components", () => {
 					accessible: true,
 					accessibilityRole: "image",
 					accessibilityLabel: "Not applicable",
-					color: "#F5B95B",
+					color: "#E0DE71",
 				});
 			}
 		},

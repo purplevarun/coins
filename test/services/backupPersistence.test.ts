@@ -197,7 +197,7 @@ describe("real SQLite backup restore", () => {
 			const live = await initializeFixture();
 			await settingsService.updateThemeId(
 				live.database,
-				themeConstants.THEME_IDS.GRAPHITE_MINT,
+				themeConstants.THEME_IDS.GITHUB,
 			);
 			selectBackup(path);
 			expect(await backupService.restoreBackup(live.database)).toBe(true);
@@ -214,7 +214,7 @@ describe("real SQLite backup restore", () => {
 		const live = await initializeFixture();
 		await settingsService.updateThemeId(
 			live.database,
-			themeConstants.THEME_IDS.GRAPHITE_MINT,
+			themeConstants.THEME_IDS.GITHUB,
 		);
 		selectBackup(path);
 		expect(await backupService.restoreBackup(live.database)).toBe(true);

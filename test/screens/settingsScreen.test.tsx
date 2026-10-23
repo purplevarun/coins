@@ -179,7 +179,7 @@ describe("SettingsScreen", () => {
 		async ({ value }) => {
 			const currentId =
 				value === themeConstants.DEFAULT_THEME_ID
-					? themeConstants.THEME_IDS.GRAPHITE_MINT
+					? themeConstants.THEME_IDS.GITHUB
 					: themeConstants.DEFAULT_THEME_ID;
 			vi.mocked(useTheme).mockReturnValue(THEME_PALETTES[currentId]);
 			const tree = SettingsScreen({
@@ -268,7 +268,7 @@ describe("SettingsScreen", () => {
 			tree,
 			(node) => node.type === SelectField && node.props.label === "Theme",
 		)[0];
-		field.props.onChange(themeConstants.THEME_IDS.GRAPHITE_MINT);
+		field.props.onChange(themeConstants.THEME_IDS.GITHUB);
 		await flush();
 		expect(setError).toHaveBeenCalledWith("Theme write failed");
 		expect(setWorking.mock.calls).toEqual([[true], [false]]);

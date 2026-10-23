@@ -41,8 +41,17 @@ describe("settingsService", () => {
 		},
 	);
 
-	it.each([null, "", "unknown-theme"])(
-		"persists the purple default for missing or invalid theme %s",
+	it.each([
+		null,
+		"",
+		"unknown-theme",
+		"midnight-amethyst",
+		"graphite-mint",
+		"paper-cobalt",
+		"carbon-ice",
+		"obsidian-amber",
+	])(
+		"persists Obsidian for a missing, invalid, or retired theme %s",
 		async (value) => {
 			mocks.getSettingRow.mockResolvedValueOnce(value);
 			expect(await settingsService.getThemeId(database)).toBe(

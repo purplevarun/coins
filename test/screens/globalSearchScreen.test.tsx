@@ -183,7 +183,7 @@ describe("GlobalSearchScreen", () => {
 				isApplicable === false ? "warning" : "swap-horizontal",
 			);
 			expect(result.color).toBe(
-				isApplicable === false ? "#F5B95B" : "#A87CFF",
+				isApplicable === false ? "#E0DE71" : "#A882FF",
 			);
 			const list = findByPredicate(
 				tree,

@@ -7,10 +7,10 @@ const CustomTextInput = ({
 	style,
 	...props
 }: TextInputProps): React.JSX.Element => {
-	const { colors, isDark } = useTheme();
+	const { colors } = useTheme();
 	return (
 		<RNTextInput
-			keyboardAppearance={isDark ? "dark" : "light"}
+			keyboardAppearance="dark"
 			selectionColor={colors.primary}
 			cursorColor={colors.primary}
 			placeholderTextColor={colors.textDim}

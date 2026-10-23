@@ -118,7 +118,7 @@ const findFirstByType = (node: any, type: string): any => {
 
 describe("presentational components", () => {
 	it.each(themeConstants.THEME_OPTIONS)(
-		"themes input and glass appearance for $label",
+		"uses untinted card surfaces and themed inputs for $label",
 		({ value }) => {
 			const theme = THEME_PALETTES[value];
 			vi.mocked(useTheme).mockReturnValue(theme);
@@ -128,9 +128,13 @@ describe("presentational components", () => {
 			);
 			expect(input.props.selectionColor).toBe(theme.colors.primary);
 			expect(input.props.placeholderTextColor).toBe(theme.colors.textDim);
-			const card = GlassCard({ children: null });
-			expect(findFirstByType(card, "BlurView").props.tint).toBe(
-				theme.isDark ? "dark" : "light",
+			const card = findFirstByType(GlassCard({ children: null }), "View");
+			expect(findFirstByType(card, "BlurView")).toBeNull();
+			expect(card.props.style[0].backgroundColor).toBe(
+				theme.colors.glass,
+			);
+			expect(card.props.children.props.style.backgroundColor).toBe(
+				theme.colors.glass,
 			);
 			vi.mocked(useTheme).mockReturnValue(
 				THEME_PALETTES[themeConstants.DEFAULT_THEME_ID],

@@ -1,5 +1,4 @@
 import type ThemeColors from "@/types/ThemeColors";
-import { BlurView } from "expo-blur";
 import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -32,7 +31,7 @@ const GlassCard = ({
 	accent = "default",
 	style,
 }: GlassCardProps): ReactNode => {
-	const { colors: COLORS, isDark } = useTheme();
+	const { colors: COLORS } = useTheme();
 	const styles = useThemedStyles(themedStyles);
 	return (
 		<View
@@ -42,13 +41,7 @@ const GlassCard = ({
 				style,
 			]}
 		>
-			<BlurView
-				intensity={32}
-				tint={isDark ? "dark" : "light"}
-				style={styles.blur}
-			>
-				<View style={styles.content}>{children}</View>
-			</BlurView>
+			<View style={styles.content}>{children}</View>
 		</View>
 	);
 };
@@ -69,10 +62,8 @@ const themedStyles = createThemedStyles((COLORS) =>
 			},
 			elevation: SHADOW.ELEVATION_LOW,
 		},
-		blur: {
-			backgroundColor: COLORS.glass,
-		},
 		content: {
+			backgroundColor: COLORS.glass,
 			padding: SPACING.S16,
 		},
 	}),

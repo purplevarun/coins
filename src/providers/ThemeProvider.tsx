@@ -24,9 +24,7 @@ const ThemeProvider = ({ children }: PropsWithChildren): React.JSX.Element => {
 			try {
 				const savedThemeId = await settingsService.getThemeId(database);
 				if (isCurrent) {
-					Appearance.setColorScheme(
-						THEME_PALETTES[savedThemeId].isDark ? "dark" : "light",
-					);
+					Appearance.setColorScheme("dark");
 					setThemeId(savedThemeId);
 					setError(null);
 				}
@@ -46,7 +44,7 @@ const ThemeProvider = ({ children }: PropsWithChildren): React.JSX.Element => {
 
 	return (
 		<ThemeContext.Provider value={theme}>
-			<StatusBar style={theme.isDark ? "light" : "dark"} />
+			<StatusBar style="light" />
 			{themeId ? children : <LoadingScreen error={error} />}
 		</ThemeContext.Provider>
 	);

@@ -8,7 +8,8 @@
 		"android": {
 			"adaptiveIcon": {
 				"foregroundImage": "./assets/adaptive-icon.png",
-				"backgroundColor": "#FFFFFF"
+				"backgroundColor": "#1C1C1C",
+				"monochromeImage": "./assets/monochrome-icon.png"
 			},
 			"predictiveBackGestureEnabled": false,
 			"package": "com.purple.coins",

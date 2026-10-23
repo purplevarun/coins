@@ -135,13 +135,13 @@ describe("AnalysisDetailsScreen", () => {
 	it("formats category and investment values with the correct accents and text", () => {
 		expect(getCategoryAccent("10")).toBe("success");
 		expect(getCategoryAccent("-10")).toBe("danger");
-		expect(getCategoryNetColor(COLORS, "10")).toBe("#52D6A3");
-		expect(getCategoryNetColor(COLORS, "-10")).toBe("#FF6B86");
+		expect(getCategoryNetColor(COLORS, "10")).toBe(COLORS.success);
+		expect(getCategoryNetColor(COLORS, "-10")).toBe(COLORS.danger);
 		expect(getInvestmentAccent("40")).toBe("danger");
 		expect(getInvestmentAccent("-40")).toBe("success");
-		expect(getInvestmentColor(COLORS, "40")).toBe("#FF6B86");
-		expect(getInvestmentColor(COLORS, "-40")).toBe("#52D6A3");
-		expect(getInvestmentColor(COLORS, "0")).toBe("#F4F1FF");
+		expect(getInvestmentColor(COLORS, "40")).toBe(COLORS.danger);
+		expect(getInvestmentColor(COLORS, "-40")).toBe(COLORS.success);
+		expect(getInvestmentColor(COLORS, "0")).toBe(COLORS.text);
 		expect(
 			getCategoryBreakdownText({
 				categoryId: "1",
@@ -178,7 +178,7 @@ describe("AnalysisDetailsScreen", () => {
 			investments: [],
 		};
 		expect(getInvestmentAccent("0")).toBe("default");
-		expect(getInvestmentColor(COLORS, "0")).toBe("#F4F1FF");
+		expect(getInvestmentColor(COLORS, "0")).toBe(COLORS.text);
 		reactMocks.useState.mockImplementation((initial: any) => {
 			if (initial === null) return [summary, vi.fn()];
 			return [initial, vi.fn()];

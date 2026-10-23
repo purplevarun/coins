@@ -1,10 +1,6 @@
 import typographyConstants from "@/constants/typography";
 
-import {
-	DarkTheme,
-	DefaultTheme,
-	NavigationContainer,
-} from "@react-navigation/native";
+import { DarkTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { View } from "react-native";
 
@@ -49,12 +45,11 @@ const { FONT_WEIGHT, SPACING } = styleConstants;
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator = (): React.JSX.Element => {
-	const { colors: COLORS, isDark } = useTheme();
-	const baseTheme = isDark ? DarkTheme : DefaultTheme;
+	const { colors: COLORS } = useTheme();
 	const navigationTheme = {
-		...baseTheme,
+		...DarkTheme,
 		colors: {
-			...baseTheme.colors,
+			...DarkTheme.colors,
 			background: COLORS.background,
 			card: COLORS.backgroundElevated,
 			border: COLORS.border,
