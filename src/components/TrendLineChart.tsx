@@ -51,7 +51,10 @@ const formatAxisValue = (value: number): string => {
 	if (absoluteValue >= 100_000) {
 		return `${(value / 100_000).toFixed(1).replace(/\.0$/, "")}L`;
 	}
-	return `${value}`;
+	if (absoluteValue >= 1_000) {
+		return `${(value / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+	}
+	return `${Math.round(value)}`;
 };
 
 const getX = (index: number, count: number): number => {

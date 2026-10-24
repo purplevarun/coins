@@ -473,6 +473,11 @@ describe("form components", () => {
 
 		const modal = findAllByType(openNoResults, "Modal")[0];
 		expect(modal.props.visible).toBe(true);
+		expect(
+			findAllByType(modal, "CustomText").map(
+				(node) => node.props.children,
+			),
+		).toContain('No results for "zz"');
 		modal.props.onRequestClose();
 		expect(setIsOpen).toHaveBeenCalledWith(false);
 
@@ -491,6 +496,23 @@ describe("form components", () => {
 		noneOption.props.onPress();
 		expect(onChange).toHaveBeenCalledWith("");
 		expect(setIsOpen).toHaveBeenCalledWith(false);
+
+		reactMocks.useState
+			.mockImplementationOnce(() => [true, setIsOpen])
+			.mockImplementationOnce(() => ["", setSearch]);
+		const openEmpty = SelectField({
+			label: "Platform",
+			value: "",
+			options: [],
+			onChange,
+			isOptional: false,
+		});
+		expect(
+			findAllByType(
+				findAllByType(openEmpty, "Modal")[0],
+				"CustomText",
+			).map((node) => node.props.children),
+		).toContain("Nothing to select yet.");
 
 		reactMocks.useState
 			.mockImplementationOnce(() => [true, setIsOpen])

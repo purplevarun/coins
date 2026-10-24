@@ -134,7 +134,9 @@ const SelectField = ({
 							) : null}
 							{filteredOptions.length === 0 ? (
 								<CustomText style={styles.noResults}>
-									{`No results for "${search}"`}
+									{search.trim()
+										? `No results for "${search}"`
+										: MESSAGES.COMPONENTS.NO_OPTIONS}
 								</CustomText>
 							) : null}
 							{filteredOptions.map((option) => (

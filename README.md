@@ -103,17 +103,16 @@ and categories from deletion even when the linked payment is excluded.
 
 ## Themes
 
-Settings > Configuration > Theme offers Midnight Amethyst (the original purple),
-Graphite & Mint, Paper & Cobalt, Carbon & Ice, and Obsidian & Amber. Midnight
-Amethyst is the default for both new and existing installations. Paper & Cobalt
-is light; the other four themes are dark. Selection is explicit, not based on the
-device's preferred appearance.
+Settings > Configuration > Theme offers Obsidian, GitHub, Monokai, One Dark,
+VS Code, Gruvbox, and Original (the classic purple). All seven themes are dark.
+Obsidian is the default for both new and existing installations. Selection is
+explicit, not based on the device's preferred appearance.
 
 The selected ID is stored under `theme` in the existing `settings` table. Changes
 apply immediately after a successful save and persist across app restarts and
-backup restore. Missing or unknown theme IDs fall back to the purple default.
-No schema migration is required. The Graphite & Mint coin-and-ledger launcher
-icon is shared across themes.
+backup restore. Missing or unknown theme IDs fall back to the Obsidian default.
+No schema migration is required. The amethyst launcher icon is shared across
+themes.
 
 Components use the shared theme context and cached per-palette styles. Navigation,
 inputs, dialogs, charts, and system appearance follow the active palette without

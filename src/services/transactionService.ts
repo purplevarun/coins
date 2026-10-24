@@ -93,15 +93,15 @@ const getTransaction = async (
 	id: string,
 ): Promise<Transaction | null> => getTransactionRow(database, id);
 
-const validateRequiredInvestmentReason = (reason: string): string => {
-	const normalizedReason = reason.trim();
-	if (!normalizedReason) {
+const normalizeTransferToAmount = (value: string | undefined): string => {
+	try {
+		return normalizeMoney(value ?? "");
+	} catch {
 		throw new AppError(
-			"TRANSACTION_REASON_REQUIRED",
-			"Reason is required.",
+			"INVALID_TO_AMOUNT",
+			"Enter a valid positive received amount.",
 		);
 	}
-	return normalizedReason;
 };
 
 const resolveGeneralTransactionReason = async (
@@ -187,8 +187,8 @@ const prepareTransactionInput = async (
 		if (!input.investmentId) {
 			throw new AppError("INVESTMENT_REQUIRED", "Select an investment.");
 		}
-		const reason = validateRequiredInvestmentReason(input.reason);
-		if (!(await getInvestmentRow(database, input.investmentId))) {
+		const investment = await getInvestmentRow(database, input.investmentId);
+		if (!investment) {
 			throw new AppError(
 				"INVESTMENT_NOT_FOUND",
 				"The selected investment no longer exists.",
@@ -198,7 +198,7 @@ const prepareTransactionInput = async (
 			...input,
 			type: input.type === "TRANSFER" ? "DEBIT" : input.type,
 			amount,
-			reason,
+			reason: input.reason.trim() || investment.name.trim(),
 			categoryId: undefined,
 			tripId: undefined,
 			destinationSourceId: undefined,
@@ -255,7 +255,7 @@ const prepareTransactionInput = async (
 	const toAmount =
 		source.currencyCode === destination.currencyCode
 			? amount
-			: normalizeMoney(input.toAmount ?? "");
+			: normalizeTransferToAmount(input.toAmount);
 	return {
 		...input,
 		classification: "GENERAL",

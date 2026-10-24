@@ -74,6 +74,14 @@ describe("TrendLineChart helpers", () => {
 		expect(formatAxisValue(25_000_000)).toBe("2.5Cr");
 	});
 
+	it("keeps sub-lac axis values compact and on a single line", () => {
+		expect(formatAxisValue(1_000)).toBe("1K");
+		expect(formatAxisValue(50_100)).toBe("50.1K");
+		expect(formatAxisValue(-24_600)).toBe("-24.6K");
+		expect(formatAxisValue(262.5)).toBe("263");
+		expect(formatAxisValue(0)).toBe("0");
+	});
+
 	it("computes x positions, defaulting to center for a single point", () => {
 		expect(getX(0, 1)).toBe(162);
 		expect(getX(0, 2)).toBe(32);

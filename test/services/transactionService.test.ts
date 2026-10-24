@@ -71,7 +71,10 @@ describe("transactionService", () => {
 			id: "source",
 			currencyCode: "INR",
 		});
-		mocks.getInvestmentRow.mockResolvedValue({ id: "inv1" });
+		mocks.getInvestmentRow.mockResolvedValue({
+			id: "inv1",
+			name: " Nifty Fund ",
+		});
 		vi.useFakeTimers();
 		vi.setSystemTime(new Date("2026-08-25T12:00:00.000Z"));
 		Object.values(mocks).forEach((mockFn) => {
@@ -404,19 +407,24 @@ describe("transactionService", () => {
 			}),
 		).rejects.toMatchObject({ code: "INVESTMENT_REQUIRED" });
 
-		await expect(
-			transactionService.saveTransaction(database, {
-				classification: "INVESTMENT",
-				type: "DEBIT",
-				sourceId: "s1",
-				investmentId: "inv1",
-				amount: "10",
-				reason: "   ",
-				transactionAt: 1,
-			}),
-		).rejects.toMatchObject({
-			code: "TRANSACTION_REASON_REQUIRED",
+		await transactionService.saveTransaction(database, {
+			classification: "INVESTMENT",
+			type: "DEBIT",
+			sourceId: "s1",
+			investmentId: "inv1",
+			amount: "10",
+			reason: "   ",
+			transactionAt: 1,
 		});
+		expect(mocks.createTransactionRow).toHaveBeenCalledWith(
+			database,
+			expect.objectContaining({
+				classification: "INVESTMENT",
+				reason: "Nifty Fund",
+			}),
+			expect.any(String),
+			expect.any(Number),
+		);
 
 		mocks.getInvestmentRow.mockResolvedValueOnce(null);
 		await expect(
@@ -557,7 +565,10 @@ describe("transactionService", () => {
 				amount: "100",
 				reason: " move ",
 			}),
-		).rejects.toMatchObject({ code: "INVALID_AMOUNT" });
+		).rejects.toMatchObject({
+			code: "INVALID_TO_AMOUNT",
+			message: "Enter a valid positive received amount.",
+		});
 	});
 
 	it("rejects missing transfer sources and same-currency mismatch", async () => {

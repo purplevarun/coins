@@ -200,6 +200,7 @@ const TransactionFormScreen = ({
 	);
 	const isTransfer = classification === "GENERAL" && type === "TRANSFER";
 	const isExpense = classification === "GENERAL" && type === "DEBIT";
+	const isInvestment = classification === "INVESTMENT";
 	const isSameCurrencyTransfer =
 		isTransfer &&
 		selectedSource?.currencyCode === selectedDestination?.currencyCode;
@@ -363,9 +364,7 @@ const TransactionFormScreen = ({
 						? tripId
 						: undefined,
 				investmentId:
-					classification === "INVESTMENT" && investmentId
-						? investmentId
-						: undefined,
+					isInvestment && investmentId ? investmentId : undefined,
 				reason,
 				transactionAt,
 			});
@@ -697,11 +696,14 @@ const TransactionFormScreen = ({
 						placeholder={
 							isTransfer
 								? MESSAGES.TRANSACTION_FORM.DEFAULTS_TO_TRANSFER
-								: isExpense && items.length > 1
+								: isInvestment
 									? MESSAGES.TRANSACTION_FORM
-											.DEFAULTS_TO_ITEMS
-									: MESSAGES.TRANSACTION_FORM
-											.DEFAULTS_TO_CATEGORY
+											.DEFAULTS_TO_INVESTMENT
+									: isExpense && items.length > 1
+										? MESSAGES.TRANSACTION_FORM
+												.DEFAULTS_TO_ITEMS
+										: MESSAGES.TRANSACTION_FORM
+												.DEFAULTS_TO_CATEGORY
 						}
 						value={reason}
 					/>
