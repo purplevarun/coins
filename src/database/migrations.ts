@@ -29,7 +29,7 @@ const migrateDatabase = async (database: SQLiteDatabase): Promise<void> => {
 		"UPDATE transactions SET is_applicable = 1 WHERE is_applicable IS NULL;",
 	);
 	for (const [table, legacyColumns] of [
-		["passwords", ["website", "notes"]],
+		["passwords", ["website", "notes", "last_password"]],
 		["cards", ["notes"]],
 	] as const) {
 		const statement = await database.prepareAsync(
@@ -42,11 +42,6 @@ const migrateDatabase = async (database: SQLiteDatabase): Promise<void> => {
 					await database.execAsync(
 						`ALTER TABLE ${table} DROP COLUMN ${legacyColumn};`,
 					);
-			}
-			if (table === "passwords" && !columns.includes("last_password")) {
-				await database.execAsync(
-					"ALTER TABLE passwords ADD COLUMN last_password TEXT;",
-				);
 			}
 		} finally {
 			await statement.finalizeAsync();

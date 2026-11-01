@@ -45,7 +45,6 @@ describe("contentRepository", () => {
 			title: "Site",
 			username: "u",
 			password: "pw",
-			lastPassword: "old",
 			createdAt: 1,
 			updatedAt: 2,
 		});
@@ -55,7 +54,6 @@ describe("contentRepository", () => {
 			"Site",
 			"u",
 			"pw",
-			"old",
 			1,
 			2,
 		);
@@ -99,7 +97,6 @@ describe("contentRepository", () => {
 			title: "Site",
 			username: "u",
 			password: "pw",
-			lastPassword: "old",
 			createdAt: 1,
 			updatedAt: 2,
 		});
@@ -108,7 +105,6 @@ describe("contentRepository", () => {
 			"Site",
 			"u",
 			"pw",
-			"old",
 			2,
 			"p1",
 		);

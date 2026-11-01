@@ -188,7 +188,6 @@ describe("VaultScreen", () => {
 							title: "Github",
 							username: "u",
 							password: "secret",
-							lastPassword: "old",
 							updatedAt: 10,
 						},
 					],
@@ -219,20 +218,10 @@ describe("VaultScreen", () => {
 					title: "Github",
 					username: "u",
 					password: "secret",
-					lastPassword: "old",
 					updatedAt: 10,
 				},
 			},
 		});
-
-		expect(
-			findByPredicate(
-				renderedItem,
-				(node) =>
-					node?.props?.label === "Last password" &&
-					node?.props?.value === "old",
-			),
-		).toHaveLength(1);
 
 		findByPredicate(
 			renderedItem,

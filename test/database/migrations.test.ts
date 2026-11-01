@@ -57,7 +57,7 @@ describe("migration baseline", () => {
 		await database.execAsync(SCHEMA_SQL);
 		sqlite.exec("ALTER TABLE passwords ADD COLUMN website TEXT;");
 		sqlite.exec("ALTER TABLE passwords ADD COLUMN notes TEXT;");
-		sqlite.exec("ALTER TABLE passwords DROP COLUMN last_password;");
+		sqlite.exec("ALTER TABLE passwords ADD COLUMN last_password TEXT;");
 		const passwordId = randomUUID();
 		sqlite
 			.prepare(
@@ -87,7 +87,7 @@ describe("migration baseline", () => {
 			.map((column) => column.name);
 		expect(passwordColumns).not.toContain("website");
 		expect(passwordColumns).not.toContain("notes");
-		expect(passwordColumns).toContain("last_password");
+		expect(passwordColumns).not.toContain("last_password");
 	});
 
 	it("drops legacy todos, notes, folders and identities tables", async () => {

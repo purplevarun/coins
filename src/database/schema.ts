@@ -109,7 +109,6 @@ CREATE TABLE IF NOT EXISTS passwords (
 	title TEXT,
 	username TEXT,
 	password TEXT,
-	last_password TEXT,
 	created_at INTEGER,
 	updated_at INTEGER
 );

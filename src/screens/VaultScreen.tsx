@@ -318,11 +318,6 @@ const VaultScreen = ({
 										label={MESSAGES.VAULT_FORM.PASSWORD}
 										value={entry.password}
 									/>
-									<CopyRow
-										isMasked={!isRevealed}
-										label={MESSAGES.VAULT.LAST_PASSWORD}
-										value={entry.lastPassword}
-									/>
 								</View>
 							) : null}
 							<View style={styles.actions}>

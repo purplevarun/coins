@@ -39,10 +39,6 @@ const savePassword = async (
 		title,
 		username: entry.username.trim(),
 		password: entry.password,
-		lastPassword:
-			existing && existing.password !== entry.password
-				? existing.password
-				: (existing?.lastPassword ?? ""),
 		createdAt: existing?.createdAt ?? now,
 		updatedAt: now,
 	});
