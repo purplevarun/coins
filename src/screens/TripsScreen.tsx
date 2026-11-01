@@ -47,7 +47,7 @@ const { getNativeCurrencyDisplay } = settingsService;
 const { getTrips, setTripArchived } = tripService;
 const { getTripTotals } = tripTotalService;
 const { getTripTypes } = tripTypeService;
-const { compareMoney, formatMoney, ZERO_AMOUNT } = moneyUtils;
+const { addMoney, compareMoney, formatMoney, ZERO_AMOUNT } = moneyUtils;
 
 const TripsScreen = ({ navigation }: TripsScreenProps): React.JSX.Element => {
 	const { colors: COLORS } = useTheme();
@@ -202,6 +202,103 @@ const TripsScreen = ({ navigation }: TripsScreenProps): React.JSX.Element => {
 		return listData.filter((trip) => trip.name.toLowerCase().includes(q));
 	}, [listData, searchDebounced]);
 
+	const tripTypeTotals = useMemo((): ReadonlyMap<
+		string,
+		readonly Pick<TripTotal, "currencyCode" | "total">[]
+	> => {
+		const typeIds = new Map(
+			trips.map((trip) => [trip.id, trip.tripTypeId] as const),
+		);
+		const totals = new Map<string, Map<string, string>>();
+		for (const row of tripTotals) {
+			const typeId = typeIds.get(row.tripId);
+			if (!typeId) continue;
+			const byCurrency = totals.get(typeId) ?? new Map<string, string>();
+			byCurrency.set(
+				row.currencyCode,
+				addMoney(
+					byCurrency.get(row.currencyCode) ?? ZERO_AMOUNT,
+					row.total,
+				),
+			);
+			totals.set(typeId, byCurrency);
+		}
+		return new Map(
+			[...totals].map(([typeId, byCurrency]) => [
+				typeId,
+				[...byCurrency].map(([currencyCode, total]) => ({
+					currencyCode,
+					total,
+				})),
+			]),
+		);
+	}, [tripTotals, trips]);
+
+	const renderTripTotals = useCallback(
+		(
+			totals: readonly Pick<TripTotal, "currencyCode" | "total">[],
+		): React.JSX.Element => (
+			<>
+				{totals.length ? (
+					totals.map((total) => (
+						<CustomText
+							key={total.currencyCode}
+							style={[
+								styles.amount,
+								{
+									color:
+										compareMoney(
+											total.total,
+											ZERO_AMOUNT,
+										) >= 0
+											? COLORS.danger
+											: COLORS.success,
+								},
+							]}
+						>
+							Total {formatMoney(total.total, total.currencyCode)}
+						</CustomText>
+					))
+				) : (
+					<CustomText style={styles.amount}>
+						Total {formatMoney(ZERO_AMOUNT, "INR")}
+					</CustomText>
+				)}
+				{!isNativeCurrency &&
+				totals.some((total) => total.currencyCode !== "INR")
+					? (() => {
+							const inrTotal = totals.reduce(
+								(sum, total) =>
+									sum.plus(
+										toInr(total.total, total.currencyCode),
+									),
+								new Decimal(0),
+							);
+							return (
+								<CustomText
+									style={[
+										styles.convertedAmount,
+										{
+											color: inrTotal.gte(0)
+												? COLORS.danger
+												: COLORS.success,
+										},
+									]}
+								>
+									≈{" "}
+									{formatMoney(
+										inrTotal.abs().toFixed(),
+										"INR",
+									)}
+								</CustomText>
+							);
+						})()
+					: null}
+			</>
+		),
+		[isNativeCurrency, toInr, styles, COLORS],
+	);
+
 	const renderTripItem = useCallback(
 		({ item: trip }: ListItemProps<Trip>): React.JSX.Element => {
 			const totals = tripTotals.filter((row) => row.tripId === trip.id);
@@ -228,72 +325,7 @@ const TripsScreen = ({ navigation }: TripsScreenProps): React.JSX.Element => {
 								<CustomText style={styles.title}>
 									{trip.name}
 								</CustomText>
-								{totals.length ? (
-									totals.map((total) => (
-										<CustomText
-											key={total.currencyCode}
-											style={[
-												styles.amount,
-												{
-													color:
-														compareMoney(
-															total.total,
-															ZERO_AMOUNT,
-														) >= 0
-															? COLORS.danger
-															: COLORS.success,
-												},
-											]}
-										>
-											Total{" "}
-											{formatMoney(
-												total.total,
-												total.currencyCode,
-											)}
-										</CustomText>
-									))
-								) : (
-									<CustomText style={styles.amount}>
-										Total {formatMoney(ZERO_AMOUNT, "INR")}
-									</CustomText>
-								)}
-								{!isNativeCurrency &&
-								totals.some((t) => t.currencyCode !== "INR")
-									? (() => {
-											const inrTotal = totals.reduce(
-												(sum, t) =>
-													sum.plus(
-														toInr(
-															t.total,
-															t.currencyCode,
-														),
-													),
-												new Decimal(0),
-											);
-											return (
-												<CustomText
-													style={[
-														styles.convertedAmount,
-														{
-															color: inrTotal.gte(
-																0,
-															)
-																? COLORS.danger
-																: COLORS.success,
-														},
-													]}
-												>
-													≈{" "}
-													{formatMoney(
-														inrTotal
-															.abs()
-															.toFixed(),
-														"INR",
-													)}
-												</CustomText>
-											);
-										})()
-									: null}
+								{renderTripTotals(totals)}
 							</View>
 						</View>
 						<View style={styles.actions}>
@@ -322,9 +354,8 @@ const TripsScreen = ({ navigation }: TripsScreenProps): React.JSX.Element => {
 		},
 		[
 			handleArchivePress,
-			isNativeCurrency,
 			navigation,
-			toInr,
+			renderTripTotals,
 			tripTotals,
 			styles,
 			COLORS,
@@ -345,10 +376,11 @@ const TripsScreen = ({ navigation }: TripsScreenProps): React.JSX.Element => {
 			>
 				<GlassCard>
 					<CustomText style={styles.title}>{item.name}</CustomText>
+					{renderTripTotals(tripTypeTotals.get(item.id) ?? [])}
 				</GlassCard>
 			</Pressable>
 		),
-		[navigation, styles],
+		[navigation, renderTripTotals, styles, tripTypeTotals],
 	);
 
 	const listHeader = useMemo(
@@ -418,6 +450,7 @@ const TripsScreen = ({ navigation }: TripsScreenProps): React.JSX.Element => {
 							.toLowerCase()
 							.includes(searchDebounced.trim().toLowerCase()),
 					)}
+					extraData={[isNativeCurrency, tripTypeTotals]}
 					keyExtractor={(item) => item.id}
 					renderItem={renderTripTypeItem}
 				/>

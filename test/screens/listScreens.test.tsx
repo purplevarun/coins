@@ -312,6 +312,7 @@ vi.mock("@/utils/error", () => ({
 }));
 vi.mock("@/utils/money", () => ({
 	default: {
+		addMoney: (a: string, b: string) => String(Number(a) + Number(b)),
 		compareMoney: (a: string, b: string) => Number(a) - Number(b),
 		formatMoney: (amount: string, code: string) => `${code} ${amount}`,
 		subtractMoney: (a: string, b: string) => String(Number(a) - Number(b)),
@@ -370,6 +371,32 @@ const findElement = <Props,>(
 	) as ReactElement<Props>[];
 	if (!element) throw new Error("Expected element was not found");
 	return element;
+};
+
+const textOf = (children: unknown): string => {
+	if (Array.isArray(children)) return children.map(textOf).join("");
+	if (typeof children === "string" || typeof children === "number")
+		return String(children);
+	if (isValidElement<{ children?: unknown }>(children))
+		return textOf(children.props.children);
+	return "";
+};
+
+const expectTextWithColor = (
+	row: unknown,
+	label: string,
+	color: string,
+): void => {
+	const [element] = findByPredicate(
+		row,
+		(el: any) =>
+			textOf(el?.props?.children) === label &&
+			el?.props?.style !== undefined,
+	);
+	expect(element).toBeDefined();
+	const style = element.props.style;
+	const leaf = Array.isArray(style) ? style[style.length - 1] : style;
+	expect((leaf as Record<string, string>).color).toBe(color);
 };
 
 const mockStateValues = (
@@ -1271,6 +1298,196 @@ describe("list screens", () => {
 				expect(navigation.navigate).toHaveBeenLastCalledWith(
 					"InvestmentForm",
 				);
+			},
+		);
+
+		it.each([true, false])(
+			"renders platform and type rows with net totals, native=%s",
+			async (nativeCurrency) => {
+				const investments = [
+					{
+						id: "inv-a",
+						name: "Fund A",
+						platformId: "rel-1",
+						investmentTypeId: "rel-1",
+					},
+					{
+						id: "inv-b",
+						name: "Fund B",
+						platformId: "rel-1",
+						investmentTypeId: "rel-1",
+					},
+					{
+						id: "inv-c",
+						name: "Fund C",
+						platformId: "rel-2",
+						investmentTypeId: null,
+					},
+				];
+				const analysis = {
+					investments: [
+						{
+							investmentId: "inv-a",
+							currencyCode: "USD",
+							net: "10",
+						},
+						{
+							investmentId: "inv-a",
+							currencyCode: "INR",
+							net: "-5",
+						},
+						{
+							investmentId: "inv-b",
+							currencyCode: "USD",
+							net: "-5",
+						},
+						{
+							investmentId: "inv-b",
+							currencyCode: "INR",
+							net: "-5",
+						},
+						{
+							investmentId: "inv-c",
+							currencyCode: "INR",
+							net: "0",
+						},
+						{
+							investmentId: "inv-x",
+							currencyCode: "INR",
+							net: "50",
+						},
+					],
+					missingCurrencies: [],
+				};
+				const rates = [{ currencyCode: "USD", rateToInr: "2" }];
+				const relations = [
+					{ id: "rel-1", name: "Broker" },
+					{ id: "rel-2", name: "Other" },
+					{ id: "rel-3", name: "Empty" },
+				].map((relation) => ({
+					...relation,
+					createdAt: 1,
+					updatedAt: 1,
+				}));
+				mockStateValues({
+					1: investments,
+					2: analysis,
+					3: nativeCurrency,
+					4: rates,
+					9: "PLATFORMS",
+					10: relations,
+				});
+				const navigation = {
+					navigate: vi.fn(),
+					setOptions: vi.fn(),
+				};
+				const tree = (
+					InvestmentsScreen as (props: unknown) => ReactElement
+				)({ navigation });
+				await flush();
+				const list = findElement<FinanceListProps<TripType>>(
+					tree,
+					(props) => Array.isArray(props.data),
+				).props;
+				const prefix = nativeCurrency ? "" : "≈ ";
+				const [broker, other, empty] = relations.map((relation) =>
+					list.renderItem({ item: relation }),
+				);
+				expectTextWithColor(broker, `${prefix}Net USD 5`, "#FB464C");
+				expectTextWithColor(broker, `${prefix}Net INR 10`, "#44CF6E");
+				expectTextWithColor(other, `${prefix}Net INR 0`, "#DADADA");
+				expectTextWithColor(empty, "Net INR 0", "#DADADA");
+
+				const [equityType] = [
+					{ id: "rel-1", name: "Equity", createdAt: 1, updatedAt: 1 },
+				];
+				mockStateValues({
+					1: investments,
+					2: analysis,
+					3: nativeCurrency,
+					4: rates,
+					9: "TYPES",
+					11: [equityType],
+				});
+				const typesTree = (
+					InvestmentsScreen as (props: unknown) => ReactElement
+				)({ navigation });
+				await flush();
+				const typesList = findElement<FinanceListProps<TripType>>(
+					typesTree,
+					(props) => Array.isArray(props.data),
+				).props;
+				const equity = typesList.renderItem({
+					item: equityType,
+				});
+				expectTextWithColor(equity, `${prefix}Net USD 5`, "#FB464C");
+				expectTextWithColor(equity, `${prefix}Net INR 10`, "#44CF6E");
+			},
+		);
+
+		it.each([true, false])(
+			"renders trip type rows with totals, native=%s",
+			async (nativeCurrency) => {
+				const tripTypes = [
+					{ id: "tt1", name: "Holiday" },
+					{ id: "tt2", name: "Work" },
+					{ id: "tt3", name: "Empty" },
+				].map((tripType) => ({
+					...tripType,
+					createdAt: 1,
+					updatedAt: 1,
+				}));
+				mockStateValues({
+					1: [
+						{ id: "trip-a", name: "Goa", tripTypeId: "tt1" },
+						{ id: "trip-b", name: "Beach", tripTypeId: "tt1" },
+						{ id: "trip-c", name: "Work", tripTypeId: "tt2" },
+						{ id: "trip-d", name: "None" },
+					],
+					2: [
+						{ tripId: "trip-a", currencyCode: "USD", total: "10" },
+						{ tripId: "trip-a", currencyCode: "INR", total: "5" },
+						{ tripId: "trip-b", currencyCode: "USD", total: "5" },
+						{ tripId: "trip-c", currencyCode: "USD", total: "-4" },
+						{ tripId: "trip-c", currencyCode: "INR", total: "-3" },
+						{ tripId: "trip-d", currencyCode: "INR", total: "7" },
+						{ tripId: "trip-x", currencyCode: "INR", total: "9" },
+					],
+					3: nativeCurrency,
+					4: [{ currencyCode: "USD", rateToInr: "2" }],
+					9: "TYPES",
+					10: tripTypes,
+				});
+				const navigation = {
+					navigate: vi.fn(),
+					setOptions: vi.fn(),
+				};
+				const tree = (TripsScreen as (props: unknown) => ReactElement)({
+					navigation,
+				});
+				await flush();
+				const list = findElement<FinanceListProps<TripType>>(
+					tree,
+					(props) => Array.isArray(props.data),
+				).props;
+				const [holiday, work, empty] = tripTypes.map((tripType) =>
+					list.renderItem({ item: tripType }),
+				);
+				expectTextWithColor(holiday, "Total USD 15", "#FB464C");
+				expectTextWithColor(holiday, "Total INR 5", "#FB464C");
+				expectTextWithColor(work, "Total USD -4", "#44CF6E");
+				expectTextWithColor(work, "Total INR -3", "#44CF6E");
+				expectTextWithColor(empty, "Total INR 0", "#DADADA");
+				if (nativeCurrency) {
+					expect(
+						findByPredicate(holiday, (el: any) =>
+							textOf(el?.props?.children).startsWith("≈ "),
+						),
+					).toEqual([]);
+				} else {
+					expectTextWithColor(holiday, "≈ INR 35", "#FB464C");
+					expectTextWithColor(work, "≈ INR 11", "#44CF6E");
+				}
 			},
 		);
 

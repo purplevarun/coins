@@ -53,7 +53,7 @@ const { getAnalysisSummary, getInvestmentNetAmount, getInvestmentNetLabel } =
 const { getExchangeRates } = exchangeRateService;
 const { getInvestments, setInvestmentArchived } = investmentService;
 const { getNativeCurrencyDisplay } = settingsService;
-const { compareMoney, formatMoney, ZERO_AMOUNT } = moneyUtils;
+const { addMoney, compareMoney, formatMoney, ZERO_AMOUNT } = moneyUtils;
 
 const { ALL_TIME_END, ALL_TIME_START } = dateConstants;
 
@@ -271,6 +271,34 @@ const InvestmentsScreen = ({
 			]);
 	}, [filteredListData, groupBy]);
 
+	const relationNets = useMemo((): ReadonlyMap<
+		string,
+		ReadonlyMap<string, string>
+	> => {
+		const key = groupBy === "PLATFORMS" ? "platformId" : "investmentTypeId";
+		const relationIds = new Map(
+			investments.map(
+				(investment) => [investment.id, investment[key]] as const,
+			),
+		);
+		const nets = new Map<string, Map<string, string>>();
+		for (const row of analysis?.investments ?? []) {
+			const relationId = relationIds.get(row.investmentId);
+			if (!relationId) continue;
+			const byCurrency =
+				nets.get(relationId) ?? new Map<string, string>();
+			byCurrency.set(
+				row.currencyCode,
+				addMoney(
+					byCurrency.get(row.currencyCode) ?? ZERO_AMOUNT,
+					row.net,
+				),
+			);
+			nets.set(relationId, byCurrency);
+		}
+		return nets;
+	}, [analysis, groupBy, investments]);
+
 	const renderInvestmentItem = useCallback(
 		({ item }: ListItemProps<InvestmentListItem>): React.JSX.Element => {
 			if (item.kind === "GROUP_HEADER") {
@@ -414,26 +442,65 @@ const InvestmentsScreen = ({
 	const renderRelationItem = useCallback(
 		({
 			item,
-		}: ListItemProps<Platform | InvestmentType>): React.JSX.Element => (
-			<Pressable
-				accessibilityRole="button"
-				onPress={() =>
-					navigation.navigate("RelationDetails", {
-						kind:
-							groupBy === "PLATFORMS"
-								? "PLATFORM"
-								: "INVESTMENT_TYPE",
-						entityId: item.id,
-						entityName: item.name,
-					})
-				}
-			>
-				<GlassCard>
-					<CustomText style={styles.title}>{item.name}</CustomText>
-				</GlassCard>
-			</Pressable>
-		),
-		[groupBy, navigation, styles],
+		}: ListItemProps<Platform | InvestmentType>): React.JSX.Element => {
+			const nets = relationNets.get(item.id);
+			return (
+				<Pressable
+					accessibilityRole="button"
+					onPress={() =>
+						navigation.navigate("RelationDetails", {
+							kind:
+								groupBy === "PLATFORMS"
+									? "PLATFORM"
+									: "INVESTMENT_TYPE",
+							entityId: item.id,
+							entityName: item.name,
+						})
+					}
+				>
+					<GlassCard>
+						<CustomText style={styles.title}>
+							{item.name}
+						</CustomText>
+						{nets?.size ? (
+							[...nets.entries()].map(([currencyCode, net]) => (
+								<CustomText
+									key={currencyCode}
+									style={[
+										styles.amount,
+										{
+											color:
+												compareMoney(net, ZERO_AMOUNT) >
+												0
+													? COLORS.danger
+													: compareMoney(
+																net,
+																ZERO_AMOUNT,
+														  ) < 0
+														? COLORS.success
+														: COLORS.text,
+										},
+									]}
+								>
+									{!isNativeCurrency ? "≈ " : ""}
+									{getInvestmentNetLabel(net)}{" "}
+									{formatMoney(
+										getInvestmentNetAmount(net),
+										currencyCode,
+									)}
+								</CustomText>
+							))
+						) : (
+							<CustomText style={styles.amount}>
+								{getInvestmentNetLabel(ZERO_AMOUNT)}{" "}
+								{formatMoney(ZERO_AMOUNT, "INR")}
+							</CustomText>
+						)}
+					</GlassCard>
+				</Pressable>
+			);
+		},
+		[groupBy, isNativeCurrency, navigation, relationNets, styles, COLORS],
 	);
 
 	const listHeader = useMemo(
@@ -509,6 +576,7 @@ const InvestmentsScreen = ({
 							.toLowerCase()
 							.includes(searchDebounced.trim().toLowerCase()),
 					)}
+					extraData={[isNativeCurrency, relationNets]}
 					keyExtractor={(item) => item.id}
 					renderItem={renderRelationItem}
 				/>
