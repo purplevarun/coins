@@ -2,20 +2,17 @@ import CustomText from "@/components/CustomText";
 
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import BottomNavBar from "@/components/BottomNavBar";
 import GlassCard from "@/components/GlassCard";
 import HeaderIconButton from "@/components/HeaderIconButton";
 import ScreenContainer from "@/components/ScreenContainer";
-import { DEFAULT_HOME_MODE, HOME_MODE_OPTIONS } from "@/constants/homeModes";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useTheme from "@/hooks/useTheme";
 import useThemedStyles from "@/hooks/useThemedStyles";
-import type HomeMode from "@/types/HomeMode";
 import type HomeScreenProps from "@/types/HomeScreenProps";
 import type HomeTile from "@/types/HomeTile";
 import createThemedStyles from "@/utils/createThemedStyles";
@@ -33,10 +30,6 @@ const {
 	SPACING,
 } = styleConstants;
 
-const getModeLabel = (mode: HomeMode): string =>
-	HOME_MODE_OPTIONS.find((option) => option.mode === mode)?.label ??
-	MESSAGES.HOME.DEFAULT_MODE_LABEL;
-
 const getPressableScaleStyle = (
 	pressed: boolean,
 ): readonly (ViewStyle | false)[] => [
@@ -48,139 +41,69 @@ const getTileIconBackgroundColor = (color: string): string => `${color}20`;
 const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
 	const { colors: COLORS } = useTheme();
 	const styles = useThemedStyles(themedStyles);
-	const [mode, setMode] = useState<HomeMode>(DEFAULT_HOME_MODE);
 
-	const tilesByMode = useMemo(
-		(): Readonly<Record<HomeMode, readonly HomeTile[]>> => ({
-			TOOLS: [
-				{
-					label: MESSAGES.HOME.NOTES_LABEL,
-					subtitle: MESSAGES.HOME.NOTES_SUBTITLE,
-					icon: "document-text-outline",
-					color: COLORS.skyBlue,
-					handlePress: () => navigation.navigate("Notes"),
-				},
-				{
-					label: MESSAGES.HOME.TODOS_LABEL,
-					subtitle: MESSAGES.HOME.TODOS_SUBTITLE,
-					icon: "checkbox-outline",
-					color: COLORS.success,
-					handlePress: () => navigation.navigate("Todos"),
-				},
-				{
-					label: MESSAGES.HOME.PASSWORDS_LABEL,
-					subtitle: MESSAGES.HOME.PASSWORDS_SUBTITLE,
-					icon: "key-outline",
-					color: COLORS.warning,
-					handlePress: () =>
-						navigation.navigate("Vault", { kind: "PASSWORD" }),
-				},
-				{
-					label: MESSAGES.HOME.CARDS_LABEL,
-					subtitle: MESSAGES.HOME.CARDS_SUBTITLE,
-					icon: "card-outline",
-					color: COLORS.pink,
-					handlePress: () =>
-						navigation.navigate("Vault", { kind: "CARD" }),
-				},
-				{
-					label: MESSAGES.HOME.IDENTITY_LABEL,
-					subtitle: MESSAGES.HOME.IDENTITY_SUBTITLE,
-					icon: "person-circle-outline",
-					color: COLORS.blue,
-					handlePress: () =>
-						navigation.navigate("Vault", { kind: "IDENTITY" }),
-				},
-			],
-			FINANCE: [
-				{
-					label: MESSAGES.HOME.TRANSACTIONS_LABEL,
-					subtitle: MESSAGES.HOME.TRANSACTIONS_SUBTITLE,
-					icon: "swap-horizontal",
-					color: COLORS.primary,
-					handlePress: () => navigation.navigate("Transactions"),
-				},
-				{
-					label: MESSAGES.HOME.SOURCES_LABEL,
-					subtitle: MESSAGES.HOME.SOURCES_SUBTITLE,
-					icon: "wallet-outline",
-					color: COLORS.blue,
-					handlePress: () => navigation.navigate("Sources"),
-				},
-				{
-					label: MESSAGES.HOME.CATEGORIES_LABEL,
-					subtitle: MESSAGES.HOME.CATEGORIES_SUBTITLE,
-					icon: "pricetags-outline",
-					color: COLORS.warning,
-					handlePress: () => navigation.navigate("Categories"),
-				},
-				{
-					label: MESSAGES.HOME.TRIPS_LABEL,
-					subtitle: MESSAGES.HOME.TRIPS_SUBTITLE,
-					icon: "airplane-outline",
-					color: COLORS.cyan,
-					handlePress: () => navigation.navigate("Trips"),
-				},
-				{
-					label: MESSAGES.HOME.INVESTMENTS_LABEL,
-					subtitle: MESSAGES.HOME.INVESTMENTS_SUBTITLE,
-					icon: "trending-up",
-					color: COLORS.success,
-					handlePress: () => navigation.navigate("Investments"),
-				},
-				{
-					label: MESSAGES.HOME.ANALYSIS_LABEL,
-					subtitle: MESSAGES.HOME.ANALYSIS_SUBTITLE,
-					icon: "pie-chart-outline",
-					color: COLORS.lavender,
-					handlePress: () => navigation.navigate("Analysis"),
-				},
-			],
-		}),
+	const tiles = useMemo(
+		(): readonly HomeTile[] => [
+			{
+				label: MESSAGES.HOME.TRANSACTIONS_LABEL,
+				subtitle: MESSAGES.HOME.TRANSACTIONS_SUBTITLE,
+				icon: "swap-horizontal",
+				color: COLORS.primary,
+				handlePress: () => navigation.navigate("Transactions"),
+			},
+			{
+				label: MESSAGES.HOME.SOURCES_LABEL,
+				subtitle: MESSAGES.HOME.SOURCES_SUBTITLE,
+				icon: "wallet-outline",
+				color: COLORS.blue,
+				handlePress: () => navigation.navigate("Sources"),
+			},
+			{
+				label: MESSAGES.HOME.CATEGORIES_LABEL,
+				subtitle: MESSAGES.HOME.CATEGORIES_SUBTITLE,
+				icon: "pricetags-outline",
+				color: COLORS.warning,
+				handlePress: () => navigation.navigate("Categories"),
+			},
+			{
+				label: MESSAGES.HOME.TRIPS_LABEL,
+				subtitle: MESSAGES.HOME.TRIPS_SUBTITLE,
+				icon: "airplane-outline",
+				color: COLORS.cyan,
+				handlePress: () => navigation.navigate("Trips"),
+			},
+			{
+				label: MESSAGES.HOME.INVESTMENTS_LABEL,
+				subtitle: MESSAGES.HOME.INVESTMENTS_SUBTITLE,
+				icon: "trending-up",
+				color: COLORS.success,
+				handlePress: () => navigation.navigate("Investments"),
+			},
+			{
+				label: MESSAGES.HOME.ANALYSIS_LABEL,
+				subtitle: MESSAGES.HOME.ANALYSIS_SUBTITLE,
+				icon: "pie-chart-outline",
+				color: COLORS.lavender,
+				handlePress: () => navigation.navigate("Analysis"),
+			},
+			{
+				label: MESSAGES.HOME.PASSWORDS_LABEL,
+				subtitle: MESSAGES.HOME.PASSWORDS_SUBTITLE,
+				icon: "key-outline",
+				color: COLORS.warning,
+				handlePress: () =>
+					navigation.navigate("Vault", { kind: "PASSWORD" }),
+			},
+			{
+				label: MESSAGES.HOME.CARDS_LABEL,
+				subtitle: MESSAGES.HOME.CARDS_SUBTITLE,
+				icon: "card-outline",
+				color: COLORS.pink,
+				handlePress: () =>
+					navigation.navigate("Vault", { kind: "CARD" }),
+			},
+		],
 		[navigation, COLORS],
-	);
-
-	const renderTiles = (tiles: readonly HomeTile[]): React.JSX.Element => (
-		<View style={styles.grid}>
-			{tiles.map((tile) => (
-				<Pressable
-					key={tile.label}
-					onPress={tile.handlePress}
-					style={({ pressed }) => [
-						styles.tileWrapper,
-						...getPressableScaleStyle(pressed),
-					]}
-				>
-					<GlassCard>
-						<View style={styles.tile}>
-							<View
-								style={[
-									styles.tileIcon,
-									{
-										backgroundColor:
-											getTileIconBackgroundColor(
-												tile.color,
-											),
-									},
-								]}
-							>
-								<Ionicons
-									color={tile.color}
-									name={tile.icon}
-									size={24}
-								/>
-							</View>
-							<CustomText style={styles.tileTitle}>
-								{tile.label}
-							</CustomText>
-							<CustomText style={styles.tileSubtitle}>
-								{tile.subtitle}
-							</CustomText>
-						</View>
-					</GlassCard>
-				</Pressable>
-			))}
-		</View>
 	);
 
 	return (
@@ -219,15 +142,47 @@ const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
 							/>
 						</View>
 					</View>
-					{renderTiles(tilesByMode[mode])}
+					<View style={styles.grid}>
+						{tiles.map((tile) => (
+							<Pressable
+								key={tile.label}
+								onPress={tile.handlePress}
+								style={({ pressed }) => [
+									styles.tileWrapper,
+									...getPressableScaleStyle(pressed),
+								]}
+							>
+								<GlassCard>
+									<View style={styles.tile}>
+										<View
+											style={[
+												styles.tileIcon,
+												{
+													backgroundColor:
+														getTileIconBackgroundColor(
+															tile.color,
+														),
+												},
+											]}
+										>
+											<Ionicons
+												color={tile.color}
+												name={tile.icon}
+												size={24}
+											/>
+										</View>
+										<CustomText style={styles.tileTitle}>
+											{tile.label}
+										</CustomText>
+										<CustomText style={styles.tileSubtitle}>
+											{tile.subtitle}
+										</CustomText>
+									</View>
+								</GlassCard>
+							</Pressable>
+						))}
+					</View>
 				</ScreenContainer>
-				<View style={styles.navDock}>
-					<BottomNavBar
-						activeMode={mode}
-						onSelectMode={setMode}
-						options={HOME_MODE_OPTIONS}
-					/>
-				</View>
 			</SafeAreaView>
 		</LinearGradient>
 	);
@@ -269,9 +224,6 @@ const themedStyles = createThemedStyles((COLORS) =>
 			flexWrap: FLEX.WRAP,
 			rowGap: SPACING.S10,
 		},
-		navDock: {
-			flexShrink: FLEX.NONE,
-		},
 		tileWrapper: {
 			width: SIZES.TILE,
 		},
@@ -302,4 +254,4 @@ const themedStyles = createThemedStyles((COLORS) =>
 
 export default HomeScreen;
 
-export { getModeLabel, getPressableScaleStyle, getTileIconBackgroundColor };
+export { getPressableScaleStyle, getTileIconBackgroundColor };

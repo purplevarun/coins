@@ -60,7 +60,6 @@ vi.mock("@shopify/flash-list", () => ({
 	FlashList: "FlashList",
 }));
 
-import BottomNavBar from "@/components/BottomNavBar";
 import CustomText from "@/components/CustomText";
 import CustomTextInput from "@/components/CustomTextInput";
 import EmptyState from "@/components/EmptyState";
@@ -79,24 +78,6 @@ import THEME_PALETTES from "@/constants/themePaletteConstants";
 import useTheme from "@/hooks/useTheme";
 
 import { Platform } from "react-native";
-
-const findAllByPredicate = (
-	node: any,
-	predicate: (candidate: any) => boolean,
-	acc: any[] = [],
-): any[] => {
-	if (!node) return acc;
-	if (Array.isArray(node)) {
-		node.forEach((child) => findAllByPredicate(child, predicate, acc));
-		return acc;
-	}
-	if (predicate(node)) acc.push(node);
-	if (!node.props) return acc;
-	for (const value of Object.values(node.props)) {
-		findAllByPredicate(value, predicate, acc);
-	}
-	return acc;
-};
 
 const findFirstByType = (node: any, type: string): any => {
 	if (!node) return null;
@@ -135,34 +116,6 @@ describe("presentational components", () => {
 			);
 			expect(card.props.children.props.style.backgroundColor).toBe(
 				theme.colors.glass,
-			);
-			vi.mocked(useTheme).mockReturnValue(
-				THEME_PALETTES[themeConstants.DEFAULT_THEME_ID],
-			);
-		},
-	);
-
-	it.each(themeConstants.THEME_OPTIONS)(
-		"renders bottom navigation in $label",
-		({ value }) => {
-			const theme = THEME_PALETTES[value];
-			vi.mocked(useTheme).mockReturnValue(theme);
-			const element = BottomNavBar({
-				options: [
-					{
-						mode: "finance",
-						label: "Finance",
-						icon: "wallet-outline",
-					},
-				],
-				activeMode: "finance",
-				onSelectMode: vi.fn(),
-			} as any);
-			expect(element.props.style.backgroundColor).toBe(
-				theme.colors.backgroundElevated,
-			);
-			expect(findFirstByType(element, "Ionicons").props.color).toBe(
-				theme.colors.primaryBright,
 			);
 			vi.mocked(useTheme).mockReturnValue(
 				THEME_PALETTES[themeConstants.DEFAULT_THEME_ID],
@@ -293,70 +246,6 @@ describe("presentational components", () => {
 		expect(disabled.props.disabled).toBe(true);
 		expect(disabled.props.accessibilityState).toEqual({ disabled: true });
 		expect(disabled.props.style({ pressed: true })[2]).toBe(false);
-	});
-
-	it("covers BottomNavBar active, inactive and pressed branches", () => {
-		const onSelectMode = vi.fn();
-		const nav = BottomNavBar({
-			options: [
-				{ mode: "TOOLS", label: "Tools", icon: "construct-outline" },
-				{ mode: "FINANCE", label: "Finance", icon: "wallet-outline" },
-				{
-					mode: "VAULT",
-					label: "Vault",
-					icon: "lock-closed-outline",
-				},
-			],
-			activeMode: "FINANCE",
-			onSelectMode,
-		} as any) as any;
-
-		expect(findFirstByType(nav, "BlurView")).toBeNull();
-		expect(nav.type).toBe("SafeAreaView");
-		expect(nav.props.edges).toEqual(["bottom"]);
-		expect(nav.props.style).toMatchObject({ borderTopWidth: 1 });
-		expect(nav.props.style).not.toHaveProperty("borderRadius");
-		expect(nav.props.style).not.toHaveProperty("elevation");
-		const indicators = findAllByPredicate(
-			nav,
-			(node) =>
-				node?.type === "View" &&
-				Array.isArray(node.props?.style) &&
-				node.props.style[0]?.width === 64,
-		);
-		expect(indicators).toHaveLength(3);
-		expect(indicators[0]?.props.style[1]).toBe(false);
-		expect(indicators[1]?.props.style[1]).toHaveProperty("backgroundColor");
-		expect(indicators[1]?.props.style[0]).toMatchObject({
-			width: 64,
-			height: 40,
-			borderRadius: 16,
-			overflow: "hidden",
-		});
-
-		const items = findAllByPredicate(
-			nav,
-			(node) => node?.type === "Pressable",
-		);
-		expect(items).toHaveLength(3);
-		items.forEach((item) => {
-			expect(item.props.style({ pressed: false })[1]).toBe(false);
-			expect(item.props.style({ pressed: true })[1]).toBeTruthy();
-			item.props.onPress();
-		});
-		expect(onSelectMode).toHaveBeenCalledWith("TOOLS");
-		expect(onSelectMode).toHaveBeenCalledWith("FINANCE");
-		expect(onSelectMode).toHaveBeenCalledWith("VAULT");
-
-		const icons = findAllByPredicate(
-			nav,
-			(node) => node?.type === "Ionicons",
-		);
-		expect(icons.map((icon) => icon.props.name)).toEqual([
-			"construct-outline",
-			"wallet",
-			"lock-closed-outline",
-		]);
 	});
 
 	it("covers GlassCard accent variants", () => {
