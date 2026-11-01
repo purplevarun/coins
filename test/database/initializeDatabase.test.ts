@@ -10,7 +10,6 @@ const {
 	upsertSettingRow,
 	cacheList,
 	cacheDelete,
-	toast,
 	openDatabaseAsync,
 } = vi.hoisted(() => {
 	const mockedExecAsync = vi
@@ -39,17 +38,12 @@ const {
 			.mockResolvedValue(undefined),
 		cacheList,
 		cacheDelete,
-		toast: vi.fn(),
 		openDatabaseAsync: mockedOpenDatabaseAsync,
 	};
 });
 
 vi.mock("expo-sqlite", () => ({
 	openDatabaseAsync,
-}));
-
-vi.mock("react-native", () => ({
-	ToastAndroid: { show: toast, SHORT: 0 },
 }));
 
 vi.mock("@/repositories/settingsRepository", () => ({
@@ -123,11 +117,10 @@ describe("initializeDatabase", () => {
 		upsertSettingRow.mockReset().mockResolvedValue(undefined);
 		cacheList.mockReset().mockReturnValue([]);
 		cacheDelete.mockReset();
-		toast.mockReset();
 	});
 	afterEach(() => vi.useRealTimers());
 
-	it("removes only legacy cached files and compacts the upgraded database", async () => {
+	it("removes only legacy cached files when the database is upgraded", async () => {
 		getFirstAsync.mockResolvedValueOnce({ name: "attachments" });
 		cacheList.mockReturnValue([
 			new File("01234567-1234-1234-1234-012345678901-receipt.pdf"),
@@ -144,8 +137,6 @@ describe("initializeDatabase", () => {
 			"ReactNativeBlobUtil",
 			"react-native-pdf",
 		]);
-		expect(execAsync).toHaveBeenLastCalledWith("VACUUM;");
-		expect(toast).toHaveBeenCalledExactlyOnceWith("Vacuum done!", 0);
 	});
 
 	it("keeps the migration pending when legacy cache cleanup fails", async () => {
@@ -169,14 +160,7 @@ describe("initializeDatabase", () => {
 		});
 		expect(execAsync).toHaveBeenNthCalledWith(1, "SCHEMA_SQL");
 		expect(execAsync).toHaveBeenNthCalledWith(2, "FUTURE_MIGRATION_SQL");
-		expect(execAsync).toHaveBeenNthCalledWith(3, "VACUUM;");
-		expect(execAsync).toHaveBeenCalledTimes(3);
-		expect(upsertSettingRow).toHaveBeenCalledWith(
-			database,
-			"database.lastVacuumDay",
-			"2026-10-19",
-			Date.now(),
-		);
+		expect(execAsync).toHaveBeenCalledTimes(2);
 		expect(cacheList).not.toHaveBeenCalled();
 		expect(closeAsync).not.toHaveBeenCalled();
 		expect(database).toMatchObject({ execAsync });
@@ -188,24 +172,27 @@ describe("initializeDatabase", () => {
 		expect(closeAsync).toHaveBeenCalledOnce();
 	});
 
-	it("skips compaction on later opens of the same local day", async () => {
+	it("skips compaction on later runs of the same local day", async () => {
+		const database =
+			(await openDatabaseAsync()) as unknown as SQLiteDatabase;
 		getSettingRow
 			.mockResolvedValueOnce(null)
 			.mockResolvedValueOnce("2026-10-19");
-		await initializeDatabase();
 		vi.setSystemTime(new Date(2026, 9, 19, 23, 55));
-		await initializeDatabase();
+		expect(await vacuumDatabaseIfNeeded(database)).toBe(true);
+		expect(await vacuumDatabaseIfNeeded(database)).toBe(false);
 		expect(
 			execAsync.mock.calls.filter(([sql]) => sql === "VACUUM;"),
 		).toHaveLength(1);
 		expect(upsertSettingRow).toHaveBeenCalledOnce();
-		expect(toast).toHaveBeenCalledTimes(1);
 	});
 
-	it("compacts again on the first open of the next local day", async () => {
+	it("compacts again on the first run of the next local day", async () => {
+		const database =
+			(await openDatabaseAsync()) as unknown as SQLiteDatabase;
 		getSettingRow.mockResolvedValueOnce("2026-10-19");
 		vi.setSystemTime(new Date(2026, 9, 20, 0, 1));
-		const database = await initializeDatabase();
+		expect(await vacuumDatabaseIfNeeded(database)).toBe(true);
 		expect(execAsync).toHaveBeenLastCalledWith("VACUUM;");
 		expect(upsertSettingRow).toHaveBeenCalledWith(
 			database,
@@ -215,38 +202,38 @@ describe("initializeDatabase", () => {
 		);
 	});
 
-	it("does not mark failed compaction complete and retries on the next open", async () => {
-		execAsync
-			.mockResolvedValueOnce(undefined)
-			.mockResolvedValueOnce(undefined)
-			.mockRejectedValueOnce(new Error("vacuum failed"));
-		await expect(initializeDatabase()).rejects.toThrow("vacuum failed");
+	it("does not mark failed compaction complete and retries on the next run", async () => {
+		const database =
+			(await openDatabaseAsync()) as unknown as SQLiteDatabase;
+		execAsync.mockRejectedValueOnce(new Error("vacuum failed"));
+		await expect(vacuumDatabaseIfNeeded(database)).rejects.toThrow(
+			"vacuum failed",
+		);
 		expect(upsertSettingRow).not.toHaveBeenCalled();
-		expect(toast).not.toHaveBeenCalled();
-		expect(closeAsync).toHaveBeenCalledOnce();
-		await initializeDatabase();
+		expect(await vacuumDatabaseIfNeeded(database)).toBe(true);
 		expect(upsertSettingRow).toHaveBeenCalledOnce();
-		expect(toast).toHaveBeenCalledTimes(1);
 	});
 
-	it("does not show a success toast when saving the completion marker fails", async () => {
+	it("does not report success when saving the completion marker fails", async () => {
+		const database =
+			(await openDatabaseAsync()) as unknown as SQLiteDatabase;
 		upsertSettingRow.mockRejectedValueOnce(
 			new Error("settings write failed"),
 		);
-		await expect(initializeDatabase()).rejects.toThrow(
+		await expect(vacuumDatabaseIfNeeded(database)).rejects.toThrow(
 			"settings write failed",
 		);
-		expect(toast).not.toHaveBeenCalled();
 	});
 
 	it("prevents overlapping compaction checks on the same connection", async () => {
 		const database =
 			(await openDatabaseAsync()) as unknown as SQLiteDatabase;
 		getSettingRow.mockImplementationOnce(() => Promise.resolve(null));
-		await Promise.all([
+		const results = await Promise.all([
 			vacuumDatabaseIfNeeded(database),
 			vacuumDatabaseIfNeeded(database),
 		]);
+		expect(results).toEqual([true, false]);
 		expect(getSettingRow).toHaveBeenCalledOnce();
 		expect(execAsync).toHaveBeenCalledExactlyOnceWith("VACUUM;");
 		expect(upsertSettingRow).toHaveBeenCalledOnce();

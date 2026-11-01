@@ -11,6 +11,7 @@ const LAST_VACUUM_DAY_KEY = "database.lastVacuumDay";
 const LIST_PAGE_SIZE = 10;
 const MILLISECONDS_PER_DAY = 86_400_000;
 const TRANSACTION_PAGE_SIZE = 10;
+const VACUUM_NOTICE_MS = 2400;
 
 const appConstants = {
 	APP_NAME,
@@ -26,6 +27,7 @@ const appConstants = {
 	LIST_PAGE_SIZE,
 	MILLISECONDS_PER_DAY,
 	TRANSACTION_PAGE_SIZE,
+	VACUUM_NOTICE_MS,
 };
 
 export default appConstants;

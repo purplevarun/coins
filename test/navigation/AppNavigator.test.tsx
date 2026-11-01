@@ -253,14 +253,12 @@ describe("AppNavigator", () => {
 			"New budget",
 		);
 		expect(
-			budgetFormOptions({ route: { params: { budgetId: "b1" } } })
-				.title,
+			budgetFormOptions({ route: { params: { budgetId: "b1" } } }).title,
 		).toBe("Edit budget");
 
 		const vaultFormOptions = byName("VaultForm")?.props?.options;
 		expect(
-			vaultFormOptions({ route: { params: { kind: "PASSWORD" } } })
-				.title,
+			vaultFormOptions({ route: { params: { kind: "PASSWORD" } } }).title,
 		).toBe("New password");
 		expect(
 			vaultFormOptions({
