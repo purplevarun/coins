@@ -32,6 +32,7 @@ import type RelationKind from "@/types/RelationKind";
 import type Transaction from "@/types/Transaction";
 import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
+import moneyUtils from "@/utils/money";
 import getRelationLabels from "@/utils/relation";
 import runAfterRender from "@/utils/runAfterRender";
 const { deleteCategory } = categoryService;
@@ -39,6 +40,7 @@ const { deleteInvestment } = investmentService;
 const { deleteSource } = sourceService;
 const { getLinkedTransactions } = transactionService;
 const { deleteTrip } = tripService;
+const { compareMoney, ZERO_AMOUNT } = moneyUtils;
 
 const getRelationIcon = (
 	kind: RelationKind,
@@ -81,6 +83,7 @@ const LinkedTransactionsScreen = ({
 		dateRangeStart,
 		dateRangeEnd,
 		dateRangeLabel,
+		sortBy,
 	} = route.params;
 	const { database, dataVersion, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
@@ -107,12 +110,25 @@ const LinkedTransactionsScreen = ({
 								t.transactionAt <= dateRangeEnd,
 						)
 					: all;
-			setTransactions(filtered);
+			setTransactions(
+				sortBy === "DEBIT_DESC"
+					? filtered
+							.map((transaction) => ({
+								debit:
+									transaction.type === "DEBIT"
+										? transaction.amount
+										: ZERO_AMOUNT,
+								transaction,
+							}))
+							.sort((a, b) => compareMoney(b.debit, a.debit))
+							.map((entry) => entry.transaction)
+					: filtered,
+			);
 			setError("");
 		} catch (caughtError: unknown) {
 			setError(getErrorMessage(caughtError));
 		}
-	}, [database, entityId, kind, dateRangeStart, dateRangeEnd]);
+	}, [database, entityId, kind, dateRangeStart, dateRangeEnd, sortBy]);
 
 	useEffect(
 		() =>

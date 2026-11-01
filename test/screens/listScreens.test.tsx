@@ -2977,8 +2977,18 @@ describe("list screens", () => {
 				node?.props?.label === "Delete" &&
 				typeof node?.props?.onPress === "function",
 		)[0]?.props?.onPress();
+		renderedItem.props.onPress();
 		await flush();
 
+		expect(navigation.navigate).toHaveBeenCalledWith("LinkedTransactions", {
+			kind: "CATEGORY",
+			entityId: "c1",
+			entityName: "Food",
+			dateRangeStart: 5,
+			dateRangeEnd: 999,
+			dateRangeLabel: "date:5 – date:999",
+			sortBy: "DEBIT_DESC",
+		});
 		expect(serviceMocks.getBudgets).toHaveBeenCalledWith({ id: "db" });
 		expect(serviceMocks.getAnalysisSummary).toHaveBeenCalledTimes(2);
 		expect(serviceMocks.deleteBudget).toHaveBeenCalledWith(
@@ -3051,6 +3061,17 @@ describe("list screens", () => {
 				(node) => node?.props?.accent === "default",
 			),
 		).not.toHaveLength(0);
+
+		renderedItem.props.onPress();
+		expect(navigation.navigate).toHaveBeenCalledWith(
+			"LinkedTransactions",
+			expect.objectContaining({
+				kind: "CATEGORY",
+				entityId: "c2",
+				dateRangeStart: 4,
+				sortBy: "DEBIT_DESC",
+			}),
+		);
 
 		findByPredicate(
 			tree,

@@ -39,6 +39,7 @@ type RootStackParamList = {
 		dateRangeStart?: number;
 		dateRangeEnd?: number;
 		dateRangeLabel?: string;
+		sortBy?: "DEBIT_DESC";
 	};
 	Budgets: undefined;
 	BudgetForm: { budgetId?: string } | undefined;

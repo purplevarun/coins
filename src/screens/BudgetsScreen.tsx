@@ -2,7 +2,7 @@ import CustomText from "@/components/CustomText";
 import type ListItemProps from "@/types/ListItemProps";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import AppButton from "@/components/AppButton";
 import EmptyState from "@/components/EmptyState";
@@ -31,7 +31,7 @@ import runAfterRender from "@/utils/runAfterRender";
 const { DEFAULT_CURRENCY_CODE } = appConstants;
 const { getAnalysisSummary } = analysisService;
 const { deleteBudget, getBudgets } = budgetService;
-const { getAnalysisDateRange } = dateUtils;
+const { formatDate, getAnalysisDateRange } = dateUtils;
 const { compareMoney, formatMoney, subtractMoney, ZERO_AMOUNT } = moneyUtils;
 
 const BudgetsScreen = ({
@@ -132,6 +132,25 @@ const BudgetsScreen = ({
 		[database, dialog, refreshData],
 	);
 
+	const openBudgetTransactions = useCallback(
+		(budget: Budget): void => {
+			const dateRange = getAnalysisDateRange(
+				budget.period === "MONTHLY" ? "MONTH" : "YEAR",
+				new Date(),
+			);
+			navigation.navigate("LinkedTransactions", {
+				kind: "CATEGORY",
+				entityId: budget.categoryId,
+				entityName: budget.categoryName,
+				dateRangeStart: dateRange.start,
+				dateRangeEnd: dateRange.end,
+				dateRangeLabel: `${formatDate(dateRange.start)} – ${formatDate(dateRange.end)}`,
+				sortBy: "DEBIT_DESC",
+			});
+		},
+		[navigation],
+	);
+
 	const renderBudget = useCallback(
 		({ item: budget }: ListItemProps<Budget>): React.JSX.Element => {
 			const spent = getSpent(budget);
@@ -140,68 +159,80 @@ const BudgetsScreen = ({
 			const progress = Math.min(Math.max(rawProgress, 0), 1);
 			const isOverBudget = compareMoney(spent, budget.amount) > 0;
 			return (
-				<GlassCard accent={isOverBudget ? "danger" : "default"}>
-					<View style={styles.headingRow}>
-						<View style={styles.details}>
-							<CustomText style={styles.title}>
-								{budget.categoryName}
-							</CustomText>
-							<CustomText style={styles.period}>
-								{budget.period === "MONTHLY"
-									? MESSAGES.BUDGETS.CALENDAR_MONTH
-									: MESSAGES.BUDGETS.CALENDAR_YEAR}
+				<Pressable
+					accessibilityRole="button"
+					onPress={() => openBudgetTransactions(budget)}
+				>
+					<GlassCard accent={isOverBudget ? "danger" : "default"}>
+						<View style={styles.headingRow}>
+							<View style={styles.details}>
+								<CustomText style={styles.title}>
+									{budget.categoryName}
+								</CustomText>
+								<CustomText style={styles.period}>
+									{budget.period === "MONTHLY"
+										? MESSAGES.BUDGETS.CALENDAR_MONTH
+										: MESSAGES.BUDGETS.CALENDAR_YEAR}
+								</CustomText>
+							</View>
+							<CustomText
+								style={[
+									styles.percentage,
+									isOverBudget && styles.overBudget,
+								]}
+							>
+								{Math.round(rawProgress * 100)}%
 							</CustomText>
 						</View>
-						<CustomText
-							style={[
-								styles.percentage,
-								isOverBudget && styles.overBudget,
-							]}
-						>
-							{Math.round(rawProgress * 100)}%
+						<View style={styles.progressTrack}>
+							<View
+								style={[
+									styles.progressFill,
+									{
+										width: `${progress * 100}%`,
+										backgroundColor: isOverBudget
+											? COLORS.danger
+											: COLORS.primary,
+									},
+								]}
+							/>
+						</View>
+						<CustomText style={styles.amounts}>
+							{formatMoney(spent, DEFAULT_CURRENCY_CODE)} of{" "}
+							{formatMoney(budget.amount, DEFAULT_CURRENCY_CODE)}
 						</CustomText>
-					</View>
-					<View style={styles.progressTrack}>
-						<View
-							style={[
-								styles.progressFill,
-								{
-									width: `${progress * 100}%`,
-									backgroundColor: isOverBudget
-										? COLORS.danger
-										: COLORS.primary,
-								},
-							]}
-						/>
-					</View>
-					<CustomText style={styles.amounts}>
-						{formatMoney(spent, DEFAULT_CURRENCY_CODE)} of{" "}
-						{formatMoney(budget.amount, DEFAULT_CURRENCY_CODE)}
-					</CustomText>
-					<View style={styles.actions}>
-						<AppButton
-							icon="create-outline"
-							isCompact
-							label={MESSAGES.COMMON.EDIT}
-							onPress={() =>
-								navigation.navigate("BudgetForm", {
-									budgetId: budget.id,
-								})
-							}
-							variant="secondary"
-						/>
-						<AppButton
-							icon="trash-outline"
-							isCompact
-							label={MESSAGES.COMMON.DELETE}
-							onPress={() => handleDelete(budget)}
-							variant="danger"
-						/>
-					</View>
-				</GlassCard>
+						<View style={styles.actions}>
+							<AppButton
+								icon="create-outline"
+								isCompact
+								label={MESSAGES.COMMON.EDIT}
+								onPress={() =>
+									navigation.navigate("BudgetForm", {
+										budgetId: budget.id,
+									})
+								}
+								variant="secondary"
+							/>
+							<AppButton
+								icon="trash-outline"
+								isCompact
+								label={MESSAGES.COMMON.DELETE}
+								onPress={() => handleDelete(budget)}
+								variant="danger"
+							/>
+						</View>
+					</GlassCard>
+				</Pressable>
 			);
 		},
-		[getSpent, handleDelete, navigation, styles, COLORS],
+		[
+			getSpent,
+			handleDelete,
+			openBudgetTransactions,
+			navigation,
+			styles,
+			COLORS,
+		],
 	);
 
 	const listHeader = useMemo(

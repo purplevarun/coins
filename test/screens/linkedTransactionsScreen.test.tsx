@@ -460,6 +460,46 @@ describe("LinkedTransactionsScreen", () => {
 		]);
 	});
 
+	it("sorts linked transactions by debit amount descending", async () => {
+		const setTransactions = vi.fn();
+		serviceMocks.getLinkedTransactions.mockResolvedValueOnce([
+			{ id: "tx-credit", type: "CREDIT", amount: "999" },
+			{ id: "tx-small", type: "DEBIT", amount: "10" },
+			{ id: "tx-big", type: "DEBIT", amount: "500" },
+		]);
+
+		let call = 0;
+		reactMocks.useState.mockImplementation((initial: any) => {
+			call += 1;
+			if (call === 1) return [[], setTransactions];
+			return [
+				typeof initial === "function" ? initial() : initial,
+				vi.fn(),
+			];
+		});
+
+		LinkedTransactionsScreen({
+			navigation: { navigate: vi.fn(), goBack: vi.fn() },
+			route: {
+				key: "k4",
+				name: "LinkedTransactions",
+				params: {
+					entityId: "e1",
+					entityName: "Entity",
+					kind: "CATEGORY",
+					sortBy: "DEBIT_DESC",
+				},
+			},
+		} as any);
+		await flush();
+
+		expect(setTransactions).toHaveBeenCalledWith([
+			{ id: "tx-big", type: "DEBIT", amount: "500" },
+			{ id: "tx-small", type: "DEBIT", amount: "10" },
+			{ id: "tx-credit", type: "CREDIT", amount: "999" },
+		]);
+	});
+
 	it.each([
 		["CATEGORY", "deleteCategory"],
 		["TRIP", "deleteTrip"],
