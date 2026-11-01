@@ -13,12 +13,9 @@ const serviceMocks = vi.hoisted(() => ({
 	getCards: vi.fn(),
 	getCategories: vi.fn(),
 	getExchangeRates: vi.fn(),
-	getIdentities: vi.fn(),
 	getInvestments: vi.fn(),
-	getNotes: vi.fn(),
 	getPasswords: vi.fn(),
 	getSources: vi.fn(),
-	getTodos: vi.fn(),
 	getTransactions: vi.fn(),
 	getTransactionDisplayReason: vi.fn(),
 	getTrips: vi.fn(),
@@ -82,23 +79,14 @@ vi.mock("@/services/categoryService", () => ({
 vi.mock("@/services/exchangeRateService", () => ({
 	default: { getExchangeRates: serviceMocks.getExchangeRates },
 }));
-vi.mock("@/services/identityService", () => ({
-	default: { getIdentities: serviceMocks.getIdentities },
-}));
 vi.mock("@/services/investmentService", () => ({
 	default: { getInvestments: serviceMocks.getInvestments },
-}));
-vi.mock("@/services/noteService", () => ({
-	default: { getNotes: serviceMocks.getNotes },
 }));
 vi.mock("@/services/passwordService", () => ({
 	default: { getPasswords: serviceMocks.getPasswords },
 }));
 vi.mock("@/services/sourceService", () => ({
 	default: { getSources: serviceMocks.getSources },
-}));
-vi.mock("@/services/todoService", () => ({
-	default: { getTodos: serviceMocks.getTodos },
 }));
 vi.mock("@/services/transactionService", () => ({
 	default: {
@@ -223,13 +211,6 @@ describe("GlobalSearchScreen", () => {
 			(transaction: any) => transaction.reason ?? "Reason",
 		);
 
-		serviceMocks.getNotes.mockResolvedValue([
-			{ id: "n1", title: "Note", folderName: "Home" },
-		]);
-		serviceMocks.getTodos.mockResolvedValue([
-			{ id: "t1", title: "Todo", folderName: "Home" },
-		]);
-
 		serviceMocks.getTransactions.mockResolvedValue([
 			{
 				id: "tx1",
@@ -273,78 +254,6 @@ describe("GlobalSearchScreen", () => {
 		serviceMocks.getCards.mockResolvedValue([
 			{ id: "ca1", name: "Visa", network: "VISA" },
 		]);
-		serviceMocks.getIdentities.mockResolvedValue([
-			{ id: "id1", title: "Passport", idNumber: "P1" },
-		]);
-	});
-
-	it("loads TOOLS mode and opens NOTE and TODO results", async () => {
-		const navigation = { navigate: vi.fn() };
-
-		let stateCall = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			stateCall += 1;
-			if (stateCall === 1) {
-				return [[], vi.fn()];
-			}
-			if (stateCall === 2) return ["ho", vi.fn()];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		const tree = GlobalSearchScreen({
-			navigation,
-			route: {
-				key: "k",
-				name: "GlobalSearch",
-				params: undefined,
-			},
-		} as any);
-		await flush();
-
-		const screenList = findByPredicate(
-			tree,
-			(node) => typeof node?.props?.renderItem === "function",
-		)[0];
-		const noteRow = screenList.props.renderItem({
-			item: {
-				id: "n1",
-				kind: "NOTE",
-				title: "Note",
-				subtitle: "Home",
-				icon: "document-text-outline",
-				color: "#00f",
-			},
-		});
-		findByPredicate(
-			noteRow,
-			(node) => typeof node?.props?.onPress === "function",
-		)[0]?.props?.onPress();
-		const todoRow = screenList.props.renderItem({
-			item: {
-				id: "t1",
-				kind: "TODO",
-				title: "Todo",
-				subtitle: "Home",
-				icon: "checkbox-outline",
-				color: "#0f0",
-			},
-		});
-		findByPredicate(
-			todoRow,
-			(node) => typeof node?.props?.onPress === "function",
-		)[0]?.props?.onPress();
-
-		expect(serviceMocks.getNotes).toHaveBeenCalledWith({ id: "db" });
-		expect(serviceMocks.getTodos).toHaveBeenCalledWith({ id: "db" });
-		expect(navigation.navigate).toHaveBeenCalledWith("NoteForm", {
-			noteId: "n1",
-		});
-		expect(navigation.navigate).toHaveBeenCalledWith("TodoForm", {
-			todoId: "t1",
-		});
 	});
 
 	it("loads FINANCE records without an exchange-rate management shortcut", async () => {
@@ -495,14 +404,6 @@ describe("GlobalSearchScreen", () => {
 				icon: "card-outline",
 				color: "#2",
 			},
-			{
-				id: "id1",
-				kind: "IDENTITY",
-				title: "Passport",
-				subtitle: "P1",
-				icon: "person-circle-outline",
-				color: "#3",
-			},
 		];
 
 		let stateCall = 0;
@@ -540,7 +441,6 @@ describe("GlobalSearchScreen", () => {
 
 		expect(serviceMocks.getPasswords).toHaveBeenCalledWith({ id: "db" });
 		expect(serviceMocks.getCards).toHaveBeenCalledWith({ id: "db" });
-		expect(serviceMocks.getIdentities).toHaveBeenCalledWith({ id: "db" });
 		expect(navigation.navigate).toHaveBeenCalledWith("VaultForm", {
 			kind: "PASSWORD",
 			entryId: "p1",
@@ -548,10 +448,6 @@ describe("GlobalSearchScreen", () => {
 		expect(navigation.navigate).toHaveBeenCalledWith("VaultForm", {
 			kind: "CARD",
 			entryId: "ca1",
-		});
-		expect(navigation.navigate).toHaveBeenCalledWith("VaultForm", {
-			kind: "IDENTITY",
-			entryId: "id1",
 		});
 		expect(navigation.navigate).not.toHaveBeenCalledWith("Documents");
 	});
@@ -581,11 +477,9 @@ describe("GlobalSearchScreen", () => {
 		} as any);
 		await flush();
 
-		expect(serviceMocks.getNotes).toHaveBeenCalledWith({ id: "db" });
 		expect(serviceMocks.getTransactions).toHaveBeenCalledWith({ id: "db" });
 		expect(setResults).toHaveBeenCalledWith(
 			expect.arrayContaining([
-				expect.objectContaining({ kind: "NOTE" }),
 				expect.objectContaining({ kind: "TRANSACTION" }),
 				expect.objectContaining({ kind: "PASSWORD" }),
 			]),
@@ -603,10 +497,10 @@ describe("GlobalSearchScreen", () => {
 					[
 						{
 							id: "n1",
-							kind: "NOTE",
+							kind: "PASSWORD",
 							title: "Note",
 							subtitle: "Home",
-							icon: "document-text-outline",
+							icon: "key-outline",
 							color: "#00f",
 						},
 					],
@@ -635,14 +529,14 @@ describe("GlobalSearchScreen", () => {
 			(node) => typeof node?.props?.renderItem === "function",
 		)[0];
 		expect(screenList.props.data).toEqual([]);
-		expect(screenList.props.keyExtractor({ kind: "NOTE", id: "n1" })).toBe(
-			"NOTE:n1",
-		);
+		expect(
+			screenList.props.keyExtractor({ kind: "PASSWORD", id: "n1" }),
+		).toBe("PASSWORD:n1");
 	});
 
 	it("covers result filtering callback and TOOLS load error branch", async () => {
 		const navigation = { navigate: vi.fn() };
-		serviceMocks.getNotes.mockRejectedValueOnce(
+		serviceMocks.getPasswords.mockRejectedValueOnce(
 			new Error("search load failed"),
 		);
 
@@ -683,7 +577,6 @@ describe("GlobalSearchScreen", () => {
 		} as any);
 		await flush();
 
-		expect(serviceMocks.getNotes).toHaveBeenCalledWith({ id: "db" });
 		expect(
 			findByPredicate(
 				tree,
@@ -722,10 +615,10 @@ describe("GlobalSearchScreen", () => {
 					[
 						{
 							id: "n3",
-							kind: "NOTE",
+							kind: "PASSWORD",
 							title: "Project plan",
-							subtitle: "Folder",
-							icon: "document-text-outline",
+							subtitle: "",
+							icon: "key-outline",
 							color: "#00f",
 						},
 					],
@@ -755,54 +648,6 @@ describe("GlobalSearchScreen", () => {
 		)[0];
 		expect(screenList.props.data).toHaveLength(1);
 		expect(screenList.props.data[0].id).toBe("n3");
-	});
-
-	it("covers TOOLS fallback subtitles when folder names are missing", async () => {
-		const navigation = { navigate: vi.fn() };
-		serviceMocks.getNotes.mockResolvedValueOnce([
-			{ id: "n2", title: "Quick note", folderName: undefined },
-		]);
-		serviceMocks.getTodos.mockResolvedValueOnce([
-			{ id: "t2", title: "Quick todo", folderName: undefined },
-		]);
-
-		const setResults = vi.fn();
-		let stateCall = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			stateCall += 1;
-			if (stateCall === 1) return [[], setResults];
-			if (stateCall === 2) return ["qu", vi.fn()];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		GlobalSearchScreen({
-			navigation,
-			route: {
-				key: "k6",
-				name: "GlobalSearch",
-				params: undefined,
-			},
-		} as any);
-		await flush();
-		await flush();
-
-		expect(setResults).toHaveBeenCalledWith(
-			expect.arrayContaining([
-				expect.objectContaining({
-					id: "n2",
-					kind: "NOTE",
-					subtitle: "Note",
-				}),
-				expect.objectContaining({
-					id: "t2",
-					kind: "TODO",
-					subtitle: "Todo",
-				}),
-			]),
-		);
 	});
 
 	it("covers FINANCE mapped subtitle branches for income, yearly budget and missing extras", async () => {
@@ -878,7 +723,7 @@ describe("GlobalSearchScreen", () => {
 		);
 	});
 
-	it("covers TOOLS vault fallback subtitle branches for password, card and identity", async () => {
+	it("covers vault fallback subtitle branches for password and card", async () => {
 		const navigation = { navigate: vi.fn() };
 		serviceMocks.getPasswords.mockResolvedValueOnce([
 			{
@@ -889,9 +734,6 @@ describe("GlobalSearchScreen", () => {
 		]);
 		serviceMocks.getCards.mockResolvedValueOnce([
 			{ id: "ca2", name: "Offline Card", network: "" },
-		]);
-		serviceMocks.getIdentities.mockResolvedValueOnce([
-			{ id: "id2", title: "Driver License", idNumber: "" },
 		]);
 
 		const setResults = vi.fn();
@@ -928,11 +770,6 @@ describe("GlobalSearchScreen", () => {
 					id: "ca2",
 					kind: "CARD",
 					subtitle: "Card",
-				}),
-				expect.objectContaining({
-					id: "id2",
-					kind: "IDENTITY",
-					subtitle: "Identity",
 				}),
 			]),
 		);

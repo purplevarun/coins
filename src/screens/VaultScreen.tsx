@@ -23,10 +23,8 @@ import useDatabaseContext from "@/hooks/useDatabaseContext";
 import useTheme from "@/hooks/useTheme";
 import useThemedStyles from "@/hooks/useThemedStyles";
 import cardService from "@/services/cardService";
-import identityService from "@/services/identityService";
 import passwordService from "@/services/passwordService";
 import type CardEntry from "@/types/CardEntry";
-import type IdentityEntry from "@/types/IdentityEntry";
 import type PasswordEntry from "@/types/PasswordEntry";
 import type VaultEntryLabel from "@/types/VaultEntryLabel";
 import type VaultKind from "@/types/VaultKind";
@@ -37,7 +35,6 @@ import dateUtils from "@/utils/date";
 import getErrorMessage from "@/utils/error";
 import runAfterRender from "@/utils/runAfterRender";
 const { deleteCard, getCards } = cardService;
-const { deleteIdentity, getIdentities } = identityService;
 const { deletePassword, getPasswords } = passwordService;
 const { formatDate } = dateUtils;
 
@@ -49,7 +46,6 @@ const CARD_TYPE_LABEL: Record<string, string> = {
 const VAULT_ENTRY_LABEL: Record<VaultKind, VaultEntryLabel> = {
 	PASSWORD: { one: "password", many: "passwords" },
 	CARD: { one: "card", many: "cards" },
-	IDENTITY: { one: "identity", many: "identities" },
 };
 
 const getVaultFormParams = (
@@ -63,14 +59,11 @@ const getPasswordSubtitle = (username: string): string =>
 const getCardSubtitle = (cardType: string, network: string): string =>
 	`${CARD_TYPE_LABEL[cardType] ?? cardType}${network ? ` · ${network}` : ""}`;
 
-const getIdentitySubtitle = (idNumber: string): string =>
-	idNumber || MESSAGES.VAULT.NO_ID_NUMBER;
 
 const getVaultListData = (
 	kind: VaultKind,
 	passwords: readonly PasswordEntry[],
 	cards: readonly CardEntry[],
-	identities: readonly IdentityEntry[],
 	normalizedSearch: string,
 ): readonly VaultListItem[] => {
 	if (kind === "PASSWORD") {
@@ -82,22 +75,13 @@ const getVaultListData = (
 			)
 			.map((entry) => ({ kind: "PASSWORD" as const, entry }));
 	}
-	if (kind === "CARD") {
-		return cards
-			.filter((entry) =>
-				`${entry.name} ${entry.network} ${entry.cardNumber} ${entry.cardType}`
-					.toLowerCase()
-					.includes(normalizedSearch),
-			)
-			.map((entry) => ({ kind: "CARD" as const, entry }));
-	}
-	return identities
+	return cards
 		.filter((entry) =>
-			`${entry.title} ${entry.idNumber}`
+			`${entry.name} ${entry.network} ${entry.cardNumber} ${entry.cardType}`
 				.toLowerCase()
 				.includes(normalizedSearch),
 		)
-		.map((entry) => ({ kind: "IDENTITY" as const, entry }));
+		.map((entry) => ({ kind: "CARD" as const, entry }));
 };
 
 const maskValue = (value: string): string => value.replace(/\S/g, "•");
@@ -146,7 +130,6 @@ const VaultScreen = ({
 	const { kind } = route.params;
 	const [passwords, setPasswords] = useState<readonly PasswordEntry[]>([]);
 	const [cards, setCards] = useState<readonly CardEntry[]>([]);
-	const [identities, setIdentities] = useState<readonly IdentityEntry[]>([]);
 	const [search, setSearch] = useState("");
 	const [error, setError] = useState("");
 	const [message, setMessage] = useState("");
@@ -158,10 +141,8 @@ const VaultScreen = ({
 		try {
 			if (kind === "PASSWORD") {
 				setPasswords(await getPasswords(database));
-			} else if (kind === "CARD") {
-				setCards(await getCards(database));
 			} else {
-				setIdentities(await getIdentities(database));
+				setCards(await getCards(database));
 			}
 			setError("");
 		} catch (caughtError: unknown) {
@@ -209,10 +190,8 @@ const VaultScreen = ({
 						try {
 							if (vaultKind === "PASSWORD") {
 								await deletePassword(database, id);
-							} else if (vaultKind === "CARD") {
-								await deleteCard(database, id);
 							} else {
-								await deleteIdentity(database, id);
+								await deleteCard(database, id);
 							}
 							refreshData();
 						} catch (caughtError: unknown) {
@@ -228,21 +207,16 @@ const VaultScreen = ({
 
 	const normalizedSearch = search.trim().toLowerCase();
 	const entryCount =
-		kind === "PASSWORD"
-			? passwords.length
-			: kind === "CARD"
-				? cards.length
-				: identities.length;
+		kind === "PASSWORD" ? passwords.length : cards.length;
 	const listData = useMemo(
 		(): readonly VaultListItem[] =>
 			getVaultListData(
 				kind,
 				passwords,
 				cards,
-				identities,
 				normalizedSearch,
 			),
-		[cards, identities, kind, normalizedSearch, passwords],
+		[cards, kind, normalizedSearch, passwords],
 	);
 
 	const renderVaultItem = useCallback(
@@ -329,126 +303,80 @@ const VaultScreen = ({
 					</Pressable>
 				);
 			}
-			if (item.kind === "CARD") {
-				const entry = item.entry;
-				const isRevealed = revealedIds.has(entry.id);
-				return (
-					<Pressable
-						onPress={() =>
-							navigation.navigate(
-								"VaultForm",
-								getVaultFormParams("CARD", entry.id),
-							)
-						}
-					>
-						<GlassCard>
-							<View style={styles.headingRow}>
-								<Ionicons
-									color={COLORS.danger}
-									name="card-outline"
-									size={23}
-								/>
-								<View style={styles.details}>
-									<CustomText style={styles.title}>
-										{entry.name}
-									</CustomText>
-									<CustomText style={styles.meta}>
-										{getCardSubtitle(
-											entry.cardType,
-											entry.network,
-										)}
-									</CustomText>
-								</View>
-
-								<Pressable
-									accessibilityLabel={
-										isRevealed
-											? MESSAGES.VAULT.HIDE_CARD_DETAILS
-											: MESSAGES.VAULT.SHOW_CARD_DETAILS
-									}
-									onPress={() => toggleRevealed(entry.id)}
-									style={styles.revealBtn}
-								>
-									<Ionicons
-										color={COLORS.primaryBright}
-										name={
-											isRevealed
-												? "eye-off-outline"
-												: "eye-outline"
-										}
-										size={20}
-									/>
-								</Pressable>
-							</View>
-							<View style={styles.cardFields}>
-								<CopyRow
-									isMasked={!isRevealed}
-									label={MESSAGES.VAULT.CARD_NUMBER}
-									onCopy={(v, l) => void handleCopy(v, l)}
-									value={entry.cardNumber}
-								/>
-								<CopyRow
-									isMasked={!isRevealed}
-									label={MESSAGES.VAULT.EXPIRY}
-									value={entry.expiry}
-								/>
-								<CopyRow
-									isMasked={!isRevealed}
-									label={MESSAGES.COMPONENTS.CVV}
-									onCopy={(v, l) => void handleCopy(v, l)}
-									value={entry.cvv}
-								/>
-								<CopyRow
-									isMasked={!isRevealed}
-									label={MESSAGES.COMPONENTS.PIN}
-									onCopy={(v, l) => void handleCopy(v, l)}
-									value={entry.pin}
-								/>
-							</View>
-							<View style={styles.actions}>
-								<AppButton
-									icon="trash-outline"
-									isCompact
-									label={MESSAGES.COMMON.DELETE}
-									onPress={() =>
-										handleDelete(
-											entry.id,
-											entry.name,
-											"CARD",
-										)
-									}
-									variant="danger"
-								/>
-							</View>
-						</GlassCard>
-					</Pressable>
-				);
-			}
 			const entry = item.entry;
+			const isRevealed = revealedIds.has(entry.id);
 			return (
 				<Pressable
 					onPress={() =>
 						navigation.navigate(
 							"VaultForm",
-							getVaultFormParams("IDENTITY", entry.id),
+							getVaultFormParams("CARD", entry.id),
 						)
 					}
 				>
 					<GlassCard>
 						<View style={styles.headingRow}>
 							<Ionicons
-								color={COLORS.blue}
-								name="person-circle-outline"
-								size={24}
+								color={COLORS.danger}
+								name="card-outline"
+								size={23}
 							/>
 							<View style={styles.details}>
 								<CustomText style={styles.title}>
-									{entry.title}
+									{entry.name}
 								</CustomText>
 								<CustomText style={styles.meta}>
-									{getIdentitySubtitle(entry.idNumber)}
+									{getCardSubtitle(
+										entry.cardType,
+										entry.network,
+									)}
 								</CustomText>
 							</View>
+
+							<Pressable
+								accessibilityLabel={
+									isRevealed
+										? MESSAGES.VAULT.HIDE_CARD_DETAILS
+										: MESSAGES.VAULT.SHOW_CARD_DETAILS
+								}
+								onPress={() => toggleRevealed(entry.id)}
+								style={styles.revealBtn}
+							>
+								<Ionicons
+									color={COLORS.primaryBright}
+									name={
+										isRevealed
+											? "eye-off-outline"
+											: "eye-outline"
+									}
+									size={20}
+								/>
+							</Pressable>
+						</View>
+						<View style={styles.cardFields}>
+							<CopyRow
+								isMasked={!isRevealed}
+								label={MESSAGES.VAULT.CARD_NUMBER}
+								onCopy={(v, l) => void handleCopy(v, l)}
+								value={entry.cardNumber}
+							/>
+							<CopyRow
+								isMasked={!isRevealed}
+								label={MESSAGES.VAULT.EXPIRY}
+								value={entry.expiry}
+							/>
+							<CopyRow
+								isMasked={!isRevealed}
+								label={MESSAGES.COMPONENTS.CVV}
+								onCopy={(v, l) => void handleCopy(v, l)}
+								value={entry.cvv}
+							/>
+							<CopyRow
+								isMasked={!isRevealed}
+								label={MESSAGES.COMPONENTS.PIN}
+								onCopy={(v, l) => void handleCopy(v, l)}
+								value={entry.pin}
+							/>
 						</View>
 						<View style={styles.actions}>
 							<AppButton
@@ -458,8 +386,8 @@ const VaultScreen = ({
 								onPress={() =>
 									handleDelete(
 										entry.id,
-										entry.title,
-										"IDENTITY",
+										entry.name,
+										"CARD",
 									)
 								}
 								variant="danger"
@@ -626,7 +554,6 @@ export {
 	CARD_TYPE_LABEL,
 	CopyRow,
 	getCardSubtitle,
-	getIdentitySubtitle,
 	getPasswordSubtitle,
 	getVaultFormParams,
 	getVaultListData,

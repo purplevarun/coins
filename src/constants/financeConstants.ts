@@ -11,7 +11,7 @@ const ANALYSIS_PERIODS = [
 	"LAST_12M",
 ] as const;
 const RELATION_KINDS = ["SOURCE", "CATEGORY", "TRIP", "INVESTMENT"] as const;
-const VAULT_KINDS = ["PASSWORD", "CARD", "IDENTITY"] as const;
+const VAULT_KINDS = ["PASSWORD", "CARD"] as const;
 const RATE_SOURCES = ["API", "MANUAL"] as const;
 const NEW_RELATION_OPTION_VALUE = "__NEW__";
 const DEFAULT_ANALYSIS_PERIOD = "MONTH" as const;

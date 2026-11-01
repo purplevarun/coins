@@ -88,35 +88,54 @@ describe("migration baseline", () => {
 		).not.toContain("website");
 	});
 
-	it("drops legacy identity notes column while preserving rows", async () => {
+	it("drops legacy todos, notes, folders and identities tables", async () => {
 		const { database, sqlite } = createTestDatabase();
 		await database.execAsync(SCHEMA_SQL);
-		sqlite.exec("ALTER TABLE identities ADD COLUMN notes TEXT;");
-		const identityId = randomUUID();
-		sqlite
-			.prepare(
-				"INSERT INTO identities (id, title, id_number, notes, created_at, updated_at) VALUES (?, 'Passport', 'P1', 'n', 1, 2);",
-			)
-			.run(identityId);
+		sqlite.exec(`
+			CREATE TABLE todos (id TEXT, title TEXT);
+			CREATE TABLE notes (id TEXT, title TEXT);
+			CREATE TABLE folders (id TEXT, name TEXT);
+			CREATE TABLE identities (id TEXT, title TEXT, notes TEXT);
+		`);
 		await migrateDatabase(database);
 		expect(
 			sqlite
 				.prepare(
-					"SELECT id, title, id_number, created_at, updated_at FROM identities;",
+					"SELECT name FROM sqlite_master WHERE name IN ('todos', 'notes', 'folders', 'identities')",
+				)
+				.all(),
+		).toEqual([]);
+	});
+
+	it("drops legacy cards notes column while preserving rows", async () => {
+		const { database, sqlite } = createTestDatabase();
+		await database.execAsync(SCHEMA_SQL);
+		sqlite.exec("ALTER TABLE cards ADD COLUMN notes TEXT;");
+		const cardId = randomUUID();
+		sqlite
+			.prepare(
+				"INSERT INTO cards (id, name, card_number, notes, created_at, updated_at) VALUES (?, 'Visa', '1234', 'n', 1, 2);",
+			)
+			.run(cardId);
+		await migrateDatabase(database);
+		expect(
+			sqlite
+				.prepare(
+					"SELECT id, name, card_number, created_at, updated_at FROM cards;",
 				)
 				.all(),
 		).toEqual([
 			{
-				id: identityId,
-				title: "Passport",
-				id_number: "P1",
+				id: cardId,
+				name: "Visa",
+				card_number: "1234",
 				created_at: 1,
 				updated_at: 2,
 			},
 		]);
 		expect(
 			sqlite
-				.prepare("SELECT * FROM identities LIMIT 0")
+				.prepare("SELECT * FROM cards LIMIT 0")
 				.columns()
 				.map((column) => column.name),
 		).not.toContain("notes");

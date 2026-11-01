@@ -62,9 +62,6 @@ const serviceMocks = vi.hoisted(() => ({
 	updateNativeCurrencyDisplay: vi.fn(),
 	getBudgets: vi.fn(),
 	deleteBudget: vi.fn(),
-	getNotes: vi.fn(),
-	getTodos: vi.fn(),
-	toggleTodo: vi.fn(),
 	fetchExchangeRates: vi.fn(),
 	getExchangeRates: vi.fn(),
 	saveManualExchangeRate: vi.fn(),
@@ -89,12 +86,6 @@ const hookMocks = vi.hoisted(() => ({
 	refreshData: vi.fn(),
 	confirm: vi.fn(),
 	showMessage: vi.fn(),
-	handleDeleteFolder: vi.fn(),
-	handleRenameFolder: vi.fn(),
-}));
-
-const folderState = vi.hoisted(() => ({
-	folders: [{ id: "f1", name: "Home" }],
 }));
 
 vi.mock("react", async (importOriginal) => {
@@ -145,9 +136,6 @@ vi.mock("@/components/InvestmentConversionModal", () => ({
 vi.mock("@/components/FloatingAddButton", () => ({
 	default: (props: any) => ({ type: "FloatingAddButton", props }),
 }));
-vi.mock("@/components/FolderFilterChips", () => ({
-	default: (props: any) => ({ type: "FolderFilterChips", props }),
-}));
 vi.mock("@/components/GlassCard", () => ({
 	default: (props: any) => ({ type: "GlassCard", props }),
 }));
@@ -186,14 +174,6 @@ vi.mock("@/hooks/useDatabaseContext", () => ({
 		refreshData: hookMocks.refreshData,
 	}),
 }));
-vi.mock("@/hooks/useFolders", () => ({
-	default: () => ({
-		folders: folderState.folders,
-		handleDeleteFolder: hookMocks.handleDeleteFolder,
-		handleRenameFolder: hookMocks.handleRenameFolder,
-	}),
-}));
-
 vi.mock("@/services/analysisService", () => ({
 	default: {
 		getAnalysisSummary: serviceMocks.getAnalysisSummary,
@@ -206,9 +186,6 @@ vi.mock("@/services/budgetService", () => ({
 		getBudgets: serviceMocks.getBudgets,
 		deleteBudget: serviceMocks.deleteBudget,
 	},
-}));
-vi.mock("@/services/noteService", () => ({
-	default: { getNotes: serviceMocks.getNotes },
 }));
 vi.mock("@/services/exchangeRateService", () => ({
 	default: {
@@ -282,12 +259,6 @@ vi.mock("@/services/transactionService", () => ({
 		getLinkedTransactions: serviceMocks.getLinkedTransactions,
 	},
 }));
-vi.mock("@/services/todoService", () => ({
-	default: {
-		getTodos: serviceMocks.getTodos,
-		toggleTodo: serviceMocks.toggleTodo,
-	},
-}));
 
 vi.mock("@/utils/relation", () => ({
 	default: (kind: string) => ({
@@ -329,10 +300,8 @@ import CategoriesScreen from "@/screens/CategoriesScreen";
 import ExchangeRatesScreen from "@/screens/ExchangeRatesScreen";
 import InvestmentsScreen from "@/screens/InvestmentsScreen";
 import LinkedTransactionsScreen from "@/screens/LinkedTransactionsScreen";
-import NotesScreen from "@/screens/NotesScreen";
 import RelationDetailsScreen from "@/screens/RelationDetailsScreen";
 import SourcesScreen from "@/screens/SourcesScreen";
-import TodosScreen from "@/screens/TodosScreen";
 import TripsScreen from "@/screens/TripsScreen";
 import dateUtils from "@/utils/date";
 
@@ -883,7 +852,6 @@ describe("list screens", () => {
 
 		Object.values(serviceMocks).forEach((mockFn) => mockFn.mockReset());
 		Object.values(hookMocks).forEach((mockFn) => mockFn.mockReset());
-		folderState.folders = [{ id: "f1", name: "Home" }];
 
 		serviceMocks.getCategories.mockResolvedValue([]);
 		serviceMocks.getInvestments.mockResolvedValue([]);
@@ -910,9 +878,6 @@ describe("list screens", () => {
 		});
 		serviceMocks.getBudgets.mockResolvedValue([{ id: "b1" }]);
 		serviceMocks.deleteBudget.mockResolvedValue(undefined);
-		serviceMocks.getNotes.mockResolvedValue([{ id: "n1" }]);
-		serviceMocks.getTodos.mockResolvedValue([{ id: "t1" }]);
-		serviceMocks.toggleTodo.mockResolvedValue(undefined);
 		serviceMocks.fetchExchangeRates.mockResolvedValue(2);
 		serviceMocks.getExchangeRates.mockResolvedValue([
 			{
@@ -3167,590 +3132,5 @@ describe("list screens", () => {
 				variant: "danger",
 			}),
 		);
-	});
-
-	it("executes NotesScreen render and folder actions", async () => {
-		const navigation = { navigate: vi.fn() };
-		hookMocks.confirm.mockImplementation(({ onConfirm }: any) =>
-			onConfirm(),
-		);
-
-		let call = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			call += 1;
-			if (call === 1) {
-				return [
-					[
-						{
-							id: "n1",
-							title: "Title",
-							content: "Body",
-							folderId: "f1",
-							folderName: "Home",
-							updatedAt: 100,
-						},
-					],
-					vi.fn(),
-				];
-			}
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		const tree = NotesScreen({ navigation } as any);
-		await flush();
-
-		const screenList = findByPredicate(
-			tree,
-			(node) => typeof node?.props?.renderItem === "function",
-		)[0];
-		screenList.props.renderItem({
-			item: {
-				id: "n1",
-				title: "Title",
-				content: "Body",
-				folderId: "f1",
-				folderName: "Home",
-				updatedAt: 100,
-			},
-		});
-
-		const folderChips = findByPredicate(
-			tree,
-			(node) => typeof node?.props?.onDeleteFolder === "function",
-		)[0];
-		folderChips.props.onDeleteFolder({ id: "f1", name: "Home" });
-		folderChips.props.onRenameFolder({ id: "f1", name: "Home" }, "Work");
-		await flush();
-
-		expect(serviceMocks.getNotes).toHaveBeenCalledWith({ id: "db" });
-		expect(hookMocks.handleDeleteFolder).toHaveBeenCalledWith("f1");
-		expect(hookMocks.handleRenameFolder).toHaveBeenCalledWith("f1", "Work");
-	});
-
-	it("covers NotesScreen folder filters, quick chips, key extraction, and add navigation", async () => {
-		const navigation = { navigate: vi.fn() };
-		folderState.folders = [
-			{ id: "f1", name: "Home" },
-			{ id: "f2", name: "Work" },
-		];
-
-		const setSelectedFolderId = vi.fn();
-		let call = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			call += 1;
-			if (call === 1) {
-				return [
-					[
-						{
-							id: "n0",
-							title: "Loose",
-							content: "",
-							folderId: "",
-							folderName: "",
-							updatedAt: 100,
-						},
-						{
-							id: "n1",
-							title: "Home note",
-							content: "Body",
-							folderId: "f1",
-							folderName: "Home",
-							updatedAt: 101,
-						},
-						{
-							id: "n2",
-							title: "Work note",
-							content: "Body",
-							folderId: "f2",
-							folderName: "Work",
-							updatedAt: 102,
-						},
-					],
-					vi.fn(),
-				];
-			}
-			if (call === 2) return ["__NO_FOLDER__", setSelectedFolderId];
-			if (call === 3) return ["", vi.fn()];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		const tree = NotesScreen({ navigation } as any);
-		await flush();
-
-		const screenList = findByPredicate(
-			tree,
-			(node) => typeof node?.props?.renderItem === "function",
-		)[0];
-		expect(screenList.props.data).toHaveLength(1);
-		expect(screenList.props.data[0].id).toBe("n0");
-		expect(screenList.props.keyExtractor({ id: "n0" })).toBe("n0");
-
-		const renderedItem = screenList.props.renderItem({
-			item: screenList.props.data[0],
-		});
-		expect(String(JSON.stringify(renderedItem))).toContain("Empty note");
-		findByPredicate(
-			renderedItem,
-			(node) => typeof node?.props?.onPress === "function",
-		)[0]?.props?.onPress();
-
-		findByPredicate(
-			tree,
-			(node) => typeof node?.props?.onPress === "function",
-		).forEach((node) => {
-			node.props.onPress();
-		});
-
-		expect(setSelectedFolderId).toHaveBeenCalledWith("f1");
-		expect(navigation.navigate).toHaveBeenCalledWith("NoteForm", {
-			noteId: "n0",
-		});
-		expect(navigation.navigate).toHaveBeenCalledWith("NoteForm");
-	});
-
-	it("covers NotesScreen delete and rename folder error branches", async () => {
-		const navigation = { navigate: vi.fn() };
-		hookMocks.confirm.mockImplementation(({ onConfirm }: any) =>
-			onConfirm(),
-		);
-		serviceMocks.getNotes.mockRejectedValueOnce(new Error("notes failed"));
-		hookMocks.handleDeleteFolder
-			.mockResolvedValueOnce(undefined)
-			.mockRejectedValueOnce(new Error("cannot delete folder"));
-		hookMocks.handleRenameFolder.mockRejectedValueOnce(
-			new Error("cannot rename folder"),
-		);
-
-		const setSelectedFolderId = vi.fn();
-		let call = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			call += 1;
-			if (call === 1) return [[{ id: "n1" }], vi.fn()];
-			if (call === 2) return ["f1", setSelectedFolderId];
-			if (call === 3) return ["notes failed", vi.fn()];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		const tree = NotesScreen({ navigation } as any);
-		await flush();
-
-		const folderChips = findByPredicate(
-			tree,
-			(node) => typeof node?.props?.onDeleteFolder === "function",
-		)[0];
-		folderChips.props.onDeleteFolder({ id: "f1", name: "Home" });
-		folderChips.props.onDeleteFolder({ id: "f1", name: "Home" });
-		folderChips.props.onRenameFolder({ id: "f1", name: "Home" }, "Work");
-		await flush();
-
-		expect(hookMocks.handleDeleteFolder).toHaveBeenCalledTimes(2);
-		expect(setSelectedFolderId).toHaveBeenCalledWith("__ALL_FOLDERS__");
-		expect(hookMocks.handleRenameFolder).toHaveBeenCalledWith("f1", "Work");
-		expect(
-			findByPredicate(
-				tree,
-				(node) => node?.props?.message === "notes failed",
-			),
-		).not.toHaveLength(0);
-	});
-
-	it("covers NotesScreen no-quick-chip branch with empty note counts", async () => {
-		const navigation = { navigate: vi.fn() };
-		folderState.folders = [];
-
-		let call = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			call += 1;
-			if (call === 1) return [[], vi.fn()];
-			if (call === 2) return ["__ALL_FOLDERS__", vi.fn()];
-			if (call === 3) return ["", vi.fn()];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		const tree = NotesScreen({ navigation } as any);
-		await flush();
-		const screenList = findByPredicate(
-			tree,
-			(node) => typeof node?.props?.renderItem === "function",
-		)[0];
-		const header = screenList?.props?.ListHeaderComponent;
-
-		const folderChips = findByPredicate(
-			tree,
-			(node) => typeof node?.props?.onSelectFolder === "function",
-		)[0];
-		folderChips?.props?.onSelectFolder("f2");
-
-		expect(
-			findByPredicate(header, (node) => node?.props?.horizontal === true),
-		).toHaveLength(0);
-	});
-
-	it("renders quick chips when notes exist inside folders", async () => {
-		const navigation = { navigate: vi.fn() };
-		folderState.folders = [
-			{ id: "f1", name: "Home" },
-			{ id: "f2", name: "Work" },
-		];
-
-		let call = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			call += 1;
-			if (call === 1) {
-				return [
-					[
-						{
-							id: "n1",
-							title: "Home note",
-							content: "Body",
-							folderId: "f1",
-							folderName: "Home",
-							updatedAt: 101,
-						},
-					],
-					vi.fn(),
-				];
-			}
-			if (call === 2) return ["__ALL_FOLDERS__", vi.fn()];
-			if (call === 3) return ["", vi.fn()];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		const tree = NotesScreen({ navigation } as any);
-		await flush();
-		const screenList = findByPredicate(
-			tree,
-			(node) => typeof node?.props?.renderItem === "function",
-		)[0];
-		const header = screenList?.props?.ListHeaderComponent;
-
-		expect(
-			findByPredicate(
-				header,
-				(node) =>
-					node?.props?.horizontal === true &&
-					node?.props?.style?.marginTop === 6,
-			),
-		).toHaveLength(1);
-	});
-
-	it("covers quick-chip sort fallback when folder counts are missing", async () => {
-		const navigation = { navigate: vi.fn() };
-		folderState.folders = [
-			{ id: "f1", name: "Home" },
-			{ id: "f2", name: "Work" },
-			{ id: "f3", name: "Travel" },
-		];
-
-		let call = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			call += 1;
-			if (call === 1) return [[], vi.fn()];
-			if (call === 2) return ["__ALL_FOLDERS__", vi.fn()];
-			if (call === 3) return ["", vi.fn()];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		const tree = NotesScreen({ navigation } as any);
-		await flush();
-
-		const screenList = findByPredicate(
-			tree,
-			(node) => typeof node?.props?.renderItem === "function",
-		)[0];
-		const header = screenList?.props?.ListHeaderComponent;
-
-		expect(
-			findByPredicate(header, (node) => node?.props?.horizontal === true),
-		).toHaveLength(1);
-	});
-
-	it("executes TodosScreen render toggle and folder actions", async () => {
-		const navigation = { navigate: vi.fn() };
-		hookMocks.confirm.mockImplementation(({ onConfirm }: any) =>
-			onConfirm(),
-		);
-
-		let call = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			call += 1;
-			if (call === 1) {
-				return [
-					[
-						{
-							id: "t1",
-							title: "Todo",
-							description: "Desc",
-							folderId: "f1",
-							folderName: "Home",
-							isDone: false,
-							dueAt: 200,
-						},
-					],
-					vi.fn(),
-				];
-			}
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		const tree = TodosScreen({ navigation } as any);
-		await flush();
-
-		const screenList = findByPredicate(
-			tree,
-			(node) => typeof node?.props?.renderItem === "function",
-		)[0];
-		const renderedItem = screenList.props.renderItem({
-			item: {
-				id: "t1",
-				title: "Todo",
-				description: "Desc",
-				folderId: "f1",
-				folderName: "Home",
-				isDone: false,
-				dueAt: 200,
-			},
-		});
-
-		findByPredicate(
-			renderedItem,
-			(node) => typeof node?.props?.onPress === "function",
-		).forEach((pressable) => {
-			pressable.props.onPress();
-		});
-		await flush();
-
-		const folderChips = findByPredicate(
-			tree,
-			(node) => typeof node?.props?.onDeleteFolder === "function",
-		)[0];
-		folderChips.props.onDeleteFolder({ id: "f1", name: "Home" });
-		folderChips.props.onRenameFolder({ id: "f1", name: "Home" }, "Work");
-		await flush();
-
-		expect(serviceMocks.getTodos).toHaveBeenCalledWith({ id: "db" });
-		expect(serviceMocks.toggleTodo).toHaveBeenCalledWith(
-			{ id: "db" },
-			"t1",
-		);
-		expect(hookMocks.refreshData).toHaveBeenCalled();
-		expect(hookMocks.handleDeleteFolder).toHaveBeenCalledWith("f1");
-		expect(hookMocks.handleRenameFolder).toHaveBeenCalledWith("f1", "Work");
-	});
-
-	it("covers TodosScreen no-folder filter, quick chips, key extraction, and add navigation", async () => {
-		const navigation = { navigate: vi.fn() };
-		folderState.folders = [
-			{ id: "f1", name: "Home" },
-			{ id: "f2", name: "Work" },
-		];
-		serviceMocks.toggleTodo.mockRejectedValueOnce(
-			new Error("toggle failed"),
-		);
-
-		const setSelectedFolderId = vi.fn();
-		let call = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			call += 1;
-			if (call === 1) {
-				return [
-					[
-						{
-							id: "t0",
-							title: "Loose",
-							description: "",
-							folderId: "",
-							folderName: null,
-							isDone: true,
-							dueAt: null,
-						},
-						{
-							id: "t1",
-							title: "Home",
-							description: "Desc",
-							folderId: "f1",
-							folderName: "Home",
-							isDone: false,
-							dueAt: 200,
-						},
-					],
-					vi.fn(),
-				];
-			}
-			if (call === 2) return ["__NO_FOLDER__", setSelectedFolderId];
-			if (call === 3) return ["", vi.fn()];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		const tree = TodosScreen({ navigation } as any);
-		await flush();
-
-		const screenList = findByPredicate(
-			tree,
-			(node) => typeof node?.props?.renderItem === "function",
-		)[0];
-		expect(screenList.props.data).toHaveLength(1);
-		expect(screenList.props.data[0].id).toBe("t0");
-		expect(screenList.props.keyExtractor({ id: "t0" })).toBe("t0");
-
-		const renderedItem = screenList.props.renderItem({
-			item: screenList.props.data[0],
-		});
-		findByPredicate(
-			renderedItem,
-			(node) => typeof node?.props?.onPress === "function",
-		).forEach((pressable) => {
-			pressable.props.onPress();
-		});
-		await flush();
-
-		findByPredicate(
-			tree,
-			(node) => typeof node?.props?.onPress === "function",
-		).forEach((pressable) => {
-			pressable.props.onPress();
-		});
-
-		expect(serviceMocks.toggleTodo).toHaveBeenCalledWith(
-			{ id: "db" },
-			"t0",
-		);
-		expect(setSelectedFolderId).toHaveBeenCalledWith("f1");
-		expect(navigation.navigate).toHaveBeenCalledWith("TodoForm", {
-			todoId: "t0",
-		});
-		expect(navigation.navigate).toHaveBeenCalledWith("TodoForm");
-	});
-
-	it("covers TodosScreen load, delete, and rename folder error paths", async () => {
-		const navigation = { navigate: vi.fn() };
-		hookMocks.confirm.mockImplementation(({ onConfirm }: any) =>
-			onConfirm(),
-		);
-		serviceMocks.getTodos.mockRejectedValueOnce(new Error("todos failed"));
-		hookMocks.handleDeleteFolder
-			.mockResolvedValueOnce(undefined)
-			.mockRejectedValueOnce(new Error("cannot delete folder"));
-		hookMocks.handleRenameFolder.mockRejectedValueOnce(
-			new Error("cannot rename folder"),
-		);
-
-		const setSelectedFolderId = vi.fn();
-		let call = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			call += 1;
-			if (call === 1) return [[{ id: "t1" }], vi.fn()];
-			if (call === 2) return ["f1", setSelectedFolderId];
-			if (call === 3) return ["todos failed", vi.fn()];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		const tree = TodosScreen({ navigation } as any);
-		await flush();
-
-		const folderChips = findByPredicate(
-			tree,
-			(node) => typeof node?.props?.onDeleteFolder === "function",
-		)[0];
-		folderChips.props.onDeleteFolder({ id: "f1", name: "Home" });
-		folderChips.props.onDeleteFolder({ id: "f1", name: "Home" });
-		folderChips.props.onRenameFolder({ id: "f1", name: "Home" }, "Work");
-		await flush();
-
-		expect(hookMocks.handleDeleteFolder).toHaveBeenCalledTimes(2);
-		expect(setSelectedFolderId).toHaveBeenCalledWith("__ALL_FOLDERS__");
-		expect(hookMocks.handleRenameFolder).toHaveBeenCalledWith("f1", "Work");
-		expect(
-			findByPredicate(
-				tree,
-				(node) => node?.props?.message === "todos failed",
-			),
-		).not.toHaveLength(0);
-	});
-
-	it("covers TodosScreen quick-chip fallback and hidden-row branches", async () => {
-		const navigation = { navigate: vi.fn() };
-		folderState.folders = [
-			{ id: "f1", name: "Home" },
-			{ id: "f2", name: "Work" },
-		];
-
-		let call = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			call += 1;
-			if (call === 1) return [[], vi.fn()];
-			if (call === 2) return ["__ALL_FOLDERS__", vi.fn()];
-			if (call === 3) return ["", vi.fn()];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		const tree = TodosScreen({ navigation } as any);
-		await flush();
-
-		const screenList = findByPredicate(
-			tree,
-			(node) => typeof node?.props?.renderItem === "function",
-		)[0];
-		const header = screenList?.props?.ListHeaderComponent;
-		expect(
-			findByPredicate(header, (node) => node?.props?.horizontal === true),
-		).toHaveLength(1);
-
-		folderState.folders = [];
-		call = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			call += 1;
-			if (call === 1) return [[], vi.fn()];
-			if (call === 2) return ["__ALL_FOLDERS__", vi.fn()];
-			if (call === 3) return ["", vi.fn()];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		const noChipTree = TodosScreen({ navigation } as any);
-		await flush();
-		const noChipList = findByPredicate(
-			noChipTree,
-			(node) => typeof node?.props?.renderItem === "function",
-		)[0];
-		const noChipHeader = noChipList?.props?.ListHeaderComponent;
-		expect(
-			findByPredicate(
-				noChipHeader,
-				(node) => node?.props?.horizontal === true,
-			),
-		).toHaveLength(0);
 	});
 });

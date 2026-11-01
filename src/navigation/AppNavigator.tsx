@@ -22,15 +22,11 @@ import InvestmentFormScreen from "@/screens/InvestmentFormScreen";
 import InvestmentsScreen from "@/screens/InvestmentsScreen";
 import InvestmentTypesScreen from "@/screens/InvestmentTypesScreen";
 import LinkedTransactionsScreen from "@/screens/LinkedTransactionsScreen";
-import NoteFormScreen from "@/screens/NoteFormScreen";
-import NotesScreen from "@/screens/NotesScreen";
 import PlatformsScreen from "@/screens/PlatformsScreen";
 import RelationDetailsScreen from "@/screens/RelationDetailsScreen";
 import SettingsScreen from "@/screens/SettingsScreen";
 import SourceFormScreen from "@/screens/SourceFormScreen";
 import SourcesScreen from "@/screens/SourcesScreen";
-import TodoFormScreen from "@/screens/TodoFormScreen";
-import TodosScreen from "@/screens/TodosScreen";
 import TransactionFormScreen from "@/screens/TransactionFormScreen";
 import TransactionsScreen from "@/screens/TransactionsScreen";
 import TripFormScreen from "@/screens/TripFormScreen";
@@ -115,7 +111,11 @@ const AppNavigator = (): React.JSX.Element => {
 				<Stack.Screen
 					component={SourceFormScreen}
 					name="SourceForm"
-					options={{ title: "Source" }}
+					options={({ route }) => ({
+						title: route.params?.entityId
+							? MESSAGES.RELATION_FORMS.EDIT_SOURCE
+							: MESSAGES.RELATION_FORMS.NEW_SOURCE,
+					})}
 				/>
 				<Stack.Screen
 					component={CategoriesScreen}
@@ -125,7 +125,11 @@ const AppNavigator = (): React.JSX.Element => {
 				<Stack.Screen
 					component={CategoryFormScreen}
 					name="CategoryForm"
-					options={{ title: "Category" }}
+					options={({ route }) => ({
+						title: route.params?.entityId
+							? MESSAGES.RELATION_FORMS.EDIT_CATEGORY
+							: MESSAGES.RELATION_FORMS.NEW_CATEGORY,
+					})}
 				/>
 				<Stack.Screen
 					component={TripsScreen}
@@ -144,7 +148,11 @@ const AppNavigator = (): React.JSX.Element => {
 				<Stack.Screen
 					component={TripFormScreen}
 					name="TripForm"
-					options={{ title: "Trip" }}
+					options={({ route }) => ({
+						title: route.params?.entityId
+							? MESSAGES.RELATION_FORMS.EDIT_TRIP
+							: MESSAGES.RELATION_FORMS.NEW_TRIP,
+					})}
 				/>
 				<Stack.Screen
 					component={InvestmentsScreen}
@@ -179,7 +187,11 @@ const AppNavigator = (): React.JSX.Element => {
 				<Stack.Screen
 					component={InvestmentFormScreen}
 					name="InvestmentForm"
-					options={{ title: "Investment" }}
+					options={({ route }) => ({
+						title: route.params?.entityId
+							? MESSAGES.RELATION_FORMS.EDIT_INVESTMENT
+							: MESSAGES.RELATION_FORMS.NEW_INVESTMENT,
+					})}
 				/>
 				<Stack.Screen
 					component={ArchivedRelationsScreen}
@@ -201,7 +213,11 @@ const AppNavigator = (): React.JSX.Element => {
 				<Stack.Screen
 					component={BudgetFormScreen}
 					name="BudgetForm"
-					options={{ title: "Budget" }}
+					options={({ route }) => ({
+						title: route.params?.budgetId
+							? MESSAGES.BUDGET_FORM.EDIT_TITLE
+							: MESSAGES.BUDGET_FORM.NEW_TITLE,
+					})}
 				/>
 				<Stack.Screen
 					component={AnalysisScreen}
@@ -230,35 +246,13 @@ const AppNavigator = (): React.JSX.Element => {
 					options={{ title: "Search" }}
 				/>
 				<Stack.Screen
-					component={NotesScreen}
-					name="Notes"
-					options={{ title: "Notes" }}
-				/>
-				<Stack.Screen
-					component={NoteFormScreen}
-					name="NoteForm"
-					options={{ title: "Note" }}
-				/>
-				<Stack.Screen
-					component={TodosScreen}
-					name="Todos"
-					options={{ title: "Todos" }}
-				/>
-				<Stack.Screen
-					component={TodoFormScreen}
-					name="TodoForm"
-					options={{ title: "Todo" }}
-				/>
-				<Stack.Screen
 					component={VaultScreen}
 					name="Vault"
 					options={({ route }) => ({
 						title:
-							route.params.kind === "IDENTITY"
-								? "Identity"
-								: `${route.params.kind.charAt(0)}${route.params.kind
-										.slice(1)
-										.toLowerCase()}s`,
+							route.params.kind === "PASSWORD"
+								? "Passwords"
+								: "Cards",
 					})}
 				/>
 				<Stack.Screen

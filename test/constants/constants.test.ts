@@ -2,8 +2,6 @@ import appConstants from "@/constants/appConstants";
 import COLORS from "@/constants/colors";
 import dateConstants from "@/constants/dateConstants";
 import financeConstants from "@/constants/financeConstants";
-import folderConstants from "@/constants/folderConstants";
-import HOME_MODES from "@/constants/homeModes";
 
 import { describe, expect, it } from "vitest";
 
@@ -29,7 +27,7 @@ describe("constants", () => {
 			"TRANSFER",
 		]);
 		expect(financeConstants.ANALYSIS_PERIODS).toContain("FY");
-		expect(financeConstants.VAULT_KINDS).toContain("IDENTITY");
+		expect(financeConstants.VAULT_KINDS).toEqual(["PASSWORD", "CARD"]);
 		expect(financeConstants.DEFAULT_TRANSACTION_TYPE).toBe("DEBIT");
 		expect(financeConstants.ANALYSIS_PERIOD_OPTIONS).toContainEqual({
 			label: "FY",
@@ -43,11 +41,5 @@ describe("constants", () => {
 		expect(dateConstants.ALL_TIME_END).toBeGreaterThan(
 			dateConstants.ALL_TIME_START,
 		);
-	});
-
-	it("exposes folder/home constants", () => {
-		expect(folderConstants.FOLDER_FILTER_ALL).toBe("__ALL_FOLDERS__");
-		expect(folderConstants.FOLDER_FILTER_NONE).toBe("__NO_FOLDER__");
-		expect(HOME_MODES).toEqual(["FINANCE", "TOOLS"]);
 	});
 });

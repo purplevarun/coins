@@ -69,15 +69,11 @@ vi.mock("@/screens/InvestmentsScreen", () => ({
 vi.mock("@/screens/LinkedTransactionsScreen", () => ({
 	default: "LinkedTransactionsScreen",
 }));
-vi.mock("@/screens/NoteFormScreen", () => ({ default: "NoteFormScreen" }));
-vi.mock("@/screens/NotesScreen", () => ({ default: "NotesScreen" }));
 vi.mock("@/screens/SettingsScreen", () => ({ default: "SettingsScreen" }));
 vi.mock("@/screens/SourceFormScreen", () => ({
 	default: "SourceFormScreen",
 }));
 vi.mock("@/screens/SourcesScreen", () => ({ default: "SourcesScreen" }));
-vi.mock("@/screens/TodoFormScreen", () => ({ default: "TodoFormScreen" }));
-vi.mock("@/screens/TodosScreen", () => ({ default: "TodosScreen" }));
 vi.mock("@/screens/TransactionFormScreen", () => ({
 	default: "TransactionFormScreen",
 }));
@@ -155,7 +151,7 @@ describe("AppNavigator", () => {
 		expect(options.headerLeft()).toBeNull();
 
 		const screens = findAllByType(tree, "Screen");
-		expect(screens).toHaveLength(30);
+		expect(screens).toHaveLength(26);
 
 		const byName = (name: string): any =>
 			screens.find((screen) => screen?.props?.name === name);
@@ -239,9 +235,9 @@ describe("AppNavigator", () => {
 		expect(byName("GlobalSearch")?.props?.options?.title).toBe("Search");
 		expect(
 			byName("Vault")?.props?.options({
-				route: { params: { kind: "IDENTITY" } },
+				route: { params: { kind: "CARD" } },
 			}).title,
-		).toBe("Identity");
+		).toBe("Cards");
 		expect(
 			byName("Vault")?.props?.options({
 				route: { params: { kind: "PASSWORD" } },

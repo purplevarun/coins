@@ -60,7 +60,6 @@ describe("cardService", () => {
 				cvv: "111",
 				pin: "0000",
 				network: "VISA",
-				notes: "x",
 			}),
 		).rejects.toMatchObject({ code: "CARD_FIELDS_REQUIRED" });
 
@@ -73,7 +72,6 @@ describe("cardService", () => {
 				cvv: "111",
 				pin: "0000",
 				network: "VISA",
-				notes: "x",
 			}),
 		).rejects.toMatchObject({ code: "CARD_FIELDS_REQUIRED" });
 	});
@@ -87,7 +85,6 @@ describe("cardService", () => {
 			cvv: " 111 ",
 			pin: " 0000 ",
 			network: " VISA ",
-			notes: " note ",
 		});
 
 		expect(id).toBe("card-id");
@@ -102,7 +99,6 @@ describe("cardService", () => {
 				cvv: "111",
 				pin: "0000",
 				network: "VISA",
-				notes: "note",
 				createdAt: new Date("2026-08-25T12:00:00.000Z").getTime(),
 			}),
 		);
@@ -123,7 +119,6 @@ describe("cardService", () => {
 			cvv: " 222 ",
 			pin: " 9999 ",
 			network: " MC ",
-			notes: " changed ",
 		});
 
 		expect(id).toBe("c1");

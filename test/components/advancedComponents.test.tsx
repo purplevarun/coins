@@ -60,7 +60,6 @@ vi.mock("@/utils/money", async (importOriginal) => ({
 }));
 
 import DonutChart from "@/components/DonutChart";
-import FolderFilterChips from "@/components/FolderFilterChips";
 import TransactionCard from "@/components/TransactionCard";
 
 const findAllByType = (node: any, type: string, acc: any[] = []): any[] => {
@@ -78,26 +77,6 @@ const findAllByType = (node: any, type: string, acc: any[] = []): any[] => {
 	return acc;
 };
 
-const findPressableByText = (node: any, text: string): any => {
-	const pressables = findAllByType(node, "Pressable");
-	const matches = pressables
-		.filter((pressable) => typeof pressable?.props?.onPress === "function")
-		.map((pressable) => {
-			const labels = findAllByType(pressable, "CustomText").map(
-				(textNode) => String(textNode?.props?.children ?? ""),
-			);
-			return {
-				pressable,
-				labels,
-				labelCount: labels.length,
-			};
-		})
-		.filter((entry) => entry.labels.includes(text))
-		.sort((a, b) => a.labelCount - b.labelCount);
-
-	return matches[0]?.pressable;
-};
-
 const hasTextContaining = (node: any, value: string): boolean =>
 	findAllByType(node, "CustomText").some((textNode) => {
 		const children = textNode?.props?.children;
@@ -109,11 +88,6 @@ const hasTextContaining = (node: any, value: string): boolean =>
 		}
 		return String(children ?? "").includes(value);
 	});
-
-const findAppButtonByLabel = (node: any, label: string): any =>
-	findAllByType(node, "AppButton").find(
-		(button) => button?.props?.label === label,
-	);
 
 const baseTransaction: Transaction = {
 	items: [],
@@ -352,183 +326,5 @@ describe("advanced components", () => {
 				" of ",
 			),
 		).toBe(false);
-	});
-
-	it("covers FolderFilterChips selection and action flows", async () => {
-		const setActionFolder = vi.fn();
-		const setRenameMode = vi.fn();
-		const setRenameName = vi.fn();
-		const folder = {
-			id: "f1",
-			name: "Work",
-			type: "NOTE",
-			createdAt: 1,
-			updatedAt: 1,
-		};
-		const onSelectFolder = vi.fn();
-		const onDeleteFolder = vi.fn();
-		const onRenameFolder = vi.fn();
-
-		reactMocks.useState
-			.mockImplementationOnce(() => [null, setActionFolder])
-			.mockImplementationOnce(() => [false, setRenameMode])
-			.mockImplementationOnce(() => ["", setRenameName]);
-		const closed = FolderFilterChips({
-			folders: [folder],
-			selectedFolderId: "",
-			onSelectFolder,
-			onDeleteFolder,
-			onRenameFolder,
-		} as any);
-
-		const closedPressables = findAllByType(closed, "Pressable");
-		closedPressables[0]?.props.onPress();
-		expect(onSelectFolder).toHaveBeenCalledWith("__ALL_FOLDERS__");
-		closedPressables[2]?.props.onPress();
-		expect(onSelectFolder).toHaveBeenCalledWith("f1");
-		closedPressables[2]?.props.onLongPress();
-		expect(setActionFolder).toHaveBeenCalledWith(folder);
-		expect(setRenameMode).toHaveBeenCalledWith(false);
-		expect(setRenameName).toHaveBeenCalledWith("Work");
-
-		reactMocks.useState
-			.mockImplementationOnce(() => [folder, setActionFolder])
-			.mockImplementationOnce(() => [false, setRenameMode])
-			.mockImplementationOnce(() => ["Work", setRenameName]);
-		const actionSheet = FolderFilterChips({
-			folders: [folder],
-			selectedFolderId: "f1",
-			onSelectFolder,
-			onDeleteFolder,
-			onRenameFolder,
-		} as any);
-		const modal = findAllByType(actionSheet, "Modal")[0];
-		expect(modal.props.visible).toBe(true);
-
-		const renamePressable = findPressableByText(modal, "Rename");
-		expect(renamePressable).toBeTruthy();
-		renamePressable.props.onPress();
-		expect(setRenameMode).toHaveBeenCalledWith(true);
-
-		const deletePressable = findPressableByText(modal, "Delete");
-		expect(deletePressable).toBeTruthy();
-		deletePressable.props.onPress();
-		expect(onDeleteFolder).toHaveBeenCalledWith(folder);
-		expect(setActionFolder).toHaveBeenCalledWith(null);
-		expect(setRenameMode).toHaveBeenCalledWith(false);
-		expect(setRenameName).toHaveBeenCalledWith("");
-
-		reactMocks.useState
-			.mockImplementationOnce(() => [folder, setActionFolder])
-			.mockImplementationOnce(() => [true, setRenameMode])
-			.mockImplementationOnce(() => ["  Office  ", setRenameName]);
-		const renameModeTree = FolderFilterChips({
-			folders: [folder],
-			selectedFolderId: "f1",
-			onSelectFolder,
-			onDeleteFolder,
-			onRenameFolder,
-		} as any);
-
-		const saveButton = findAppButtonByLabel(renameModeTree, "Save");
-		expect(saveButton).toBeTruthy();
-		saveButton.props.onPress();
-		expect(onRenameFolder).toHaveBeenCalledWith(folder, "Office");
-
-		reactMocks.useState
-			.mockImplementationOnce(() => [folder, setActionFolder])
-			.mockImplementationOnce(() => [true, setRenameMode])
-			.mockImplementationOnce(() => ["   ", setRenameName]);
-		const blankRenameTree = FolderFilterChips({
-			folders: [folder],
-			selectedFolderId: "f1",
-			onSelectFolder,
-			onDeleteFolder,
-			onRenameFolder,
-		} as any);
-		const saveButtonBlank = findAppButtonByLabel(blankRenameTree, "Save");
-		saveButtonBlank.props.onPress();
-		expect(onRenameFolder).toHaveBeenCalledTimes(1);
-	});
-
-	it("hides folder action affordances when rename/delete callbacks are absent", () => {
-		const setActionFolder = vi.fn();
-		const setRenameMode = vi.fn();
-		const setRenameName = vi.fn();
-		const folder = {
-			id: "f2",
-			name: "Personal",
-			type: "NOTE",
-			createdAt: 1,
-			updatedAt: 1,
-		};
-
-		reactMocks.useState
-			.mockImplementationOnce(() => [folder, setActionFolder])
-			.mockImplementationOnce(() => [false, setRenameMode])
-			.mockImplementationOnce(() => ["Personal", setRenameName]);
-
-		const tree = FolderFilterChips({
-			folders: [folder],
-			selectedFolderId: "f2",
-			onSelectFolder: vi.fn(),
-		} as any);
-
-		const ellipsisIcons = findAllByType(tree, "Ionicons").filter(
-			(icon) => icon?.props?.name === "ellipsis-vertical",
-		);
-		expect(ellipsisIcons).toHaveLength(0);
-
-		const modal = findAllByType(tree, "Modal")[0];
-		expect(modal?.props?.visible).toBe(true);
-		expect(findPressableByText(modal, "Rename")).toBeFalsy();
-		expect(findPressableByText(modal, "Delete")).toBeFalsy();
-	});
-
-	it("applies selected styles for the static All chip", () => {
-		reactMocks.useState
-			.mockImplementationOnce(() => [null, vi.fn()])
-			.mockImplementationOnce(() => [false, vi.fn()])
-			.mockImplementationOnce(() => ["", vi.fn()]);
-
-		const tree = FolderFilterChips({
-			folders: [],
-			selectedFolderId: "__ALL_FOLDERS__",
-			onSelectFolder: vi.fn(),
-		});
-
-		const allChip = findPressableByText(tree, "All");
-		expect(allChip).toBeTruthy();
-		expect(Array.isArray(allChip.props.style)).toBe(true);
-		expect(allChip.props.style[1]).toBeTruthy();
-	});
-
-	it("skips delete callback when delete is pressed without an action folder", () => {
-		const setActionFolder = vi.fn();
-		const setRenameMode = vi.fn();
-		const setRenameName = vi.fn();
-		const onDeleteFolder = vi.fn();
-
-		reactMocks.useState
-			.mockImplementationOnce(() => [null, setActionFolder])
-			.mockImplementationOnce(() => [false, setRenameMode])
-			.mockImplementationOnce(() => ["", setRenameName]);
-
-		const tree = FolderFilterChips({
-			folders: [],
-			selectedFolderId: "",
-			onSelectFolder: vi.fn(),
-			onDeleteFolder,
-		});
-
-		const modal = findAllByType(tree, "Modal")[0];
-		const deletePressable = findPressableByText(modal, "Delete");
-		expect(deletePressable).toBeTruthy();
-		deletePressable.props.onPress();
-
-		expect(onDeleteFolder).not.toHaveBeenCalled();
-		expect(setActionFolder).toHaveBeenCalledWith(null);
-		expect(setRenameMode).toHaveBeenCalledWith(false);
-		expect(setRenameName).toHaveBeenCalledWith("");
 	});
 });

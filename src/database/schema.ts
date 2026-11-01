@@ -104,34 +104,6 @@ CREATE TABLE IF NOT EXISTS exchange_rates (
 	updated_at INTEGER
 );
 
-CREATE TABLE IF NOT EXISTS folders (
-	id TEXT,
-	name TEXT,
-	type TEXT,
-	created_at INTEGER,
-	updated_at INTEGER
-);
-
-CREATE TABLE IF NOT EXISTS notes (
-	id TEXT,
-	folder_id TEXT,
-	title TEXT,
-	content TEXT,
-	created_at INTEGER,
-	updated_at INTEGER
-);
-
-CREATE TABLE IF NOT EXISTS todos (
-	id TEXT,
-	folder_id TEXT,
-	title TEXT,
-	description TEXT,
-	is_done INTEGER,
-	due_at INTEGER,
-	created_at INTEGER,
-	updated_at INTEGER
-);
-
 CREATE TABLE IF NOT EXISTS passwords (
 	id TEXT,
 	title TEXT,
@@ -150,15 +122,6 @@ CREATE TABLE IF NOT EXISTS cards (
 	cvv TEXT,
 	pin TEXT,
 	network TEXT,
-	notes TEXT,
-	created_at INTEGER,
-	updated_at INTEGER
-);
-
-CREATE TABLE IF NOT EXISTS identities (
-	id TEXT,
-	title TEXT,
-	id_number TEXT,
 	created_at INTEGER,
 	updated_at INTEGER
 );

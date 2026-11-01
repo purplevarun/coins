@@ -40,7 +40,6 @@ const saveCard = async (
 		cvv: entry.cvv.trim(),
 		pin: entry.pin.trim(),
 		network: entry.network.trim(),
-		notes: entry.notes.trim(),
 		createdAt: existing?.createdAt ?? now,
 		updatedAt: now,
 	});

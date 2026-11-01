@@ -39,18 +39,9 @@ const serviceMocks = vi.hoisted(() => ({
 	saveInvestment: vi.fn(),
 	getInvestmentTypes: vi.fn(),
 	saveInvestmentType: vi.fn(),
-	getNote: vi.fn(),
-	saveNote: vi.fn(),
-	deleteNote: vi.fn(),
-	getTodo: vi.fn(),
-	saveTodo: vi.fn(),
-	deleteTodo: vi.fn(),
 	deleteCard: vi.fn(),
 	getCard: vi.fn(),
 	saveCard: vi.fn(),
-	deleteIdentity: vi.fn(),
-	getIdentity: vi.fn(),
-	saveIdentity: vi.fn(),
 	deletePassword: vi.fn(),
 	getPassword: vi.fn(),
 	savePassword: vi.fn(),
@@ -59,7 +50,6 @@ const serviceMocks = vi.hoisted(() => ({
 const hookMocks = vi.hoisted(() => ({
 	refreshData: vi.fn(),
 	confirm: vi.fn(),
-	handleCreateFolder: vi.fn(),
 }));
 
 const databaseState = vi.hoisted(() => ({
@@ -89,9 +79,6 @@ vi.mock("@/components/CustomText", () => ({
 }));
 vi.mock("@/components/DateField", () => ({
 	default: (props: any) => ({ type: "DateField", props }),
-}));
-vi.mock("@/components/FolderPicker", () => ({
-	default: (props: any) => ({ type: "FolderPicker", props }),
 }));
 vi.mock("@/components/GlassCard", () => ({
 	default: (props: any) => ({ type: "GlassCard", props }),
@@ -124,13 +111,6 @@ vi.mock("@/hooks/useDatabaseContext", () => ({
 vi.mock("@/hooks/useAppDialog", () => ({
 	default: () => ({ confirm: hookMocks.confirm }),
 }));
-vi.mock("@/hooks/useFolders", () => ({
-	default: () => ({
-		folders: [{ id: "f1", name: "Home" }],
-		handleCreateFolder: hookMocks.handleCreateFolder,
-	}),
-}));
-
 vi.mock("@/services/budgetService", () => ({
 	default: {
 		getBudget: serviceMocks.getBudget,
@@ -178,32 +158,11 @@ vi.mock("@/services/investmentTypeService", () => ({
 		saveInvestmentType: serviceMocks.saveInvestmentType,
 	},
 }));
-vi.mock("@/services/noteService", () => ({
-	default: {
-		getNote: serviceMocks.getNote,
-		saveNote: serviceMocks.saveNote,
-		deleteNote: serviceMocks.deleteNote,
-	},
-}));
-vi.mock("@/services/todoService", () => ({
-	default: {
-		getTodo: serviceMocks.getTodo,
-		saveTodo: serviceMocks.saveTodo,
-		deleteTodo: serviceMocks.deleteTodo,
-	},
-}));
 vi.mock("@/services/cardService", () => ({
 	default: {
 		deleteCard: serviceMocks.deleteCard,
 		getCard: serviceMocks.getCard,
 		saveCard: serviceMocks.saveCard,
-	},
-}));
-vi.mock("@/services/identityService", () => ({
-	default: {
-		deleteIdentity: serviceMocks.deleteIdentity,
-		getIdentity: serviceMocks.getIdentity,
-		saveIdentity: serviceMocks.saveIdentity,
 	},
 }));
 vi.mock("@/services/passwordService", () => ({
@@ -223,10 +182,8 @@ import BudgetFormScreen from "@/screens/BudgetFormScreen";
 import CategoryFormScreen from "@/screens/CategoryFormScreen";
 import InvestmentFormScreen from "@/screens/InvestmentFormScreen";
 import InvestmentTypesScreen from "@/screens/InvestmentTypesScreen";
-import NoteFormScreen from "@/screens/NoteFormScreen";
 import PlatformsScreen from "@/screens/PlatformsScreen";
 import SourceFormScreen from "@/screens/SourceFormScreen";
-import TodoFormScreen from "@/screens/TodoFormScreen";
 import TripFormScreen from "@/screens/TripFormScreen";
 import TripTypesScreen from "@/screens/TripTypesScreen";
 import VaultFormScreen from "@/screens/VaultFormScreen";
@@ -284,24 +241,6 @@ describe("form screens", () => {
 		serviceMocks.getPlatforms.mockResolvedValue([]);
 		serviceMocks.getTripTypes.mockResolvedValue([]);
 
-		serviceMocks.getNote.mockResolvedValue({
-			title: "Existing",
-			content: "Body",
-			folderId: "f1",
-		});
-		serviceMocks.saveNote.mockResolvedValue("n1");
-		serviceMocks.deleteNote.mockResolvedValue(undefined);
-
-		serviceMocks.getTodo.mockResolvedValue({
-			title: "Existing todo",
-			description: "Details",
-			folderId: "f1",
-			isDone: true,
-			dueAt: 123,
-		});
-		serviceMocks.saveTodo.mockResolvedValue("t1");
-		serviceMocks.deleteTodo.mockResolvedValue(undefined);
-
 		serviceMocks.deleteCard.mockResolvedValue(undefined);
 		serviceMocks.getCard.mockResolvedValue({
 			name: "Visa",
@@ -311,15 +250,8 @@ describe("form screens", () => {
 			cvv: "111",
 			pin: "0000",
 			network: "VISA",
-			notes: "n",
 		});
 		serviceMocks.saveCard.mockResolvedValue("card1");
-		serviceMocks.deleteIdentity.mockResolvedValue(undefined);
-		serviceMocks.getIdentity.mockResolvedValue({
-			title: "Passport",
-			idNumber: "P1",
-		});
-		serviceMocks.saveIdentity.mockResolvedValue("id1");
 		serviceMocks.deletePassword.mockResolvedValue(undefined);
 		serviceMocks.getPassword.mockResolvedValue({
 			title: "Github",
@@ -837,7 +769,7 @@ describe("form screens", () => {
 		);
 	});
 
-	it("executes VaultFormScreen branches for password card and identity", async () => {
+	it("executes VaultFormScreen branches for password and card", async () => {
 		const navigation = { goBack: vi.fn() };
 		hookMocks.confirm.mockImplementation(({ onConfirm }: any) => {
 			onConfirm();
@@ -891,30 +823,6 @@ describe("form screens", () => {
 		)[0]?.props?.onPress();
 		await flush();
 
-		const identityTree = VaultFormScreen({
-			navigation,
-			route: {
-				key: "i",
-				name: "VaultForm",
-				params: { kind: "IDENTITY", entryId: "id1" },
-			},
-		} as any);
-		await flush();
-		findByPredicate(
-			identityTree,
-			(node) =>
-				node?.props?.label === "Save entry" &&
-				typeof node?.props?.onPress === "function",
-		)[0]?.props?.onPress();
-		await flush();
-		findByPredicate(
-			identityTree,
-			(node) =>
-				node?.props?.label === "Delete entry" &&
-				typeof node?.props?.onPress === "function",
-		)[0]?.props?.onPress();
-		await flush();
-
 		expect(serviceMocks.getPassword).toHaveBeenCalledWith(
 			{ id: "db" },
 			"pw1",
@@ -933,16 +841,6 @@ describe("form screens", () => {
 		expect(serviceMocks.deleteCard).toHaveBeenCalledWith(
 			{ id: "db" },
 			"card1",
-		);
-
-		expect(serviceMocks.getIdentity).toHaveBeenCalledWith(
-			{ id: "db" },
-			"id1",
-		);
-		expect(serviceMocks.saveIdentity).toHaveBeenCalled();
-		expect(serviceMocks.deleteIdentity).toHaveBeenCalledWith(
-			{ id: "db" },
-			"id1",
 		);
 	});
 
@@ -966,7 +864,7 @@ describe("form screens", () => {
 		let stateCall = 0;
 		reactMocks.useState.mockImplementation((initial: any) => {
 			stateCall += 1;
-			if (stateCall === 13) return ["", setError];
+			if (stateCall === 11) return ["", setError];
 			return [
 				typeof initial === "function" ? initial() : initial,
 				vi.fn(),
@@ -1029,7 +927,7 @@ describe("form screens", () => {
 		reactMocks.useState.mockImplementation((initial: any) => {
 			stateCall += 1;
 			if (stateCall === 1) return ["", setTitle];
-			if (stateCall === 13) return ["render error", vi.fn()];
+			if (stateCall === 11) return ["render error", vi.fn()];
 			return [
 				typeof initial === "function" ? initial() : initial,
 				vi.fn(),
@@ -1099,7 +997,6 @@ describe("form screens", () => {
 		const navigation = { goBack: vi.fn() };
 		serviceMocks.getPassword.mockResolvedValueOnce(null);
 		serviceMocks.getCard.mockResolvedValueOnce(null);
-		serviceMocks.getIdentity.mockResolvedValueOnce(null);
 
 		const setTitle = vi.fn();
 		let stateCall = 0;
@@ -1138,26 +1035,6 @@ describe("form screens", () => {
 				key: "vault-card-null",
 				name: "VaultForm",
 				params: { kind: "CARD", entryId: "card1" },
-			},
-		} as any);
-		await flush();
-
-		stateCall = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			stateCall += 1;
-			if (stateCall === 1) return ["", setTitle];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		VaultFormScreen({
-			navigation,
-			route: {
-				key: "vault-identity-null",
-				name: "VaultForm",
-				params: { kind: "IDENTITY", entryId: "id1" },
 			},
 		} as any);
 		await flush();
@@ -1287,371 +1164,5 @@ describe("form screens", () => {
 		segmented?.props?.onChange("OTHER");
 		expect(setPeriod).toHaveBeenCalledWith("YEARLY");
 		expect(setPeriod).toHaveBeenCalledWith("MONTHLY");
-	});
-
-	it("executes NoteFormScreen save and delete paths", async () => {
-		const navigation = { goBack: vi.fn() };
-		hookMocks.confirm.mockImplementation(({ onConfirm }: any) => {
-			onConfirm();
-		});
-
-		const tree = NoteFormScreen({
-			navigation,
-			route: { key: "k", name: "NoteForm", params: { noteId: "n1" } },
-		} as any);
-		await flush();
-
-		const saveNode = findByPredicate(
-			tree,
-			(node) =>
-				node?.props?.label === "Save note" &&
-				typeof node?.props?.onPress === "function",
-		)[0];
-		saveNode?.props?.onPress();
-		await flush();
-		const deleteNode = findByPredicate(
-			tree,
-			(node) =>
-				node?.props?.label === "Delete note" &&
-				typeof node?.props?.onPress === "function",
-		)[0];
-		deleteNode?.props?.onPress();
-		await flush();
-
-		expect(serviceMocks.getNote).toHaveBeenCalledWith({ id: "db" }, "n1");
-		expect(serviceMocks.saveNote).toHaveBeenCalled();
-		expect(
-			findByPredicate(
-				tree,
-				(node) =>
-					typeof node?.props?.onSend === "function" &&
-					typeof node?.props?.onPick === "function" &&
-					typeof node?.props?.onRemove === "function",
-			),
-		).toHaveLength(0);
-		expect(hookMocks.confirm).toHaveBeenCalled();
-		expect(serviceMocks.deleteNote).toHaveBeenCalledWith(
-			{ id: "db" },
-			"n1",
-		);
-		expect(navigation.goBack).toHaveBeenCalled();
-	});
-
-	it("covers NoteFormScreen new-note and save/delete error branches", async () => {
-		const navigation = { goBack: vi.fn() };
-		hookMocks.confirm.mockImplementation(({ onConfirm }: any) => {
-			onConfirm();
-		});
-		serviceMocks.getNote.mockRejectedValueOnce(new Error("load failed"));
-		serviceMocks.saveNote.mockRejectedValueOnce(new Error("save failed"));
-		serviceMocks.deleteNote.mockRejectedValueOnce(
-			new Error("delete failed"),
-		);
-
-		const existingTree = NoteFormScreen({
-			navigation,
-			route: {
-				key: "k-note-fail",
-				name: "NoteForm",
-				params: { noteId: "n1" },
-			},
-		} as any);
-		await flush();
-
-		findByPredicate(
-			existingTree,
-			(node) =>
-				node?.props?.label === "Save note" &&
-				typeof node?.props?.onPress === "function",
-		)[0]?.props?.onPress();
-		await flush();
-
-		findByPredicate(
-			existingTree,
-			(node) =>
-				node?.props?.label === "Delete note" &&
-				typeof node?.props?.onPress === "function",
-		)[0]?.props?.onPress();
-		await flush();
-
-		expect(navigation.goBack).not.toHaveBeenCalled();
-
-		const newTree = NoteFormScreen({
-			navigation: { goBack: vi.fn() },
-			route: { key: "k-note-new", name: "NoteForm", params: {} },
-		} as any);
-		await flush();
-
-		expect(
-			findByPredicate(
-				newTree,
-				(node) => node?.props?.label === "Delete note",
-			),
-		).toHaveLength(0);
-	});
-
-	it("covers NoteFormScreen existing-note fallback branches", async () => {
-		serviceMocks.getNote.mockResolvedValueOnce(null).mockResolvedValueOnce({
-			id: "n1",
-			title: "Loaded",
-			content: "Body",
-			folderId: undefined,
-			updatedAt: 1,
-		});
-
-		const firstTree = NoteFormScreen({
-			navigation: { goBack: vi.fn() },
-			route: {
-				key: "k-note-null",
-				name: "NoteForm",
-				params: { noteId: "n1" },
-			},
-		} as any);
-		await flush();
-
-		const setFolderId = vi.fn();
-		let call = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			call += 1;
-			if (call === 1) return ["", vi.fn()];
-			if (call === 2) return ["", vi.fn()];
-			if (call === 3) return ["", setFolderId];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		const secondTree = NoteFormScreen({
-			navigation: { goBack: vi.fn() },
-			route: {
-				key: "k-note-undefined-folder",
-				name: "NoteForm",
-				params: { noteId: "n1" },
-			},
-		} as any);
-		await flush();
-
-		expect(firstTree).toBeTruthy();
-		expect(secondTree).toBeTruthy();
-		expect(setFolderId).toHaveBeenCalledWith("");
-	});
-
-	it("renders NoteFormScreen error notice branch", async () => {
-		let call = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			call += 1;
-			if (call === 5) return ["pre-existing error", vi.fn()];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		const tree = NoteFormScreen({
-			navigation: { goBack: vi.fn() },
-			route: { key: "k-note-error", name: "NoteForm", params: {} },
-		} as any);
-		await flush();
-
-		expect(
-			findByPredicate(
-				tree,
-				(node) => node?.props?.message === "pre-existing error",
-			),
-		).not.toHaveLength(0);
-	});
-
-	it("executes TodoFormScreen save/delete and due-date branch", async () => {
-		const navigation = { goBack: vi.fn() };
-		hookMocks.confirm.mockImplementation(({ onConfirm }: any) => {
-			onConfirm();
-		});
-
-		reactMocks.useState.mockImplementation((initial: any) => {
-			if (initial === false) {
-				return [true, vi.fn()];
-			}
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		const tree = TodoFormScreen({
-			navigation,
-			route: { key: "k", name: "TodoForm", params: { todoId: "t1" } },
-		} as any);
-		await flush();
-
-		const dueNode = findByPredicate(
-			tree,
-			(node) => node?.props?.label === "Due",
-		)[0];
-		expect(dueNode).toBeTruthy();
-
-		const saveNode = findByPredicate(
-			tree,
-			(node) =>
-				node?.props?.label === "Save todo" &&
-				typeof node?.props?.onPress === "function",
-		)[0];
-		saveNode?.props?.onPress();
-		await flush();
-		const deleteNode = findByPredicate(
-			tree,
-			(node) =>
-				node?.props?.label === "Delete todo" &&
-				typeof node?.props?.onPress === "function",
-		)[0];
-		deleteNode?.props?.onPress();
-		await flush();
-
-		expect(serviceMocks.getTodo).toHaveBeenCalledWith({ id: "db" }, "t1");
-		expect(serviceMocks.saveTodo).toHaveBeenCalled();
-		expect(serviceMocks.deleteTodo).toHaveBeenCalledWith(
-			{ id: "db" },
-			"t1",
-		);
-		expect(
-			findByPredicate(
-				tree,
-				(node) =>
-					typeof node?.props?.onSend === "function" &&
-					typeof node?.props?.onPick === "function" &&
-					typeof node?.props?.onRemove === "function",
-			),
-		).toHaveLength(0);
-		expect(navigation.goBack).toHaveBeenCalled();
-	});
-
-	it("covers TodoFormScreen new-todo and save/delete/load error branches", async () => {
-		const navigation = { goBack: vi.fn() };
-		hookMocks.confirm.mockImplementation(({ onConfirm }: any) => {
-			onConfirm();
-		});
-		serviceMocks.getTodo.mockRejectedValueOnce(new Error("load failed"));
-		serviceMocks.saveTodo.mockRejectedValueOnce(new Error("save failed"));
-		serviceMocks.deleteTodo.mockRejectedValueOnce(
-			new Error("delete failed"),
-		);
-
-		const existingTree = TodoFormScreen({
-			navigation,
-			route: {
-				key: "k-todo-fail",
-				name: "TodoForm",
-				params: { todoId: "t1" },
-			},
-		} as any);
-		await flush();
-
-		findByPredicate(
-			existingTree,
-			(node) =>
-				node?.props?.label === "Save todo" &&
-				typeof node?.props?.onPress === "function",
-		)[0]?.props?.onPress();
-		await flush();
-
-		findByPredicate(
-			existingTree,
-			(node) =>
-				node?.props?.label === "Delete todo" &&
-				typeof node?.props?.onPress === "function",
-		)[0]?.props?.onPress();
-		await flush();
-
-		expect(navigation.goBack).not.toHaveBeenCalled();
-
-		const newTree = TodoFormScreen({
-			navigation: { goBack: vi.fn() },
-			route: { key: "k-todo-new", name: "TodoForm", params: {} },
-		} as any);
-		await flush();
-
-		expect(
-			findByPredicate(
-				newTree,
-				(node) => node?.props?.label === "Delete todo",
-			),
-		).toHaveLength(0);
-	});
-
-	it("covers TodoFormScreen existing-todo fallback branches", async () => {
-		serviceMocks.getTodo.mockResolvedValueOnce(null).mockResolvedValueOnce({
-			id: "t1",
-			title: "Todo",
-			description: "Desc",
-			folderId: undefined,
-			isDone: false,
-			dueAt: null,
-			updatedAt: 1,
-		});
-
-		const firstTree = TodoFormScreen({
-			navigation: { goBack: vi.fn() },
-			route: {
-				key: "k-todo-null",
-				name: "TodoForm",
-				params: { todoId: "t1" },
-			},
-		} as any);
-		await flush();
-
-		const setFolderId = vi.fn();
-		const setDueAt = vi.fn();
-		let call = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			call += 1;
-			if (call === 1) return ["", vi.fn()];
-			if (call === 2) return ["", vi.fn()];
-			if (call === 3) return ["", setFolderId];
-			if (call === 6) return [Date.now(), setDueAt];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		const secondTree = TodoFormScreen({
-			navigation: { goBack: vi.fn() },
-			route: {
-				key: "k-todo-fallbacks",
-				name: "TodoForm",
-				params: { todoId: "t1" },
-			},
-		} as any);
-		await flush();
-
-		expect(firstTree).toBeTruthy();
-		expect(secondTree).toBeTruthy();
-		expect(setFolderId).toHaveBeenCalledWith("");
-		expect(setDueAt).toHaveBeenCalled();
-	});
-
-	it("renders TodoFormScreen error notice branch", async () => {
-		let call = 0;
-		reactMocks.useState.mockImplementation((initial: any) => {
-			call += 1;
-			if (call === 8) return ["pre-existing todo error", vi.fn()];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-
-		const tree = TodoFormScreen({
-			navigation: { goBack: vi.fn() },
-			route: { key: "k-todo-error", name: "TodoForm", params: {} },
-		} as any);
-		await flush();
-
-		expect(
-			findByPredicate(
-				tree,
-				(node) => node?.props?.message === "pre-existing todo error",
-			),
-		).not.toHaveLength(0);
 	});
 });

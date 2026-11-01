@@ -129,7 +129,6 @@ const VAULT = {
 	EMPTY_TITLE: "Nothing here yet",
 	EXPIRY: "Expiry",
 	HIDE_CARD_DETAILS: "Hide card details",
-	NO_ID_NUMBER: "No ID number",
 	NO_MATCHES_TITLE: "No matching entries",
 	NO_USERNAME: "No username",
 	SEARCH_PLACEHOLDER: "Search vault",
@@ -177,12 +176,8 @@ const VAULT_FORM = {
 	DELETE_TITLE: "Delete vault entry?",
 	ENTRY_TITLE: "Entry title",
 	EXPIRY_PLACEHOLDER: "MM/YY",
-	ID_NUMBER: "ID number",
-	ID_NUMBER_PLACEHOLDER: "Document number",
 	NETWORK: "Network",
 	NETWORK_PLACEHOLDER: "Visa, Mastercard, RuPay...",
-	NOTES: "Notes",
-	NOTES_PLACEHOLDER: "Optional notes",
 	PASSWORD: "Password",
 	PASSWORD_PLACEHOLDER: "Password",
 	USERNAME: "Username",
@@ -248,8 +243,6 @@ const GLOBAL_SEARCH = {
 	INVESTMENT: "Investment",
 	NO_DETAILS: "No details",
 	NO_MATCHES: "No matching records found.",
-	NOTE: "Note",
-	TODO: "Todo",
 	TRIP: "Trip",
 	SEARCH_PLACEHOLDER: "Search all records",
 } as const;
@@ -262,39 +255,6 @@ const RELATION_DETAILS = {
 	NO_TRIPS_LINKED: "No trips linked to this type.",
 	NO_TRIPS_TITLE: "No trips yet",
 	TRIP_TYPE: "Trip type",
-} as const;
-
-const NOTES = {
-	CONTENT_LABEL: "Content",
-	DELETE_ACTION: "Delete note",
-	DELETE_TITLE: "Delete note?",
-	EDIT_TITLE: "Edit note",
-	EMPTY_MESSAGE: "Capture a thought, detail or reference.",
-	EMPTY_NOTE: "Empty note",
-	EMPTY_TITLE: "No notes found",
-	NEW_TITLE: "New note",
-	SAVE_ACTION: "Save note",
-	TITLE_PLACEHOLDER: "Note title",
-	CONTENT_PLACEHOLDER: "Write something useful...",
-} as const;
-
-const TODOS = {
-	DELETE_ACTION: "Delete todo",
-	DELETE_TITLE: "Delete todo?",
-	DESCRIPTION_LABEL: "Description",
-	DESCRIPTION_PLACEHOLDER: "Optional details",
-	EDIT_TITLE: "Edit todo",
-	EMPTY_MESSAGE: "Add something you need to remember.",
-	EMPTY_TITLE: "No todos yet",
-	NEW_TITLE: "New todo",
-	NO_FOLDER: "No folder",
-	SAVE_ACTION: "Save todo",
-	TITLE_PLACEHOLDER: "What needs doing?",
-} as const;
-
-const FOLDERS = {
-	DELETE_HINT:
-		"Folders containing items cannot be deleted. Empty folders will be permanently removed.",
 } as const;
 
 const EXCHANGE_RATES = {
@@ -399,17 +359,12 @@ const RELATION_ACTIONS = {
 const COMPONENTS = {
 	CURRENCY: "Currency",
 	DATE: "Date",
-	DUE: "Due",
 	EXPIRY: "Expiry",
-	FOLDER: "Folder",
-	FOLDER_NAME: "Folder name",
 	FROM: "From",
 	NAME: "Name",
 	NETWORK: "Network",
 	NO_TRIP: "No trip",
 	NET_WORTH: "Net worth",
-	NEW_FOLDER: "New folder",
-	NO_FOLDER: "No folder",
 	NO_OPTIONS: "Nothing to select yet.",
 	PIN: "PIN",
 	PLATFORM: "Platform",
@@ -433,18 +388,15 @@ const MESSAGES = {
 	COMPONENTS,
 	EXCHANGE_RATES,
 	FINANCIAL_METRICS,
-	FOLDERS,
 	GLOBAL_SEARCH,
 	HOME,
 	INVESTMENTS,
 	LINKED_TRANSACTIONS,
-	NOTES,
 	RELATION_DETAILS,
 	RELATION_ACTIONS,
 	RELATION_FORMS,
 	SETTINGS,
 	SOURCES,
-	TODOS,
 	TRANSACTION_FORM,
 	TRANSACTIONS,
 	TRIPS,

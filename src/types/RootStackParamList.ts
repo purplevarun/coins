@@ -52,10 +52,6 @@ type RootStackParamList = {
 	};
 	ExchangeRates: undefined;
 	GlobalSearch: undefined;
-	Notes: undefined;
-	NoteForm: { noteId?: string } | undefined;
-	Todos: undefined;
-	TodoForm: { todoId?: string } | undefined;
 	Vault: { kind: VaultKind };
 	VaultForm: { kind: VaultKind; entryId?: string };
 	Settings: undefined;

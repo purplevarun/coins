@@ -15,13 +15,11 @@ import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import useThemedStyles from "@/hooks/useThemedStyles";
 import cardService from "@/services/cardService";
-import identityService from "@/services/identityService";
 import passwordService from "@/services/passwordService";
 import type VaultFormScreenProps from "@/types/VaultFormScreenProps";
 import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
 const { deleteCard, getCard, saveCard } = cardService;
-const { deleteIdentity, getIdentity, saveIdentity } = identityService;
 const { deletePassword, getPassword, savePassword } = passwordService;
 
 const VaultFormScreen = ({
@@ -43,8 +41,6 @@ const VaultFormScreen = ({
 	const [cvv, setCvv] = useState("");
 	const [pin, setPin] = useState("");
 	const [network, setNetwork] = useState("");
-	const [idNumber, setIdNumber] = useState("");
-	const [notes, setNotes] = useState("");
 	const [isSaving, setIsSaving] = useState(false);
 	const [error, setError] = useState("");
 
@@ -73,14 +69,8 @@ const VaultFormScreen = ({
 						setCvv(entry.cvv);
 						setPin(entry.pin);
 						setNetwork(entry.network);
-						setNotes(entry.notes);
 					}
 					return;
-				}
-				const entry = await getIdentity(database, entryId);
-				if (entry) {
-					setTitle(entry.title);
-					setIdNumber(entry.idNumber);
 				}
 			} catch (caughtError: unknown) {
 				setError(getErrorMessage(caughtError));
@@ -100,7 +90,7 @@ const VaultFormScreen = ({
 					username,
 					password,
 				});
-			} else if (kind === "CARD") {
+			} else {
 				await saveCard(database, {
 					id: entryId,
 					name: title,
@@ -110,13 +100,6 @@ const VaultFormScreen = ({
 					cvv,
 					pin,
 					network,
-					notes,
-				});
-			} else {
-				await saveIdentity(database, {
-					id: entryId,
-					title,
-					idNumber,
 				});
 			}
 			refreshData();
@@ -139,10 +122,8 @@ const VaultFormScreen = ({
 					try {
 						if (kind === "PASSWORD") {
 							await deletePassword(database, targetEntryId);
-						} else if (kind === "CARD") {
-							await deleteCard(database, targetEntryId);
 						} else {
-							await deleteIdentity(database, targetEntryId);
+							await deleteCard(database, targetEntryId);
 						}
 						refreshData();
 						navigation.goBack();
@@ -263,25 +244,6 @@ const VaultFormScreen = ({
 								value={pin}
 							/>
 						</>
-					) : null}
-					{kind === "IDENTITY" ? (
-						<TextField
-							label={MESSAGES.VAULT_FORM.ID_NUMBER}
-							onChangeText={setIdNumber}
-							placeholder={
-								MESSAGES.VAULT_FORM.ID_NUMBER_PLACEHOLDER
-							}
-							value={idNumber}
-						/>
-					) : null}
-					{kind === "CARD" ? (
-						<TextField
-							isMultiline
-							label={MESSAGES.VAULT_FORM.NOTES}
-							onChangeText={setNotes}
-							placeholder={MESSAGES.VAULT_FORM.NOTES_PLACEHOLDER}
-							value={notes}
-						/>
 					) : null}
 
 					{error ? <Notice message={error} tone="danger" /> : null}

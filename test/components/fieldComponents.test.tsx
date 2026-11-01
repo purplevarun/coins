@@ -1,5 +1,4 @@
 import DateField from "@/components/DateField";
-import FolderPicker from "@/components/FolderPicker";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const reactMocks = vi.hoisted(() => ({
@@ -135,69 +134,5 @@ describe("field components", () => {
 		expect(trigger.props.style[1]).not.toHaveProperty("backgroundColor");
 		trigger.props.onPress();
 		expect(setVisible).toHaveBeenCalledWith(true);
-	});
-
-	it("covers FolderPicker create and non-create states", async () => {
-		const setCreating = vi.fn();
-		const setFolderName = vi.fn();
-		reactMocks.useState
-			.mockImplementationOnce(() => [false, setCreating])
-			.mockImplementationOnce(() => ["", setFolderName]);
-
-		const onChange = vi.fn();
-		const onCreateFolder = vi.fn(async () => "folder-123");
-		const closed = FolderPicker({
-			value: "",
-			folders: [
-				{
-					id: "f1",
-					name: "Work",
-					type: "NOTE",
-					createdAt: 1,
-					updatedAt: 1,
-				},
-			],
-			onChange,
-			onCreateFolder,
-		} as any);
-		const closedButtons = findAllByType(closed, "AppButton");
-		expect(closedButtons).toHaveLength(1);
-		expect(closedButtons[0]?.props.label).toBe("New folder");
-		closedButtons[0]?.props.onPress();
-		expect(setCreating).toHaveBeenCalledWith(true);
-
-		reactMocks.useState
-			.mockImplementationOnce(() => [true, setCreating])
-			.mockImplementationOnce(() => ["Receipts", setFolderName]);
-		const open = FolderPicker({
-			value: "",
-			folders: [
-				{
-					id: "f1",
-					name: "Work",
-					type: "NOTE",
-					createdAt: 1,
-					updatedAt: 1,
-				},
-			],
-			onChange,
-			onCreateFolder,
-		} as any);
-
-		const openButtons = findAllByType(open, "AppButton");
-		expect(openButtons.map((button) => button.props.label)).toEqual([
-			"Cancel",
-			"Create",
-		]);
-		openButtons[0]?.props.onPress();
-		expect(setCreating).toHaveBeenCalledWith(false);
-
-		openButtons[1]?.props.onPress();
-		await Promise.resolve();
-		await Promise.resolve();
-		expect(onCreateFolder).toHaveBeenCalledWith("Receipts");
-		expect(onChange).toHaveBeenCalledWith("folder-123");
-		expect(setFolderName).toHaveBeenCalledWith("");
-		expect(setCreating).toHaveBeenCalledWith(false);
 	});
 });

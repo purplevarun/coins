@@ -21,12 +21,9 @@ import useThemedStyles from "@/hooks/useThemedStyles";
 import budgetService from "@/services/budgetService";
 import cardService from "@/services/cardService";
 import categoryService from "@/services/categoryService";
-import identityService from "@/services/identityService";
 import investmentService from "@/services/investmentService";
-import noteService from "@/services/noteService";
 import passwordService from "@/services/passwordService";
 import sourceService from "@/services/sourceService";
-import todoService from "@/services/todoService";
 import transactionService from "@/services/transactionService";
 import tripService from "@/services/tripService";
 import type GlobalSearchResult from "@/types/GlobalSearchResult";
@@ -41,12 +38,9 @@ const { CATEGORY_KIND_LABELS } = financeConstants;
 const { getBudgets } = budgetService;
 const { getCards } = cardService;
 const { getCategories } = categoryService;
-const { getIdentities } = identityService;
 const { getInvestments } = investmentService;
-const { getNotes } = noteService;
 const { getPasswords } = passwordService;
 const { getSources } = sourceService;
-const { getTodos } = todoService;
 const { getTransactionDisplayReason, getTransactions } = transactionService;
 const { getTrips } = tripService;
 const { formatDate } = dateUtils;
@@ -73,11 +67,8 @@ const GlobalSearchScreen = ({
 	const getScreenData = useCallback(async (): Promise<void> => {
 		try {
 			const [
-				notes,
-				todos,
 				passwords,
 				cards,
-				identities,
 				transactions,
 				sources,
 				categories,
@@ -85,11 +76,8 @@ const GlobalSearchScreen = ({
 				investments,
 				budgets,
 			] = await Promise.all([
-				getNotes(database),
-				getTodos(database),
 				getPasswords(database),
 				getCards(database),
-				getIdentities(database),
 				getTransactions(database),
 				getSources(database),
 				getCategories(database),
@@ -98,22 +86,6 @@ const GlobalSearchScreen = ({
 				getBudgets(database),
 			]);
 			setResults([
-				...notes.map((note): GlobalSearchResult => ({
-					id: note.id,
-					kind: "NOTE",
-					title: note.title,
-					subtitle: note.folderName ?? "Note",
-					icon: "document-text-outline",
-					color: COLORS.blue,
-				})),
-				...todos.map((todo): GlobalSearchResult => ({
-					id: todo.id,
-					kind: "TODO",
-					title: todo.title,
-					subtitle: todo.folderName ?? "Todo",
-					icon: "checkbox-outline",
-					color: COLORS.success,
-				})),
 				...passwords.map((password): GlobalSearchResult => ({
 					id: password.id,
 					kind: "PASSWORD",
@@ -129,14 +101,6 @@ const GlobalSearchScreen = ({
 					subtitle: card.network || "Card",
 					icon: "card-outline",
 					color: COLORS.danger,
-				})),
-				...identities.map((identity): GlobalSearchResult => ({
-					id: identity.id,
-					kind: "IDENTITY",
-					title: identity.title,
-					subtitle: identity.idNumber || "Identity",
-					icon: "person-circle-outline",
-					color: COLORS.blue,
 				})),
 				...transactions.map((transaction): GlobalSearchResult => ({
 					id: transaction.id,
@@ -253,14 +217,6 @@ const GlobalSearchScreen = ({
 			}
 			if (result.kind === "BUDGET") {
 				navigation.navigate("BudgetForm", { budgetId: result.id });
-				return;
-			}
-			if (result.kind === "NOTE") {
-				navigation.navigate("NoteForm", { noteId: result.id });
-				return;
-			}
-			if (result.kind === "TODO") {
-				navigation.navigate("TodoForm", { todoId: result.id });
 				return;
 			}
 			navigation.navigate("VaultForm", {

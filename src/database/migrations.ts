@@ -2,6 +2,10 @@ import type { SQLiteDatabase } from "expo-sqlite";
 
 const SCHEMA_MIGRATIONS: readonly string[] = [
 	"DROP TABLE IF EXISTS attachments;",
+	"DROP TABLE IF EXISTS todos;",
+	"DROP TABLE IF EXISTS notes;",
+	"DROP TABLE IF EXISTS folders;",
+	"DROP TABLE IF EXISTS identities;",
 ];
 
 const migrateDatabase = async (database: SQLiteDatabase): Promise<void> => {
@@ -26,7 +30,7 @@ const migrateDatabase = async (database: SQLiteDatabase): Promise<void> => {
 	);
 	for (const [table, legacyColumns] of [
 		["passwords", ["website", "notes"]],
-		["identities", ["notes"]],
+		["cards", ["notes"]],
 	] as const) {
 		const statement = await database.prepareAsync(
 			`SELECT * FROM ${table} LIMIT 0;`,

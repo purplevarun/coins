@@ -9,7 +9,6 @@ type CardEntry = Readonly<{
 	cvv: string;
 	pin: string;
 	network: string;
-	notes: string;
 	createdAt: number;
 	updatedAt: number;
 }>;

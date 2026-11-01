@@ -5,10 +5,7 @@ type GlobalSearchResultKind =
 	| "TRIP"
 	| "INVESTMENT"
 	| "BUDGET"
-	| "NOTE"
-	| "TODO"
 	| "PASSWORD"
-	| "CARD"
-	| "IDENTITY";
+	| "CARD";
 
 export type { GlobalSearchResultKind as default };

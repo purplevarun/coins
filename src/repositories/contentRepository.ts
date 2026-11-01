@@ -1,220 +1,7 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
 import type CardEntry from "@/types/CardEntry";
-import type Folder from "@/types/Folder";
-import type IdentityEntry from "@/types/IdentityEntry";
-import type IdRow from "@/types/IdRow";
-import type Note from "@/types/Note";
 import type PasswordEntry from "@/types/PasswordEntry";
-import type Todo from "@/types/Todo";
-
-const getFolderRows = async (
-	database: SQLiteDatabase,
-	type: "NOTE" | "TODO",
-): Promise<readonly Folder[]> =>
-	database.getAllAsync<Folder>(
-		`
-			SELECT id, name, type, created_at AS createdAt, updated_at AS updatedAt
-			FROM folders
-			WHERE type = ?
-			ORDER BY lower(name);
-		`,
-		type,
-	);
-
-const upsertFolderRow = async (
-	database: SQLiteDatabase,
-	folder: Folder,
-): Promise<void> => {
-	const result = await database.runAsync(
-		`UPDATE folders SET name = ?, updated_at = ? WHERE id = ?;`,
-		folder.name,
-		folder.updatedAt,
-		folder.id,
-	);
-	if (result.changes > 0) return;
-	await database.runAsync(
-		`
-			INSERT INTO folders (id, name, type, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?);
-		`,
-		folder.id,
-		folder.name,
-		folder.type,
-		folder.createdAt,
-		folder.updatedAt,
-	);
-};
-
-const deleteFolderRow = async (
-	database: SQLiteDatabase,
-	id: string,
-): Promise<void> => {
-	await database.runAsync("DELETE FROM folders WHERE id = ?;", id);
-};
-
-const folderInUseRow = async (
-	database: SQLiteDatabase,
-	id: string,
-): Promise<boolean> => {
-	const row = await database.getFirstAsync<IdRow>(
-		`
-			SELECT id FROM notes WHERE folder_id = ?
-			UNION
-			SELECT id FROM todos WHERE folder_id = ?
-			LIMIT 1;
-		`,
-		id,
-		id,
-	);
-	return row !== null;
-};
-
-const getNoteRows = async (
-	database: SQLiteDatabase,
-): Promise<readonly Note[]> =>
-	database.getAllAsync<Note>(`
-		SELECT
-			note.id,
-			note.folder_id AS folderId,
-			folder.name AS folderName,
-			note.title,
-			note.content,
-			note.created_at AS createdAt,
-			note.updated_at AS updatedAt
-		FROM notes note
-		LEFT JOIN folders folder ON folder.id = note.folder_id
-		ORDER BY note.updated_at DESC;
-	`);
-
-const getNoteRow = async (
-	database: SQLiteDatabase,
-	id: string,
-): Promise<Note | null> =>
-	database.getFirstAsync<Note>(
-		`
-			SELECT
-				note.id,
-				note.folder_id AS folderId,
-				folder.name AS folderName,
-				note.title,
-				note.content,
-				note.created_at AS createdAt,
-				note.updated_at AS updatedAt
-			FROM notes note
-			LEFT JOIN folders folder ON folder.id = note.folder_id
-			WHERE note.id = ?;
-		`,
-		id,
-	);
-
-const upsertNoteRow = async (
-	database: SQLiteDatabase,
-	note: Note,
-): Promise<void> => {
-	const result = await database.runAsync(
-		`UPDATE notes SET folder_id = ?, title = ?, content = ?, updated_at = ? WHERE id = ?;`,
-		note.folderId,
-		note.title,
-		note.content,
-		note.updatedAt,
-		note.id,
-	);
-	if (result.changes > 0) return;
-	await database.runAsync(
-		`
-			INSERT INTO notes (
-				id, folder_id, title, content, created_at, updated_at
-			) VALUES (?, ?, ?, ?, ?, ?);
-		`,
-		note.id,
-		note.folderId,
-		note.title,
-		note.content,
-		note.createdAt,
-		note.updatedAt,
-	);
-};
-
-const getTodoRows = async (
-	database: SQLiteDatabase,
-): Promise<readonly Todo[]> =>
-	database.getAllAsync<Todo>(`
-		SELECT
-			todo.id,
-			todo.folder_id AS folderId,
-			folder.name AS folderName,
-			todo.title,
-			todo.description,
-			todo.is_done AS isDone,
-			todo.due_at AS dueAt,
-			todo.created_at AS createdAt,
-			todo.updated_at AS updatedAt
-		FROM todos todo
-		LEFT JOIN folders folder ON folder.id = todo.folder_id
-		ORDER BY todo.is_done, todo.due_at IS NULL, todo.due_at, todo.updated_at DESC;
-	`);
-
-const getTodoRow = async (
-	database: SQLiteDatabase,
-	id: string,
-): Promise<Todo | null> =>
-	database.getFirstAsync<Todo>(
-		`
-			SELECT
-				todo.id,
-				todo.folder_id AS folderId,
-				folder.name AS folderName,
-				todo.title,
-				todo.description,
-				todo.is_done AS isDone,
-				todo.due_at AS dueAt,
-				todo.created_at AS createdAt,
-				todo.updated_at AS updatedAt
-			FROM todos todo
-			LEFT JOIN folders folder ON folder.id = todo.folder_id
-			WHERE todo.id = ?;
-		`,
-		id,
-	);
-
-const upsertTodoRow = async (
-	database: SQLiteDatabase,
-	todo: Todo,
-): Promise<void> => {
-	const result = await database.runAsync(
-		`
-			UPDATE todos
-			SET folder_id = ?, title = ?, description = ?, is_done = ?,
-				due_at = ?, updated_at = ?
-			WHERE id = ?;
-		`,
-		todo.folderId,
-		todo.title,
-		todo.description,
-		todo.isDone ? 1 : 0,
-		todo.dueAt,
-		todo.updatedAt,
-		todo.id,
-	);
-	if (result.changes > 0) return;
-	await database.runAsync(
-		`
-			INSERT INTO todos (
-				id, folder_id, title, description, is_done, due_at,
-				created_at, updated_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
-		`,
-		todo.id,
-		todo.folderId,
-		todo.title,
-		todo.description,
-		todo.isDone ? 1 : 0,
-		todo.dueAt,
-		todo.createdAt,
-		todo.updatedAt,
-	);
-};
 
 const getPasswordRows = async (
 	database: SQLiteDatabase,
@@ -253,7 +40,8 @@ const upsertPasswordRow = async (
 	const result = await database.runAsync(
 		`
 			UPDATE passwords
-			SET title = ?, username = ?, password = ?, updated_at = ?
+			SET title = ?, username = ?, password = ?,
+				updated_at = ?
 			WHERE id = ?;
 		`,
 		entry.title,
@@ -292,7 +80,6 @@ const getCardRows = async (
 			card.cvv,
 			card.pin,
 			card.network,
-			card.notes,
 			card.created_at AS createdAt,
 			card.updated_at AS updatedAt
 		FROM cards card
@@ -314,7 +101,6 @@ const getCardRow = async (
 				card.cvv,
 				card.pin,
 				card.network,
-				card.notes,
 				card.created_at AS createdAt,
 				card.updated_at AS updatedAt
 			FROM cards card
@@ -331,7 +117,7 @@ const upsertCardRow = async (
 		`
 			UPDATE cards
 			SET name = ?, card_number = ?, card_type = ?, expiry = ?, cvv = ?,
-				pin = ?, network = ?, notes = ?, updated_at = ?
+				pin = ?, network = ?, updated_at = ?
 			WHERE id = ?;
 		`,
 		entry.name,
@@ -341,7 +127,6 @@ const upsertCardRow = async (
 		entry.cvv,
 		entry.pin,
 		entry.network,
-		entry.notes,
 		entry.updatedAt,
 		entry.id,
 	);
@@ -349,9 +134,9 @@ const upsertCardRow = async (
 	await database.runAsync(
 		`
 			INSERT INTO cards (
-				id, name, card_number, card_type, expiry, cvv, pin, network, notes,
+				id, name, card_number, card_type, expiry, cvv, pin, network,
 				created_at, updated_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 		`,
 		entry.id,
 		entry.name,
@@ -361,65 +146,6 @@ const upsertCardRow = async (
 		entry.cvv,
 		entry.pin,
 		entry.network,
-		entry.notes,
-		entry.createdAt,
-		entry.updatedAt,
-	);
-};
-
-const getIdentityRows = async (
-	database: SQLiteDatabase,
-): Promise<readonly IdentityEntry[]> =>
-	database.getAllAsync<IdentityEntry>(`
-		SELECT
-			identity.id,
-			identity.title,
-			identity.id_number AS idNumber,
-			identity.created_at AS createdAt,
-			identity.updated_at AS updatedAt
-		FROM identities identity
-		ORDER BY lower(identity.title);
-	`);
-
-const getIdentityRow = async (
-	database: SQLiteDatabase,
-	id: string,
-): Promise<IdentityEntry | null> =>
-	database.getFirstAsync<IdentityEntry>(
-		`
-			SELECT
-				identity.id,
-				identity.title,
-				identity.id_number AS idNumber,
-				identity.created_at AS createdAt,
-				identity.updated_at AS updatedAt
-			FROM identities identity
-			WHERE identity.id = ?;
-		`,
-		id,
-	);
-
-const upsertIdentityRow = async (
-	database: SQLiteDatabase,
-	entry: IdentityEntry,
-): Promise<void> => {
-	const result = await database.runAsync(
-		`UPDATE identities SET title = ?, id_number = ?, updated_at = ? WHERE id = ?;`,
-		entry.title,
-		entry.idNumber,
-		entry.updatedAt,
-		entry.id,
-	);
-	if (result.changes > 0) return;
-	await database.runAsync(
-		`
-			INSERT INTO identities (
-				id, title, id_number, created_at, updated_at
-			) VALUES (?, ?, ?, ?, ?);
-		`,
-		entry.id,
-		entry.title,
-		entry.idNumber,
 		entry.createdAt,
 		entry.updatedAt,
 	);
@@ -427,7 +153,7 @@ const upsertIdentityRow = async (
 
 const deleteContentRow = async (
 	database: SQLiteDatabase,
-	tableName: "notes" | "todos" | "passwords" | "cards" | "identities",
+	tableName: "passwords" | "cards",
 	id: string,
 ): Promise<void> => {
 	await database.runAsync(`DELETE FROM ${tableName} WHERE id = ?;`, id);
@@ -435,25 +161,12 @@ const deleteContentRow = async (
 
 const contentRepository = {
 	deleteContentRow,
-	deleteFolderRow,
-	folderInUseRow,
 	getCardRow,
 	getCardRows,
-	getFolderRows,
-	getIdentityRow,
-	getIdentityRows,
-	getNoteRow,
-	getNoteRows,
 	getPasswordRow,
 	getPasswordRows,
-	getTodoRow,
-	getTodoRows,
 	upsertCardRow,
-	upsertFolderRow,
-	upsertIdentityRow,
-	upsertNoteRow,
 	upsertPasswordRow,
-	upsertTodoRow,
 };
 
 export default contentRepository;
