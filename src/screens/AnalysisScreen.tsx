@@ -580,6 +580,7 @@ const AnalysisScreen = ({
 										getDateRangeLabel(dateRange),
 								})
 							}
+							style={styles.actionButton}
 							variant="secondary"
 						/>
 						<AppButton
@@ -595,6 +596,7 @@ const AnalysisScreen = ({
 										getDateRangeLabel(dateRange),
 								})
 							}
+							style={styles.actionButton}
 							variant="secondary"
 						/>
 					</View>
@@ -711,8 +713,11 @@ const themedStyles = createThemedStyles((COLORS) =>
 			flexDirection: FLEX.ROW,
 			flexWrap: FLEX.WRAP,
 			justifyContent: ALIGN.SPACE_BETWEEN,
-			gap: SPACING.S8,
+			rowGap: SPACING.S10,
 			marginBottom: SPACING.S12,
+		},
+		actionButton: {
+			width: SIZES.TILE,
 		},
 		summaryTile: {
 			width: SIZES.TILE,
