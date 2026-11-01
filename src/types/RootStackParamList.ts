@@ -23,9 +23,9 @@ type RootStackParamList = {
 	InvestmentForm:
 		| { entityId?: string; platformId?: string; investmentTypeId?: string }
 		| undefined;
-	Platforms: undefined;
-	InvestmentTypes: undefined;
-	TripTypes: undefined;
+	Platforms: { entityId?: string; entityName?: string } | undefined;
+	InvestmentTypes: { entityId?: string; entityName?: string } | undefined;
+	TripTypes: { entityId?: string; entityName?: string } | undefined;
 	RelationDetails: {
 		kind: "TRIP_TYPE" | "INVESTMENT_TYPE" | "PLATFORM";
 		entityId: string;

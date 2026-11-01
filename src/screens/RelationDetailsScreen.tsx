@@ -105,22 +105,48 @@ const RelationDetailsScreen = ({
 	useLayoutEffect(() => {
 		navigation.setOptions({
 			headerRight: () => (
-				<HeaderIconButton
-					accessibilityLabel={MESSAGES.COMMON.DELETE}
-					icon="trash-outline"
-					onPress={() =>
-						dialog.confirm({
-							title: `Delete "${entityName}"?`,
-							message: `This ${label.toLowerCase()} will be permanently deleted. Linked records must be reassigned first.`,
-							confirmLabel: MESSAGES.COMMON.DELETE,
-							variant: "danger",
-							onConfirm: () => void handleDelete(),
-						})
-					}
-				/>
+				<View style={styles.headerActions}>
+					<HeaderIconButton
+						accessibilityLabel={MESSAGES.COMMON.EDIT}
+						icon="create-outline"
+						onPress={() =>
+							navigation.navigate(
+								isTripType
+									? "TripTypes"
+									: kind === "PLATFORM"
+										? "Platforms"
+										: "InvestmentTypes",
+								{ entityId, entityName },
+							)
+						}
+					/>
+					<HeaderIconButton
+						accessibilityLabel={MESSAGES.COMMON.DELETE}
+						icon="trash-outline"
+						onPress={() =>
+							dialog.confirm({
+								title: `Delete "${entityName}"?`,
+								message: `This ${label.toLowerCase()} will be permanently deleted. Linked records must be reassigned first.`,
+								confirmLabel: MESSAGES.COMMON.DELETE,
+								variant: "danger",
+								onConfirm: () => void handleDelete(),
+							})
+						}
+					/>
+				</View>
 			),
 		});
-	}, [dialog, entityName, handleDelete, label, navigation]);
+	}, [
+		dialog,
+		entityId,
+		entityName,
+		handleDelete,
+		isTripType,
+		kind,
+		label,
+		navigation,
+		styles,
+	]);
 
 	return (
 		<View style={styles.screen}>
@@ -221,6 +247,11 @@ const { ALIGN, FLEX, FONT_SIZE, FONT_WEIGHT, SPACING } = styleConstants;
 const themedStyles = createThemedStyles((COLORS) =>
 	StyleSheet.create({
 		screen: { flex: FLEX.FILL, backgroundColor: COLORS.background },
+		headerActions: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S8,
+		},
 		row: {
 			flexDirection: FLEX.ROW,
 			alignItems: ALIGN.CENTER,

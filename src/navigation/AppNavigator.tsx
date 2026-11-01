@@ -135,7 +135,11 @@ const AppNavigator = (): React.JSX.Element => {
 				<Stack.Screen
 					component={TripTypesScreen}
 					name="TripTypes"
-					options={{ title: "New trip type" }}
+					options={({ route }) => ({
+						title: route.params?.entityId
+							? MESSAGES.RELATION_FORMS.EDIT_TRIP_TYPE
+							: MESSAGES.RELATION_FORMS.NEW_TRIP_TYPE,
+					})}
 				/>
 				<Stack.Screen
 					component={TripFormScreen}
@@ -150,12 +154,20 @@ const AppNavigator = (): React.JSX.Element => {
 				<Stack.Screen
 					component={InvestmentTypesScreen}
 					name="InvestmentTypes"
-					options={{ title: "New investment type" }}
+					options={({ route }) => ({
+						title: route.params?.entityId
+							? MESSAGES.RELATION_FORMS.EDIT_INVESTMENT_TYPE
+							: MESSAGES.RELATION_FORMS.NEW_INVESTMENT_TYPE,
+					})}
 				/>
 				<Stack.Screen
 					component={PlatformsScreen}
 					name="Platforms"
-					options={{ title: "New investment platform" }}
+					options={({ route }) => ({
+						title: route.params?.entityId
+							? MESSAGES.RELATION_FORMS.EDIT_PLATFORM
+							: MESSAGES.RELATION_FORMS.NEW_PLATFORM,
+					})}
 				/>
 				<Stack.Screen
 					component={RelationDetailsScreen}

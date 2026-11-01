@@ -740,20 +740,34 @@ describe("form screens", () => {
 		});
 
 		it.each([
-			{ Screen: TripTypesScreen, save: "saveTripType" },
-			{ Screen: PlatformsScreen, save: "savePlatform" },
-			{ Screen: InvestmentTypesScreen, save: "saveInvestmentType" },
+			{
+				Screen: TripTypesScreen,
+				save: "saveTripType",
+				kind: "TRIP_TYPE",
+			},
+			{
+				Screen: PlatformsScreen,
+				save: "savePlatform",
+				kind: "PLATFORM",
+			},
+			{
+				Screen: InvestmentTypesScreen,
+				save: "saveInvestmentType",
+				kind: "INVESTMENT_TYPE",
+			},
 		] as const)(
 			"returns after $save succeeds, but stays on failure",
 			async ({ Screen, save }) => {
-				const navigation = { goBack: vi.fn() };
+				const navigation = { goBack: vi.fn(), popTo: vi.fn() };
 				const tree = (Screen as (props: unknown) => ReactElement)({
 					navigation,
+					route: { params: undefined },
 				});
 				const form = findElement<SimpleEntityFormProps>(
 					tree,
 					(props) => typeof props.onSave === "function",
 				);
+				expect(form.props.initialName).toBeUndefined();
 				serviceMocks[save].mockRejectedValueOnce(
 					new Error("Save failed"),
 				);
@@ -766,10 +780,62 @@ describe("form screens", () => {
 				await form.props.onSave("Entered");
 				expect(serviceMocks[save]).toHaveBeenLastCalledWith(
 					{ id: "db" },
+					undefined,
 					"Entered",
 				);
 				expect(hookMocks.refreshData).toHaveBeenCalledOnce();
 				expect(navigation.goBack).toHaveBeenCalledOnce();
+				expect(navigation.popTo).not.toHaveBeenCalled();
+			},
+		);
+
+		it.each([
+			{
+				Screen: TripTypesScreen,
+				save: "saveTripType",
+				kind: "TRIP_TYPE",
+			},
+			{
+				Screen: PlatformsScreen,
+				save: "savePlatform",
+				kind: "PLATFORM",
+			},
+			{
+				Screen: InvestmentTypesScreen,
+				save: "saveInvestmentType",
+				kind: "INVESTMENT_TYPE",
+			},
+		] as const)(
+			"returns to relation details after $save updates an existing $kind",
+			async ({ Screen, save, kind }) => {
+				const navigation = { goBack: vi.fn(), popTo: vi.fn() };
+				const tree = (Screen as (props: unknown) => ReactElement)({
+					navigation,
+					route: {
+						params: { entityId: "entity", entityName: "Old" },
+					},
+				});
+				const form = findElement<SimpleEntityFormProps>(
+					tree,
+					(props) => typeof props.onSave === "function",
+				);
+				expect(form.props.initialName).toBe("Old");
+				await form.props.onSave("  Renamed  ");
+				expect(serviceMocks[save]).toHaveBeenLastCalledWith(
+					{ id: "db" },
+					"entity",
+					"  Renamed  ",
+				);
+				expect(hookMocks.refreshData).toHaveBeenCalledOnce();
+				expect(navigation.goBack).not.toHaveBeenCalled();
+				expect(navigation.popTo).toHaveBeenCalledWith(
+					"RelationDetails",
+					{
+						kind,
+						entityId: "entity",
+						entityName: "Renamed",
+					},
+				);
 			},
 		);
 	});

@@ -8,19 +8,32 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 const PlatformsScreen = ({
 	navigation,
+	route,
 }: NativeStackScreenProps<
 	RootStackParamList,
 	"Platforms"
 >): React.JSX.Element => {
 	const { database, refreshData } = useDatabaseContext();
+	const entityId = route.params?.entityId;
 	return (
 		<ScreenContainer>
 			<GlassCard>
 				<SimpleEntityForm
+					initialName={route.params?.entityName}
 					onSave={async (name) => {
-						await platformService.savePlatform(database, name);
+						await platformService.savePlatform(
+							database,
+							entityId,
+							name,
+						);
 						refreshData();
-						navigation.goBack();
+						if (entityId)
+							navigation.popTo("RelationDetails", {
+								kind: "PLATFORM",
+								entityId,
+								entityName: name.trim(),
+							});
+						else navigation.goBack();
 					}}
 				/>
 			</GlassCard>

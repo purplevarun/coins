@@ -4,8 +4,14 @@ import type TripType from "@/types/TripType";
 import createId from "@/utils/id";
 import type { SQLiteDatabase } from "expo-sqlite";
 
-const { getTripTypeRows, tripTypeInUseRow, deleteTripTypeRow } =
-	tripTypeRepository;
+const {
+	getTripTypeRows,
+	getTripTypeRow,
+	tripTypeNameExistsRow,
+	upsertTripTypeRow,
+	tripTypeInUseRow,
+	deleteTripTypeRow,
+} = tripTypeRepository;
 
 const getTripTypes = async (
 	database: SQLiteDatabase,
@@ -13,6 +19,7 @@ const getTripTypes = async (
 
 const saveTripType = async (
 	database: SQLiteDatabase,
+	id: string | undefined,
 	name: string,
 ): Promise<string> => {
 	const normalizedName = name.trim();
@@ -22,27 +29,22 @@ const saveTripType = async (
 			"Trip type name is required.",
 		);
 	}
-	// check duplicates
-	const row = await database.getFirstAsync<Pick<TripType, "id">>(
-		`SELECT id FROM trip_types WHERE lower(name) = lower(?) LIMIT 1;`,
-		normalizedName,
-	);
-	if (row) {
+	if (await tripTypeNameExistsRow(database, normalizedName, id)) {
 		throw new AppError(
 			"TRIP_TYPE_NAME_DUPLICATE",
 			`A trip type named "${normalizedName}" already exists.`,
 		);
 	}
 	const now = Date.now();
-	const id = createId();
-	await database.runAsync(
-		`INSERT INTO trip_types (id, name, created_at, updated_at) VALUES (?, ?, ?, ?);`,
-		id,
-		normalizedName,
-		now,
-		now,
-	);
-	return id;
+	const existingType = id ? await getTripTypeRow(database, id) : null;
+	const tripTypeId = id ?? createId();
+	await upsertTripTypeRow(database, {
+		id: tripTypeId,
+		name: normalizedName,
+		createdAt: existingType?.createdAt ?? now,
+		updatedAt: now,
+	});
+	return tripTypeId;
 };
 
 const deleteTripType = async (

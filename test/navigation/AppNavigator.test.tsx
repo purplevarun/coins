@@ -191,6 +191,24 @@ describe("AppNavigator", () => {
 				route: { params: { entityName: "Holiday" } },
 			}).title,
 		).toBe("Holiday");
+		for (const [name, newTitle, editTitle] of [
+			["TripTypes", "New trip type", "Edit trip type"],
+			["InvestmentTypes", "New investment type", "Edit investment type"],
+			[
+				"Platforms",
+				"New investment platform",
+				"Edit investment platform",
+			],
+		] as const) {
+			const options = byName(name)?.props?.options;
+			expect(options({ route: { params: undefined } }).title).toBe(
+				newTitle,
+			);
+			expect(options({ route: { params: {} } }).title).toBe(newTitle);
+			expect(
+				options({ route: { params: { entityId: "entity" } } }).title,
+			).toBe(editTitle);
+		}
 
 		expect(byName("AnalysisDetails")).toBeTruthy();
 		expect(

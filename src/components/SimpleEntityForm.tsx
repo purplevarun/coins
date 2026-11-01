@@ -12,9 +12,10 @@ import { View } from "react-native";
 const { SPACING } = styleConstants;
 
 const SimpleEntityForm = ({
+	initialName,
 	onSave,
 }: SimpleEntityFormProps): React.JSX.Element => {
-	const [name, setName] = useState("");
+	const [name, setName] = useState(initialName ?? "");
 	const [isSaving, setIsSaving] = useState(false);
 	const [error, setError] = useState("");
 

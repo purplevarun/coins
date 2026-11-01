@@ -155,7 +155,8 @@ describe("form components", () => {
 			.mockReturnValueOnce([false, setSaving])
 			.mockReturnValueOnce(["Save failed", setError]);
 		const onSave = vi.fn().mockRejectedValue(new Error("Save failed"));
-		const tree = SimpleEntityForm({ onSave });
+		const tree = SimpleEntityForm({ onSave, initialName: "Broker" });
+		expect(reactMocks.useState).toHaveBeenCalledWith("Broker");
 		expect(
 			findElement<NoticeProps>(
 				tree,

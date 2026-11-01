@@ -625,7 +625,10 @@ describe("list screens", () => {
 				effect();
 			const options = navigation.setOptions.mock
 				.calls[0]?.[0] as HeaderOptions<HeaderIconButtonProps>;
-			options.headerRight().props.onPress();
+			findElement<HeaderIconButtonProps>(
+				options.headerRight(),
+				(props) => props.accessibilityLabel === "Delete",
+			).props.onPress();
 			const confirmation = hookMocks.confirm.mock
 				.calls[0]?.[0] as AppDialogConfirmOptions;
 			confirmation.onConfirm();
@@ -636,6 +639,39 @@ describe("list screens", () => {
 					: serviceMocks.deleteInvestmentType,
 			).toHaveBeenCalledWith({ id: "db" }, "type");
 			expect(navigation.goBack).toHaveBeenCalled();
+		},
+	);
+
+	it.each([
+		{ kind: "TRIP_TYPE", screen: "TripTypes" },
+		{ kind: "PLATFORM", screen: "Platforms" },
+		{ kind: "INVESTMENT_TYPE", screen: "InvestmentTypes" },
+	] as const)(
+		"opens the $kind editor from relation details",
+		({ kind, screen }) => {
+			const navigation = { navigate: vi.fn(), setOptions: vi.fn() };
+			RelationDetailsScreen({
+				navigation,
+				route: {
+					params: {
+						kind,
+						entityId: "relation",
+						entityName: "Selected",
+					},
+				},
+			} as unknown as ComponentProps<typeof RelationDetailsScreen>);
+			for (const [effect] of reactMocks.useLayoutEffect.mock.calls)
+				effect();
+			const options = navigation.setOptions.mock
+				.calls[0]?.[0] as HeaderOptions<HeaderIconButtonProps>;
+			findElement<HeaderIconButtonProps>(
+				options.headerRight(),
+				(props) => props.accessibilityLabel === "Edit",
+			).props.onPress();
+			expect(navigation.navigate).toHaveBeenCalledWith(screen, {
+				entityId: "relation",
+				entityName: "Selected",
+			});
 		},
 	);
 	it.each([
@@ -802,7 +838,10 @@ describe("list screens", () => {
 		for (const [effect] of reactMocks.useLayoutEffect.mock.calls) effect();
 		const options = navigation.setOptions.mock
 			.calls[0]?.[0] as HeaderOptions<HeaderIconButtonProps>;
-		options.headerRight().props.onPress();
+		findElement<HeaderIconButtonProps>(
+			options.headerRight(),
+			(props) => props.accessibilityLabel === "Delete",
+		).props.onPress();
 		expect(serviceMocks.deleteTripType).not.toHaveBeenCalled();
 		const confirmation = hookMocks.confirm.mock
 			.calls[0]?.[0] as AppDialogConfirmOptions;

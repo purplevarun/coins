@@ -658,14 +658,34 @@ const upsertInvestmentTypeRow = async (
 	);
 };
 
+const getInvestmentTypeRow = async (
+	database: SQLiteDatabase,
+	id: string,
+): Promise<InvestmentType | null> =>
+	database.getFirstAsync<InvestmentType>(
+		`
+			SELECT id, name, created_at AS createdAt, updated_at AS updatedAt
+			FROM investment_types
+			WHERE id = ?;
+		`,
+		id,
+	);
+
 const investmentTypeNameExistsRow = async (
 	database: SQLiteDatabase,
 	name: string,
+	excludeId?: string,
 ): Promise<boolean> => {
-	const row = await database.getFirstAsync<Pick<SimpleEntity, "id">>(
-		`SELECT id FROM investment_types WHERE lower(name) = lower(?) LIMIT 1;`,
-		name,
-	);
+	const row = excludeId
+		? await database.getFirstAsync<Pick<SimpleEntity, "id">>(
+				`SELECT id FROM investment_types WHERE lower(name) = lower(?) AND id != ? LIMIT 1;`,
+				name,
+				excludeId,
+			)
+		: await database.getFirstAsync<Pick<SimpleEntity, "id">>(
+				`SELECT id FROM investment_types WHERE lower(name) = lower(?) LIMIT 1;`,
+				name,
+			);
 	return row !== null;
 };
 
@@ -1331,6 +1351,7 @@ const financeRepository = {
 	getInvestmentAnalysisRows,
 	getInvestmentRow,
 	getInvestmentRows,
+	getInvestmentTypeRow,
 	getInvestmentTypeRows,
 	getLinkedTransactionIdRows,
 	getSourceRow,

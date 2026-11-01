@@ -6,6 +6,7 @@ import type { SQLiteDatabase } from "expo-sqlite";
 
 const {
 	getPlatformRows,
+	getPlatformRow,
 	platformNameExistsRow,
 	upsertPlatformRow,
 	platformInUseRow,
@@ -19,6 +20,7 @@ const getPlatforms = async (
 
 const savePlatform = async (
 	database: SQLiteDatabase,
+	id: string | undefined,
 	name: string,
 ): Promise<string> => {
 	const normalizedName = name.trim();
@@ -28,21 +30,22 @@ const savePlatform = async (
 			"Platform name is required.",
 		);
 	}
-	if (await platformNameExistsRow(database, normalizedName)) {
+	if (await platformNameExistsRow(database, normalizedName, id)) {
 		throw new AppError(
 			"PLATFORM_NAME_DUPLICATE",
 			`A platform named "${normalizedName}" already exists.`,
 		);
 	}
 	const now = Date.now();
-	const id = createId();
+	const existingPlatform = id ? await getPlatformRow(database, id) : null;
+	const platformId = id ?? createId();
 	await upsertPlatformRow(database, {
-		id,
+		id: platformId,
 		name: normalizedName,
-		createdAt: now,
+		createdAt: existingPlatform?.createdAt ?? now,
 		updatedAt: now,
 	});
-	return id;
+	return platformId;
 };
 
 const deletePlatform = async (

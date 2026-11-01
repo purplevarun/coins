@@ -7,6 +7,7 @@ import type { SQLiteDatabase } from "expo-sqlite";
 
 const {
 	getInvestmentTypeRows,
+	getInvestmentTypeRow,
 	investmentTypeNameExistsRow,
 	upsertInvestmentTypeRow,
 } = financeRepository;
@@ -17,6 +18,7 @@ const getInvestmentTypes = async (
 
 const saveInvestmentType = async (
 	database: SQLiteDatabase,
+	id: string | undefined,
 	name: string,
 ): Promise<string> => {
 	const normalizedName = name.trim();
@@ -26,21 +28,22 @@ const saveInvestmentType = async (
 			"Investment type name is required.",
 		);
 	}
-	if (await investmentTypeNameExistsRow(database, normalizedName)) {
+	if (await investmentTypeNameExistsRow(database, normalizedName, id)) {
 		throw new AppError(
 			"INVESTMENT_TYPE_NAME_DUPLICATE",
 			`An investment type named "${normalizedName}" already exists.`,
 		);
 	}
 	const now = Date.now();
-	const id = createId();
+	const existingType = id ? await getInvestmentTypeRow(database, id) : null;
+	const investmentTypeId = id ?? createId();
 	await upsertInvestmentTypeRow(database, {
-		id,
+		id: investmentTypeId,
 		name: normalizedName,
-		createdAt: now,
+		createdAt: existingType?.createdAt ?? now,
 		updatedAt: now,
 	});
-	return id;
+	return investmentTypeId;
 };
 
 const deleteInvestmentType = async (

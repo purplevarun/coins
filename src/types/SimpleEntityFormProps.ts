@@ -1,4 +1,5 @@
 type SimpleEntityFormProps = Readonly<{
+	initialName?: string;
 	onSave: (name: string) => Promise<void>;
 }>;
 

@@ -78,16 +78,35 @@ it("validates relation names and protects relations in use", async () => {
 			link: "INSERT INTO investments (id, investment_type_id) VALUES ('linked', ?)",
 		},
 	]) {
-		await expect(service.save(database, " ")).rejects.toMatchObject({
+		await expect(
+			service.save(database, undefined, " "),
+		).rejects.toMatchObject({
 			code: `${service.code}_NAME_REQUIRED`,
 		});
-		const id = await service.save(database, "  Example  ");
+		const id = await service.save(database, undefined, "  Example  ");
+		const otherId = await service.save(database, undefined, "Other");
 		expect(await service.list(database)).toMatchObject([
 			{ id, name: "Example" },
+			{ id: otherId, name: "Other" },
 		]);
-		await expect(service.save(database, "example")).rejects.toMatchObject({
+		await expect(
+			service.save(database, undefined, "example"),
+		).rejects.toMatchObject({
 			code: `${service.code}_NAME_DUPLICATE`,
 		});
+		await expect(service.save(database, id, "other")).rejects.toMatchObject(
+			{
+				code: `${service.code}_NAME_DUPLICATE`,
+			},
+		);
+		expect(await service.save(database, id, "  example  ")).toBe(id);
+		expect(await service.list(database)).toMatchObject([
+			{ id, name: "example" },
+			{ id: otherId, name: "Other" },
+		]);
+		const fallbackId = await service.save(database, "missing", "Fallback");
+		expect(fallbackId).toBe("missing");
+		await service.remove(database, fallbackId);
 		await database.runAsync(service.link, id);
 		await expect(service.remove(database, id)).rejects.toMatchObject({
 			code: `${service.code}_IN_USE`,
@@ -95,6 +114,7 @@ it("validates relation names and protects relations in use", async () => {
 		await database.runAsync("DELETE FROM investments WHERE id = 'linked'");
 		await database.runAsync("DELETE FROM trips WHERE id = 'linked'");
 		await service.remove(database, id);
+		await service.remove(database, otherId);
 		expect(await service.list(database)).toEqual([]);
 	}
 });
@@ -102,7 +122,11 @@ it("validates relation names and protects relations in use", async () => {
 it("archives and restores platforms", async () => {
 	const { database } = createTestDatabase();
 	await database.execAsync(SCHEMA_SQL);
-	const id = await platformService.savePlatform(database, "Broker");
+	const id = await platformService.savePlatform(
+		database,
+		undefined,
+		"Broker",
+	);
 	await platformService.setPlatformArchived(database, id, true);
 	expect(await platformRepository.getPlatformRow(database, id)).toMatchObject(
 		{ archived: 1 },
