@@ -16,6 +16,7 @@ import useDatabaseContext from "@/hooks/useDatabaseContext";
 import useThemedStyles from "@/hooks/useThemedStyles";
 import cardService from "@/services/cardService";
 import passwordService from "@/services/passwordService";
+import type CardType from "@/types/CardType";
 import type VaultFormScreenProps from "@/types/VaultFormScreenProps";
 import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
@@ -34,9 +35,7 @@ const VaultFormScreen = ({
 	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
 	const [cardNumber, setCardNumber] = useState("");
-	const [cardType, setCardType] = useState<"CREDIT_CARD" | "DEBIT_CARD">(
-		"CREDIT_CARD",
-	);
+	const [cardType, setCardType] = useState<CardType>("CREDIT_CARD");
 	const [expiry, setExpiry] = useState("");
 	const [cvv, setCvv] = useState("");
 	const [pin, setPin] = useState("");
@@ -59,18 +58,15 @@ const VaultFormScreen = ({
 					}
 					return;
 				}
-				if (kind === "CARD") {
-					const entry = await getCard(database, entryId);
-					if (entry) {
-						setTitle(entry.name);
-						setCardNumber(entry.cardNumber);
-						setCardType(entry.cardType);
-						setExpiry(entry.expiry);
-						setCvv(entry.cvv);
-						setPin(entry.pin);
-						setNetwork(entry.network);
-					}
-					return;
+				const entry = await getCard(database, entryId);
+				if (entry) {
+					setTitle(entry.name);
+					setCardNumber(entry.cardNumber);
+					setCardType(entry.cardType);
+					setExpiry(entry.expiry);
+					setCvv(entry.cvv);
+					setPin(entry.pin);
+					setNetwork(entry.network);
 				}
 			} catch (caughtError: unknown) {
 				setError(getErrorMessage(caughtError));
@@ -185,19 +181,19 @@ const VaultFormScreen = ({
 						<>
 							<SelectField
 								label={MESSAGES.VAULT_FORM.CARD_TYPE}
-								onChange={(v) =>
-									setCardType(
-										v as "CREDIT_CARD" | "DEBIT_CARD",
-									)
-								}
+								onChange={(v) => setCardType(v as CardType)}
 								options={[
+									{
+										label: MESSAGES.VAULT.DEBIT_CARD,
+										value: "DEBIT_CARD",
+									},
 									{
 										label: MESSAGES.VAULT.CREDIT_CARD,
 										value: "CREDIT_CARD",
 									},
 									{
-										label: MESSAGES.VAULT.DEBIT_CARD,
-										value: "DEBIT_CARD",
+										label: MESSAGES.VAULT.IDENTITY_CARD,
+										value: "IDENTITY_CARD",
 									},
 								]}
 								value={cardType}

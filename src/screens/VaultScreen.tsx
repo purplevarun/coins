@@ -5,17 +5,24 @@ import type VaultFormParams from "@/types/VaultFormParams";
 
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useState,
+} from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import AppButton from "@/components/AppButton";
 import EmptyState from "@/components/EmptyState";
 import FloatingAddButton from "@/components/FloatingAddButton";
 import GlassCard from "@/components/GlassCard";
+import HeaderIconButton from "@/components/HeaderIconButton";
 import ListHeader from "@/components/ListHeader";
 import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
-import TextField from "@/components/TextField";
+import SearchBar from "@/components/SearchBar";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
@@ -39,8 +46,9 @@ const { deletePassword, getPasswords } = passwordService;
 const { formatDate } = dateUtils;
 
 const CARD_TYPE_LABEL: Record<string, string> = {
-	CREDIT_CARD: MESSAGES.VAULT.CREDIT_CARD,
 	DEBIT_CARD: MESSAGES.VAULT.DEBIT_CARD,
+	CREDIT_CARD: MESSAGES.VAULT.CREDIT_CARD,
+	IDENTITY_CARD: MESSAGES.VAULT.IDENTITY_CARD,
 };
 
 const VAULT_ENTRY_LABEL: Record<VaultKind, VaultEntryLabel> = {
@@ -59,7 +67,6 @@ const getPasswordSubtitle = (username: string): string =>
 const getCardSubtitle = (cardType: string, network: string): string =>
 	`${CARD_TYPE_LABEL[cardType] ?? cardType}${network ? ` · ${network}` : ""}`;
 
-
 const getVaultListData = (
 	kind: VaultKind,
 	passwords: readonly PasswordEntry[],
@@ -75,13 +82,36 @@ const getVaultListData = (
 			)
 			.map((entry) => ({ kind: "PASSWORD" as const, entry }));
 	}
-	return cards
-		.filter((entry) =>
-			`${entry.name} ${entry.network} ${entry.cardNumber} ${entry.cardType}`
-				.toLowerCase()
-				.includes(normalizedSearch),
-		)
-		.map((entry) => ({ kind: "CARD" as const, entry }));
+	const filtered = cards.filter((entry) =>
+		`${entry.name} ${entry.network} ${entry.cardNumber} ${entry.cardType}`
+			.toLowerCase()
+			.includes(normalizedSearch),
+	);
+	const sections = new Map<string, CardEntry[]>();
+	for (const entry of filtered) {
+		const label = CARD_TYPE_LABEL[entry.cardType] ?? entry.cardType;
+		const group = sections.get(label);
+		if (group) {
+			group.push(entry);
+		} else {
+			sections.set(label, [entry]);
+		}
+	}
+	const knownLabels = Object.values(CARD_TYPE_LABEL);
+	const getLabelOrder = (label: string): number => {
+		const index = knownLabels.indexOf(label);
+		return index === -1 ? knownLabels.length : index;
+	};
+	const orderedGroups = [...sections.entries()].sort(
+		([a], [b]) => getLabelOrder(a) - getLabelOrder(b),
+	);
+	return orderedGroups.flatMap(([label, group]): VaultListItem[] => [
+		{ kind: "CARD_HEADER" as const, label },
+		...group.map((entry): VaultListItem => ({
+			kind: "CARD" as const,
+			entry,
+		})),
+	]);
 };
 
 const maskValue = (value: string): string => value.replace(/\S/g, "•");
@@ -130,7 +160,9 @@ const VaultScreen = ({
 	const { kind } = route.params;
 	const [passwords, setPasswords] = useState<readonly PasswordEntry[]>([]);
 	const [cards, setCards] = useState<readonly CardEntry[]>([]);
-	const [search, setSearch] = useState("");
+	const [searchVisible, setSearchVisible] = useState(false);
+	const [searchQuery, setSearchQuery] = useState("");
+	const [searchDebounced, setSearchDebounced] = useState("");
 	const [error, setError] = useState("");
 	const [message, setMessage] = useState("");
 	const [revealedIds, setRevealedIds] = useState<ReadonlySet<string>>(
@@ -157,6 +189,32 @@ const VaultScreen = ({
 			}),
 		[dataVersion, getScreenData],
 	);
+
+	useEffect(() => {
+		const timer = setTimeout(() => setSearchDebounced(searchQuery), 250);
+		return () => clearTimeout(timer);
+	}, [searchQuery]);
+
+	useLayoutEffect(() => {
+		navigation.setOptions({
+			headerRight: () => (
+				<HeaderIconButton
+					accessibilityLabel={
+						searchVisible
+							? MESSAGES.COMMON.CLOSE_SEARCH
+							: MESSAGES.COMMON.SEARCH
+					}
+					icon={searchVisible ? "close-outline" : "search-outline"}
+					isActive={searchVisible}
+					onPress={() => {
+						setSearchVisible((visible) => !visible);
+						setSearchQuery("");
+						setSearchDebounced("");
+					}}
+				/>
+			),
+		});
+	}, [navigation, searchVisible]);
 
 	const handleCopy = useCallback(
 		async (value: string, label: string): Promise<void> => {
@@ -205,22 +263,23 @@ const VaultScreen = ({
 		[database, dialog, refreshData],
 	);
 
-	const normalizedSearch = search.trim().toLowerCase();
-	const entryCount =
-		kind === "PASSWORD" ? passwords.length : cards.length;
+	const normalizedSearch = searchDebounced.trim().toLowerCase();
+	const entryCount = kind === "PASSWORD" ? passwords.length : cards.length;
 	const listData = useMemo(
 		(): readonly VaultListItem[] =>
-			getVaultListData(
-				kind,
-				passwords,
-				cards,
-				normalizedSearch,
-			),
+			getVaultListData(kind, passwords, cards, normalizedSearch),
 		[cards, kind, normalizedSearch, passwords],
 	);
 
 	const renderVaultItem = useCallback(
 		({ item }: ListItemProps<VaultListItem>): React.JSX.Element => {
+			if (item.kind === "CARD_HEADER") {
+				return (
+					<CustomText style={styles.sectionTitle}>
+						{item.label}
+					</CustomText>
+				);
+			}
 			if (item.kind === "PASSWORD") {
 				const entry = item.entry;
 				const isRevealed = revealedIds.has(entry.id);
@@ -258,6 +317,11 @@ const VaultScreen = ({
 										isMasked={!isRevealed}
 										label={MESSAGES.VAULT_FORM.PASSWORD}
 										value={entry.password}
+									/>
+									<CopyRow
+										isMasked={!isRevealed}
+										label={MESSAGES.VAULT.LAST_PASSWORD}
+										value={entry.lastPassword}
 									/>
 								</View>
 							) : null}
@@ -384,11 +448,7 @@ const VaultScreen = ({
 								isCompact
 								label={MESSAGES.COMMON.DELETE}
 								onPress={() =>
-									handleDelete(
-										entry.id,
-										entry.name,
-										"CARD",
-									)
+									handleDelete(entry.id, entry.name, "CARD")
 								}
 								variant="danger"
 							/>
@@ -411,12 +471,13 @@ const VaultScreen = ({
 	const listHeader = useMemo(
 		() => (
 			<ListHeader>
-				<TextField
-					label={MESSAGES.COMMON.SEARCH}
-					onChangeText={setSearch}
-					placeholder={MESSAGES.VAULT.SEARCH_PLACEHOLDER}
-					value={search}
-				/>
+				{searchVisible ? (
+					<SearchBar
+						onChangeText={setSearchQuery}
+						placeholder={MESSAGES.VAULT.SEARCH_PLACEHOLDER}
+						value={searchQuery}
+					/>
+				) : null}
 				{message ? <Notice message={message} /> : null}
 				{error ? <Notice message={error} tone="danger" /> : null}
 				<CustomText style={styles.meta}>
@@ -427,11 +488,11 @@ const VaultScreen = ({
 				</CustomText>
 			</ListHeader>
 		),
-		[entryCount, error, kind, message, search, styles],
+		[entryCount, error, kind, message, searchQuery, searchVisible, styles],
 	);
 
 	const listEmpty = useMemo(() => {
-		const isFiltered = !!search.trim();
+		const isFiltered = !!searchDebounced.trim();
 		return (
 			<EmptyState
 				icon={isFiltered ? "search-outline" : "lock-closed-outline"}
@@ -447,7 +508,7 @@ const VaultScreen = ({
 				}
 			/>
 		);
-	}, [search]);
+	}, [searchDebounced]);
 
 	return (
 		<View style={styles.screen}>
@@ -455,7 +516,11 @@ const VaultScreen = ({
 				ListEmptyComponent={listEmpty}
 				ListHeaderComponent={listHeader}
 				data={listData}
-				keyExtractor={(item) => item.entry.id}
+				keyExtractor={(item) =>
+					item.kind === "CARD_HEADER"
+						? `header:${item.label}`
+						: item.entry.id
+				}
 				renderItem={renderVaultItem}
 			/>
 			<FloatingAddButton
@@ -497,6 +562,14 @@ const themedStyles = createThemedStyles((COLORS) =>
 			color: COLORS.text,
 			fontSize: FONT_SIZE.S16,
 			fontWeight: FONT_WEIGHT.BLACK,
+		},
+		sectionTitle: {
+			color: COLORS.textDim,
+			fontSize: FONT_SIZE.S11,
+			fontWeight: FONT_WEIGHT.BOLD,
+			textTransform: TEXT_TRANSFORM.UPPERCASE,
+			letterSpacing: LETTER_SPACING.WIDE,
+			marginTop: SPACING.S8,
 		},
 		meta: {
 			color: COLORS.textMuted,

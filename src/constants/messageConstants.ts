@@ -122,6 +122,8 @@ const VAULT = {
 	EMPTY_TITLE: "Nothing here yet",
 	EXPIRY: "Expiry",
 	HIDE_CARD_DETAILS: "Hide card details",
+	IDENTITY_CARD: "Identity card",
+	LAST_PASSWORD: "Last password",
 	NO_MATCHES_TITLE: "No matching entries",
 	NO_USERNAME: "No username",
 	SEARCH_PLACEHOLDER: "Search vault",

@@ -43,6 +43,11 @@ const migrateDatabase = async (database: SQLiteDatabase): Promise<void> => {
 						`ALTER TABLE ${table} DROP COLUMN ${legacyColumn};`,
 					);
 			}
+			if (table === "passwords" && !columns.includes("last_password")) {
+				await database.execAsync(
+					"ALTER TABLE passwords ADD COLUMN last_password TEXT;",
+				);
+			}
 		} finally {
 			await statement.finalizeAsync();
 		}

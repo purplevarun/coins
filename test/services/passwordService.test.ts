@@ -84,6 +84,7 @@ describe("passwordService", () => {
 		mocks.getPasswordRow.mockResolvedValueOnce({
 			id: "p1",
 			createdAt: 123,
+			password: "old",
 		});
 		const updated = await passwordService.savePassword(database, {
 			id: "p1",
@@ -97,7 +98,29 @@ describe("passwordService", () => {
 			expect.objectContaining({
 				id: "p1",
 				createdAt: 123,
+				lastPassword: "old",
 				title: "Site 2",
+			}),
+		);
+
+		mocks.getPasswordRow.mockResolvedValueOnce({
+			id: "p1",
+			createdAt: 123,
+			lastPassword: "old",
+			password: "new",
+		});
+		await passwordService.savePassword(database, {
+			id: "p1",
+			title: "Site 2",
+			username: "u2",
+			password: "new",
+		});
+		expect(mocks.upsertPasswordRow).toHaveBeenCalledWith(
+			database,
+			expect.objectContaining({
+				id: "p1",
+				lastPassword: "old",
+				password: "new",
 			}),
 		);
 	});

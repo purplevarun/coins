@@ -3,6 +3,7 @@ type PasswordEntry = Readonly<{
 	title: string;
 	username: string;
 	password: string;
+	lastPassword: string;
 	createdAt: number;
 	updatedAt: number;
 }>;
