@@ -159,7 +159,6 @@ CREATE TABLE IF NOT EXISTS identities (
 	id TEXT,
 	title TEXT,
 	id_number TEXT,
-	notes TEXT,
 	created_at INTEGER,
 	updated_at INTEGER
 );

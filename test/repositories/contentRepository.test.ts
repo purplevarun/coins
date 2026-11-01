@@ -175,7 +175,6 @@ describe("contentRepository", () => {
 			id: "i1",
 			title: "Passport",
 			idNumber: "P1",
-			notes: "n",
 			createdAt: 1,
 			updatedAt: 2,
 		});
@@ -184,7 +183,6 @@ describe("contentRepository", () => {
 			"i1",
 			"Passport",
 			"P1",
-			"n",
 			1,
 			2,
 		);
@@ -299,7 +297,6 @@ describe("contentRepository", () => {
 			id: "i1",
 			title: "Passport",
 			idNumber: "P1",
-			notes: "n",
 			createdAt: 1,
 			updatedAt: 2,
 		});
@@ -307,7 +304,6 @@ describe("contentRepository", () => {
 			expect.stringContaining("UPDATE identities"),
 			"Passport",
 			"P1",
-			"n",
 			2,
 			"i1",
 		);

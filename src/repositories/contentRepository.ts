@@ -375,7 +375,6 @@ const getIdentityRows = async (
 			identity.id,
 			identity.title,
 			identity.id_number AS idNumber,
-			identity.notes,
 			identity.created_at AS createdAt,
 			identity.updated_at AS updatedAt
 		FROM identities identity
@@ -392,7 +391,6 @@ const getIdentityRow = async (
 				identity.id,
 				identity.title,
 				identity.id_number AS idNumber,
-				identity.notes,
 				identity.created_at AS createdAt,
 				identity.updated_at AS updatedAt
 			FROM identities identity
@@ -406,10 +404,9 @@ const upsertIdentityRow = async (
 	entry: IdentityEntry,
 ): Promise<void> => {
 	const result = await database.runAsync(
-		`UPDATE identities SET title = ?, id_number = ?, notes = ?, updated_at = ? WHERE id = ?;`,
+		`UPDATE identities SET title = ?, id_number = ?, updated_at = ? WHERE id = ?;`,
 		entry.title,
 		entry.idNumber,
-		entry.notes,
 		entry.updatedAt,
 		entry.id,
 	);
@@ -417,13 +414,12 @@ const upsertIdentityRow = async (
 	await database.runAsync(
 		`
 			INSERT INTO identities (
-				id, title, id_number, notes, created_at, updated_at
-			) VALUES (?, ?, ?, ?, ?, ?);
+				id, title, id_number, created_at, updated_at
+			) VALUES (?, ?, ?, ?, ?);
 		`,
 		entry.id,
 		entry.title,
 		entry.idNumber,
-		entry.notes,
 		entry.createdAt,
 		entry.updatedAt,
 	);

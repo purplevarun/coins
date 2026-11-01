@@ -81,7 +81,6 @@ const VaultFormScreen = ({
 				if (entry) {
 					setTitle(entry.title);
 					setIdNumber(entry.idNumber);
-					setNotes(entry.notes);
 				}
 			} catch (caughtError: unknown) {
 				setError(getErrorMessage(caughtError));
@@ -118,7 +117,6 @@ const VaultFormScreen = ({
 					id: entryId,
 					title,
 					idNumber,
-					notes,
 				});
 			}
 			refreshData();
@@ -276,7 +274,7 @@ const VaultFormScreen = ({
 							value={idNumber}
 						/>
 					) : null}
-					{kind === "PASSWORD" ? null : (
+					{kind === "CARD" ? (
 						<TextField
 							isMultiline
 							label={MESSAGES.VAULT_FORM.NOTES}
@@ -284,7 +282,7 @@ const VaultFormScreen = ({
 							placeholder={MESSAGES.VAULT_FORM.NOTES_PLACEHOLDER}
 							value={notes}
 						/>
-					)}
+					) : null}
 
 					{error ? <Notice message={error} tone="danger" /> : null}
 					<AppButton

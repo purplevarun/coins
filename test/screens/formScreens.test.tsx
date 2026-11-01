@@ -318,7 +318,6 @@ describe("form screens", () => {
 		serviceMocks.getIdentity.mockResolvedValue({
 			title: "Passport",
 			idNumber: "P1",
-			notes: "n",
 		});
 		serviceMocks.saveIdentity.mockResolvedValue("id1");
 		serviceMocks.deletePassword.mockResolvedValue(undefined);

@@ -57,14 +57,12 @@ describe("identityService", () => {
 			identityService.saveIdentity(database, {
 				title: "   ",
 				idNumber: "x",
-				notes: "y",
 			}),
 		).rejects.toMatchObject({ code: "IDENTITY_TITLE_REQUIRED" });
 
 		const id = await identityService.saveIdentity(database, {
 			title: "  Passport  ",
 			idNumber: "  P123  ",
-			notes: "  keep safe  ",
 		});
 		expect(id).toBe("identity-id");
 		expect(mocks.upsertIdentityRow).toHaveBeenCalledWith(
@@ -73,7 +71,6 @@ describe("identityService", () => {
 				id: "identity-id",
 				title: "Passport",
 				idNumber: "P123",
-				notes: "keep safe",
 				createdAt: new Date("2026-08-25T12:00:00.000Z").getTime(),
 			}),
 		);
@@ -89,7 +86,6 @@ describe("identityService", () => {
 			id: "i1",
 			title: "  Aadhaar  ",
 			idNumber: "  A123  ",
-			notes: "  note  ",
 		});
 		expect(id).toBe("i1");
 		expect(mocks.upsertIdentityRow).toHaveBeenCalledWith(

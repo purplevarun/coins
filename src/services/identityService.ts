@@ -35,7 +35,6 @@ const saveIdentity = async (
 		id,
 		title,
 		idNumber: entry.idNumber.trim(),
-		notes: entry.notes.trim(),
 		createdAt: existing?.createdAt ?? now,
 		updatedAt: now,
 	});

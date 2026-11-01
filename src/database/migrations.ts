@@ -24,19 +24,24 @@ const migrateDatabase = async (database: SQLiteDatabase): Promise<void> => {
 	await database.execAsync(
 		"UPDATE transactions SET is_applicable = 1 WHERE is_applicable IS NULL;",
 	);
-	const passwordStatement = await database.prepareAsync(
-		"SELECT * FROM passwords LIMIT 0;",
-	);
-	try {
-		const columns = await passwordStatement.getColumnNamesAsync();
-		for (const legacyColumn of ["website", "notes"]) {
-			if (columns.includes(legacyColumn))
-				await database.execAsync(
-					`ALTER TABLE passwords DROP COLUMN ${legacyColumn};`,
-				);
+	for (const [table, legacyColumns] of [
+		["passwords", ["website", "notes"]],
+		["identities", ["notes"]],
+	] as const) {
+		const statement = await database.prepareAsync(
+			`SELECT * FROM ${table} LIMIT 0;`,
+		);
+		try {
+			const columns = await statement.getColumnNamesAsync();
+			for (const legacyColumn of legacyColumns) {
+				if (columns.includes(legacyColumn))
+					await database.execAsync(
+						`ALTER TABLE ${table} DROP COLUMN ${legacyColumn};`,
+					);
+			}
+		} finally {
+			await statement.finalizeAsync();
 		}
-	} finally {
-		await passwordStatement.finalizeAsync();
 	}
 };
 

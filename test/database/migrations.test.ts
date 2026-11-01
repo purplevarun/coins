@@ -88,6 +88,40 @@ describe("migration baseline", () => {
 		).not.toContain("website");
 	});
 
+	it("drops legacy identity notes column while preserving rows", async () => {
+		const { database, sqlite } = createTestDatabase();
+		await database.execAsync(SCHEMA_SQL);
+		sqlite.exec("ALTER TABLE identities ADD COLUMN notes TEXT;");
+		const identityId = randomUUID();
+		sqlite
+			.prepare(
+				"INSERT INTO identities (id, title, id_number, notes, created_at, updated_at) VALUES (?, 'Passport', 'P1', 'n', 1, 2);",
+			)
+			.run(identityId);
+		await migrateDatabase(database);
+		expect(
+			sqlite
+				.prepare(
+					"SELECT id, title, id_number, created_at, updated_at FROM identities;",
+				)
+				.all(),
+		).toEqual([
+			{
+				id: identityId,
+				title: "Passport",
+				id_number: "P1",
+				created_at: 1,
+				updated_at: 2,
+			},
+		]);
+		expect(
+			sqlite
+				.prepare("SELECT * FROM identities LIMIT 0")
+				.columns()
+				.map((column) => column.name),
+		).not.toContain("notes");
+	});
+
 	it("finalizes metadata statements and propagates migration failures", async () => {
 		const { database } = createTestDatabase();
 		const finalizeAsync = vi.fn().mockResolvedValue(undefined);
