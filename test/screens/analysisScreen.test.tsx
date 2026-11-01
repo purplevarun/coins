@@ -467,6 +467,9 @@ describe("AnalysisScreen", () => {
 					node?.props?.label === "To",
 			),
 		).toHaveLength(2);
+		expect(
+			findByPredicate(tree, (node) => node?.type === "SegmentedControl"),
+		).toHaveLength(0);
 
 		reactMocks.useLayoutEffect.mock.calls.forEach(([effect]) => effect());
 		const clockButton = findByPredicate(

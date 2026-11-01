@@ -471,11 +471,13 @@ const AnalysisScreen = ({
 
 	return (
 		<ScreenContainer>
-			<SegmentedControl
-				onChange={handlePeriodChange}
-				options={ANALYSIS_PERIOD_OPTIONS}
-				value={period}
-			/>
+			{period === "CUSTOM" ? null : (
+				<SegmentedControl
+					onChange={handlePeriodChange}
+					options={ANALYSIS_PERIOD_OPTIONS}
+					value={period}
+				/>
+			)}
 			{HAS_ARROWS.includes(period) ? (
 				<View style={styles.periodRow}>
 					<Pressable
@@ -708,6 +710,7 @@ const themedStyles = createThemedStyles((COLORS) =>
 		actionGrid: {
 			flexDirection: FLEX.ROW,
 			flexWrap: FLEX.WRAP,
+			justifyContent: ALIGN.SPACE_BETWEEN,
 			gap: SPACING.S8,
 			marginBottom: SPACING.S12,
 		},
