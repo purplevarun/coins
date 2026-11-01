@@ -188,8 +188,12 @@ describe("AppNavigator", () => {
 			}).title,
 		).toBe("Holiday");
 		for (const [name, newTitle, editTitle] of [
+			["SourceForm", "New source", "Edit source"],
+			["CategoryForm", "New category", "Edit category"],
 			["TripTypes", "New trip type", "Edit trip type"],
+			["TripForm", "New trip", "Edit trip"],
 			["InvestmentTypes", "New investment type", "Edit investment type"],
+			["InvestmentForm", "New investment", "Edit investment"],
 			[
 				"Platforms",
 				"New investment platform",
@@ -243,5 +247,33 @@ describe("AppNavigator", () => {
 				route: { params: { kind: "PASSWORD" } },
 			}).title,
 		).toBe("Passwords");
+
+		const budgetFormOptions = byName("BudgetForm")?.props?.options;
+		expect(budgetFormOptions({ route: { params: {} } }).title).toBe(
+			"New budget",
+		);
+		expect(
+			budgetFormOptions({ route: { params: { budgetId: "b1" } } })
+				.title,
+		).toBe("Edit budget");
+
+		const vaultFormOptions = byName("VaultForm")?.props?.options;
+		expect(
+			vaultFormOptions({ route: { params: { kind: "PASSWORD" } } })
+				.title,
+		).toBe("New password");
+		expect(
+			vaultFormOptions({
+				route: { params: { kind: "PASSWORD", entryId: "p1" } },
+			}).title,
+		).toBe("Edit password");
+		expect(
+			vaultFormOptions({ route: { params: { kind: "CARD" } } }).title,
+		).toBe("New card");
+		expect(
+			vaultFormOptions({
+				route: { params: { kind: "CARD", entryId: "c1" } },
+			}).title,
+		).toBe("Edit card");
 	});
 });

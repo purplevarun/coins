@@ -258,7 +258,16 @@ const AppNavigator = (): React.JSX.Element => {
 				<Stack.Screen
 					component={VaultFormScreen}
 					name="VaultForm"
-					options={{ title: "Vault entry" }}
+					options={({ route }) => ({
+						title:
+							route.params.kind === "PASSWORD"
+								? route.params.entryId
+									? MESSAGES.VAULT_FORM.EDIT_PASSWORD
+									: MESSAGES.VAULT_FORM.NEW_PASSWORD
+								: route.params.entryId
+									? MESSAGES.VAULT_FORM.EDIT_CARD
+									: MESSAGES.VAULT_FORM.NEW_CARD,
+					})}
 				/>
 				<Stack.Screen
 					component={SettingsScreen}
