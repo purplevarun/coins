@@ -28,6 +28,7 @@ import passwordService from "@/services/passwordService";
 import type CardEntry from "@/types/CardEntry";
 import type IdentityEntry from "@/types/IdentityEntry";
 import type PasswordEntry from "@/types/PasswordEntry";
+import type VaultEntryLabel from "@/types/VaultEntryLabel";
 import type VaultKind from "@/types/VaultKind";
 import type VaultListItem from "@/types/VaultListItem";
 import type VaultScreenProps from "@/types/VaultScreenProps";
@@ -45,13 +46,19 @@ const CARD_TYPE_LABEL: Record<string, string> = {
 	DEBIT_CARD: MESSAGES.VAULT.DEBIT_CARD,
 };
 
+const VAULT_ENTRY_LABEL: Record<VaultKind, VaultEntryLabel> = {
+	PASSWORD: { one: "password", many: "passwords" },
+	CARD: { one: "card", many: "cards" },
+	IDENTITY: { one: "identity", many: "identities" },
+};
+
 const getVaultFormParams = (
 	kind: VaultKind,
 	entryId?: string,
 ): VaultFormParams => (entryId ? { kind, entryId } : { kind });
 
-const getPasswordSubtitle = (username: string, website: string): string =>
-	username || website || MESSAGES.VAULT.NO_USERNAME;
+const getPasswordSubtitle = (username: string): string =>
+	username || MESSAGES.VAULT.NO_USERNAME;
 
 const getCardSubtitle = (cardType: string, network: string): string =>
 	`${CARD_TYPE_LABEL[cardType] ?? cardType}${network ? ` · ${network}` : ""}`;
@@ -69,7 +76,7 @@ const getVaultListData = (
 	if (kind === "PASSWORD") {
 		return passwords
 			.filter((entry) =>
-				`${entry.title} ${entry.username} ${entry.website}`
+				`${entry.title} ${entry.username}`
 					.toLowerCase()
 					.includes(normalizedSearch),
 			)
@@ -220,6 +227,12 @@ const VaultScreen = ({
 	);
 
 	const normalizedSearch = search.trim().toLowerCase();
+	const entryCount =
+		kind === "PASSWORD"
+			? passwords.length
+			: kind === "CARD"
+				? cards.length
+				: identities.length;
 	const listData = useMemo(
 		(): readonly VaultListItem[] =>
 			getVaultListData(
@@ -258,10 +271,7 @@ const VaultScreen = ({
 										{entry.title}
 									</CustomText>
 									<CustomText style={styles.meta}>
-										{getPasswordSubtitle(
-											entry.username,
-											entry.website,
-										)}
+										{getPasswordSubtitle(entry.username)}
 									</CustomText>
 									<CustomText style={styles.updatedAt}>
 										Updated {formatDate(entry.updatedAt)}
@@ -481,9 +491,15 @@ const VaultScreen = ({
 				/>
 				{message ? <Notice message={message} /> : null}
 				{error ? <Notice message={error} tone="danger" /> : null}
+				<CustomText style={styles.meta}>
+					{entryCount}{" "}
+					{entryCount === 1
+						? VAULT_ENTRY_LABEL[kind].one
+						: VAULT_ENTRY_LABEL[kind].many}
+				</CustomText>
 			</ListHeader>
 		),
-		[error, message, search],
+		[entryCount, error, kind, message, search, styles],
 	);
 
 	const listEmpty = useMemo(() => {

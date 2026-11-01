@@ -35,7 +35,6 @@ const VaultFormScreen = ({
 	const [title, setTitle] = useState("");
 	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
-	const [website, setWebsite] = useState("");
 	const [cardNumber, setCardNumber] = useState("");
 	const [cardType, setCardType] = useState<"CREDIT_CARD" | "DEBIT_CARD">(
 		"CREDIT_CARD",
@@ -61,8 +60,6 @@ const VaultFormScreen = ({
 						setTitle(entry.title);
 						setUsername(entry.username);
 						setPassword(entry.password);
-						setWebsite(entry.website);
-						setNotes(entry.notes);
 					}
 					return;
 				}
@@ -103,8 +100,6 @@ const VaultFormScreen = ({
 					title,
 					username,
 					password,
-					website,
-					notes,
 				});
 			} else if (kind === "CARD") {
 				await saveCard(database, {
@@ -205,16 +200,6 @@ const VaultFormScreen = ({
 								}
 								value={password}
 							/>
-							<TextField
-								autoCapitalize="none"
-								keyboardType="url"
-								label={MESSAGES.VAULT_FORM.WEBSITE}
-								onChangeText={setWebsite}
-								placeholder={
-									MESSAGES.VAULT_FORM.WEBSITE_PLACEHOLDER
-								}
-								value={website}
-							/>
 						</>
 					) : null}
 					{kind === "CARD" ? (
@@ -291,13 +276,15 @@ const VaultFormScreen = ({
 							value={idNumber}
 						/>
 					) : null}
-					<TextField
-						isMultiline
-						label={MESSAGES.VAULT_FORM.NOTES}
-						onChangeText={setNotes}
-						placeholder={MESSAGES.VAULT_FORM.NOTES_PLACEHOLDER}
-						value={notes}
-					/>
+					{kind === "PASSWORD" ? null : (
+						<TextField
+							isMultiline
+							label={MESSAGES.VAULT_FORM.NOTES}
+							onChangeText={setNotes}
+							placeholder={MESSAGES.VAULT_FORM.NOTES_PLACEHOLDER}
+							value={notes}
+						/>
+					)}
 
 					{error ? <Notice message={error} tone="danger" /> : null}
 					<AppButton

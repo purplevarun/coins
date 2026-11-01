@@ -326,8 +326,6 @@ describe("form screens", () => {
 			title: "Github",
 			username: "u",
 			password: "p",
-			website: "w",
-			notes: "n",
 		});
 		serviceMocks.savePassword.mockResolvedValue("pw1");
 	});
@@ -969,7 +967,7 @@ describe("form screens", () => {
 		let stateCall = 0;
 		reactMocks.useState.mockImplementation((initial: any) => {
 			stateCall += 1;
-			if (stateCall === 14) return ["", setError];
+			if (stateCall === 13) return ["", setError];
 			return [
 				typeof initial === "function" ? initial() : initial,
 				vi.fn(),
@@ -1032,7 +1030,7 @@ describe("form screens", () => {
 		reactMocks.useState.mockImplementation((initial: any) => {
 			stateCall += 1;
 			if (stateCall === 1) return ["", setTitle];
-			if (stateCall === 14) return ["render error", vi.fn()];
+			if (stateCall === 13) return ["render error", vi.fn()];
 			return [
 				typeof initial === "function" ? initial() : initial,
 				vi.fn(),
@@ -1072,8 +1070,6 @@ describe("form screens", () => {
 				title: "",
 				username: "",
 				password: "",
-				website: "",
-				notes: "",
 			},
 		);
 		expect(

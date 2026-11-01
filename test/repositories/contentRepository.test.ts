@@ -130,8 +130,6 @@ describe("contentRepository", () => {
 			title: "Site",
 			username: "u",
 			password: "pw",
-			website: "w",
-			notes: "n",
 			createdAt: 1,
 			updatedAt: 2,
 		});
@@ -141,8 +139,6 @@ describe("contentRepository", () => {
 			"Site",
 			"u",
 			"pw",
-			"w",
-			"n",
 			1,
 			2,
 		);
@@ -260,8 +256,6 @@ describe("contentRepository", () => {
 			title: "Site",
 			username: "u",
 			password: "pw",
-			website: "w",
-			notes: "n",
 			createdAt: 1,
 			updatedAt: 2,
 		});
@@ -270,8 +264,6 @@ describe("contentRepository", () => {
 			"Site",
 			"u",
 			"pw",
-			"w",
-			"n",
 			2,
 			"p1",
 		);

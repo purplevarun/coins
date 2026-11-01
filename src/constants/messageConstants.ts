@@ -188,8 +188,6 @@ const VAULT_FORM = {
 	USERNAME: "Username",
 	SAVE_ACTION: "Save entry",
 	USERNAME_PLACEHOLDER: "Username or email",
-	WEBSITE: "Website",
-	WEBSITE_PLACEHOLDER: "https://",
 } as const;
 
 const ANALYSIS = {

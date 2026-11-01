@@ -225,8 +225,6 @@ const getPasswordRows = async (
 			title,
 			username,
 			password,
-			website,
-			notes,
 			created_at AS createdAt,
 			updated_at AS updatedAt
 		FROM passwords
@@ -240,7 +238,7 @@ const getPasswordRow = async (
 	database.getFirstAsync<PasswordEntry>(
 		`
 			SELECT
-				id, title, username, password, website, notes,
+				id, title, username, password,
 				created_at AS createdAt, updated_at AS updatedAt
 			FROM passwords
 			WHERE id = ?;
@@ -255,15 +253,12 @@ const upsertPasswordRow = async (
 	const result = await database.runAsync(
 		`
 			UPDATE passwords
-			SET title = ?, username = ?, password = ?, website = ?,
-				notes = ?, updated_at = ?
+			SET title = ?, username = ?, password = ?, updated_at = ?
 			WHERE id = ?;
 		`,
 		entry.title,
 		entry.username,
 		entry.password,
-		entry.website,
-		entry.notes,
 		entry.updatedAt,
 		entry.id,
 	);
@@ -271,16 +266,14 @@ const upsertPasswordRow = async (
 	await database.runAsync(
 		`
 			INSERT INTO passwords (
-				id, title, username, password, website, notes,
+				id, title, username, password,
 				created_at, updated_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+			) VALUES (?, ?, ?, ?, ?, ?);
 		`,
 		entry.id,
 		entry.title,
 		entry.username,
 		entry.password,
-		entry.website,
-		entry.notes,
 		entry.createdAt,
 		entry.updatedAt,
 	);

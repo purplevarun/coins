@@ -39,8 +39,6 @@ const savePassword = async (
 		title,
 		username: entry.username.trim(),
 		password: entry.password,
-		website: entry.website.trim(),
-		notes: entry.notes.trim(),
 		createdAt: existing?.createdAt ?? now,
 		updatedAt: now,
 	});

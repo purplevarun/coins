@@ -192,7 +192,6 @@ describe("VaultScreen", () => {
 							id: "p1",
 							title: "Github",
 							username: "u",
-							website: "",
 							password: "secret",
 							updatedAt: 10,
 						},
@@ -223,7 +222,6 @@ describe("VaultScreen", () => {
 					id: "p1",
 					title: "Github",
 					username: "u",
-					website: "",
 					password: "secret",
 					updatedAt: 10,
 				},
@@ -251,6 +249,58 @@ describe("VaultScreen", () => {
 		);
 		expect(hookMocks.refreshData).toHaveBeenCalled();
 	});
+
+	it.each([
+		{
+			kind: "PASSWORD",
+			stateIndex: 1,
+			entries: [{ id: "p1" }],
+			expected: "1 password",
+		},
+		{
+			kind: "PASSWORD",
+			stateIndex: 1,
+			entries: [{ id: "p1" }, { id: "p2" }],
+			expected: "2 passwords",
+		},
+		{
+			kind: "CARD",
+			stateIndex: 2,
+			entries: [{ id: "c1" }],
+			expected: "1 card",
+		},
+		{
+			kind: "IDENTITY",
+			stateIndex: 3,
+			entries: [{ id: "i1" }, { id: "i2" }, { id: "i3" }],
+			expected: "3 identities",
+		},
+	] as const)(
+		"shows $expected on the $kind list",
+		({ kind, stateIndex, entries, expected }) => {
+			let call = 0;
+			reactMocks.useState.mockImplementation((initial: any) => {
+				call += 1;
+				if (call === stateIndex) return [entries, vi.fn()];
+				return [
+					typeof initial === "function" ? initial() : initial,
+					vi.fn(),
+				];
+			});
+			const tree = VaultScreen({
+				navigation: { navigate: vi.fn() },
+				route: { key: "k", name: "Vault", params: { kind } },
+			} as any);
+			expect(
+				findByPredicate(
+					tree,
+					(node) =>
+						Array.isArray(node?.props?.children) &&
+						node.props.children.join("").trim() === expected,
+				),
+			).toHaveLength(1);
+		},
+	);
 
 	it("executes CARD and IDENTITY delete flows", async () => {
 		const navigation = { navigate: vi.fn() };
@@ -408,9 +458,8 @@ describe("VaultScreen", () => {
 	it("covers CopyRow and card label helpers directly", () => {
 		expect(CARD_TYPE_LABEL.CREDIT_CARD).toBe("Credit card");
 		expect(CARD_TYPE_LABEL.DEBIT_CARD).toBe("Debit card");
-		expect(getPasswordSubtitle("user", "site")).toBe("user");
-		expect(getPasswordSubtitle("", "site")).toBe("site");
-		expect(getPasswordSubtitle("", "")).toBe("No username");
+		expect(getPasswordSubtitle("user")).toBe("user");
+		expect(getPasswordSubtitle("")).toBe("No username");
 		expect(getCardSubtitle("CREDIT_CARD", "VISA")).toBe(
 			"Credit card · VISA",
 		);
@@ -434,7 +483,6 @@ describe("VaultScreen", () => {
 						id: "p1",
 						title: "Github",
 						username: "user",
-						website: "",
 					} as any,
 				],
 				[],
@@ -516,7 +564,6 @@ describe("VaultScreen", () => {
 							id: "p1",
 							title: "Github",
 							username: "u",
-							website: "",
 							password: "secret",
 							updatedAt: 10,
 						},
@@ -564,7 +611,6 @@ describe("VaultScreen", () => {
 					id: "p1",
 					title: "Github",
 					username: "u",
-					website: "",
 					password: "secret",
 					updatedAt: 10,
 				},
@@ -648,7 +694,6 @@ describe("VaultScreen", () => {
 							id: "p1",
 							title: "Github",
 							username: "u",
-							website: "",
 							password: "secret",
 							updatedAt: 10,
 						},
@@ -681,7 +726,6 @@ describe("VaultScreen", () => {
 					id: "p1",
 					title: "Github",
 					username: "u",
-					website: "",
 					password: "secret",
 					updatedAt: 10,
 				},
@@ -874,7 +918,6 @@ describe("VaultScreen", () => {
 			id: "p1",
 			title: "Github",
 			username: "u",
-			website: "",
 			password: "secret",
 			updatedAt: 10,
 		};

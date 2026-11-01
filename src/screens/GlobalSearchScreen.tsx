@@ -118,7 +118,7 @@ const GlobalSearchScreen = ({
 					id: password.id,
 					kind: "PASSWORD",
 					title: password.title,
-					subtitle: password.username || password.website,
+					subtitle: password.username || "Password",
 					icon: "key-outline",
 					color: COLORS.warning,
 				})),

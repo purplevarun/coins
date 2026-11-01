@@ -268,7 +268,7 @@ describe("GlobalSearchScreen", () => {
 		]);
 
 		serviceMocks.getPasswords.mockResolvedValue([
-			{ id: "p1", title: "Github", username: "u", website: "" },
+			{ id: "p1", title: "Github", username: "u" },
 		]);
 		serviceMocks.getCards.mockResolvedValue([
 			{ id: "ca1", name: "Visa", network: "VISA" },
@@ -885,7 +885,6 @@ describe("GlobalSearchScreen", () => {
 				id: "p2",
 				title: "Work Mail",
 				username: "",
-				website: "mail.example",
 			},
 		]);
 		serviceMocks.getCards.mockResolvedValueOnce([
@@ -923,7 +922,7 @@ describe("GlobalSearchScreen", () => {
 				expect.objectContaining({
 					id: "p2",
 					kind: "PASSWORD",
-					subtitle: "mail.example",
+					subtitle: "Password",
 				}),
 				expect.objectContaining({
 					id: "ca2",

@@ -52,6 +52,42 @@ describe("migration baseline", () => {
 		).toEqual({ is_applicable: 1 });
 	});
 
+	it("drops legacy password website and notes columns while preserving rows", async () => {
+		const { database, sqlite } = createTestDatabase();
+		await database.execAsync(SCHEMA_SQL);
+		sqlite.exec("ALTER TABLE passwords ADD COLUMN website TEXT;");
+		sqlite.exec("ALTER TABLE passwords ADD COLUMN notes TEXT;");
+		const passwordId = randomUUID();
+		sqlite
+			.prepare(
+				"INSERT INTO passwords (id, title, username, password, website, notes, created_at, updated_at) VALUES (?, 'Github', 'u', 'p', 'w', 'n', 1, 2);",
+			)
+			.run(passwordId);
+		await migrateDatabase(database);
+		expect(
+			sqlite
+				.prepare(
+					"SELECT id, title, username, password, created_at, updated_at FROM passwords;",
+				)
+				.all(),
+		).toEqual([
+			{
+				id: passwordId,
+				title: "Github",
+				username: "u",
+				password: "p",
+				created_at: 1,
+				updated_at: 2,
+			},
+		]);
+		expect(
+			sqlite
+				.prepare("SELECT * FROM passwords LIMIT 0")
+				.columns()
+				.map((column) => column.name),
+		).not.toContain("website");
+	});
+
 	it("finalizes metadata statements and propagates migration failures", async () => {
 		const { database } = createTestDatabase();
 		const finalizeAsync = vi.fn().mockResolvedValue(undefined);

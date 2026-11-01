@@ -137,8 +137,6 @@ CREATE TABLE IF NOT EXISTS passwords (
 	title TEXT,
 	username TEXT,
 	password TEXT,
-	website TEXT,
-	notes TEXT,
 	created_at INTEGER,
 	updated_at INTEGER
 );

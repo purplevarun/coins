@@ -51,8 +51,6 @@ describe("passwordService", () => {
 				title: "   ",
 				username: "u",
 				password: "secret",
-				website: "w",
-				notes: "n",
 			}),
 		).rejects.toMatchObject({ code: "PASSWORD_TITLE_REQUIRED" });
 
@@ -61,8 +59,6 @@ describe("passwordService", () => {
 				title: "Site",
 				username: "u",
 				password: "",
-				website: "w",
-				notes: "n",
 			}),
 		).rejects.toMatchObject({ code: "PASSWORD_REQUIRED" });
 	});
@@ -72,8 +68,6 @@ describe("passwordService", () => {
 			title: "  Site  ",
 			username: "  user  ",
 			password: "secret",
-			website: "  example.com ",
-			notes: "  personal ",
 		});
 		expect(id).toBe("password-id");
 		expect(mocks.upsertPasswordRow).toHaveBeenCalledWith(
@@ -83,8 +77,6 @@ describe("passwordService", () => {
 				title: "Site",
 				username: "user",
 				password: "secret",
-				website: "example.com",
-				notes: "personal",
 				createdAt: new Date("2026-08-25T12:00:00.000Z").getTime(),
 			}),
 		);
@@ -98,8 +90,6 @@ describe("passwordService", () => {
 			title: "  Site 2  ",
 			username: "  u2 ",
 			password: "new",
-			website: "  test.com ",
-			notes: "  work ",
 		});
 		expect(updated).toBe("p1");
 		expect(mocks.upsertPasswordRow).toHaveBeenCalledWith(
