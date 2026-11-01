@@ -346,11 +346,20 @@ describe("AnalysisScreen", () => {
 		expect(JSON.stringify(tree)).not.toContain("Manage exchange rates");
 		reactMocks.useLayoutEffect.mock.calls.forEach(([effect]) => effect());
 		expect(navigation.setOptions).toHaveBeenCalledOnce();
-		const ratesButton =
+		const headerActions =
 			navigation.setOptions.mock.calls[0]?.[0].headerRight();
-		expect(ratesButton?.props.accessibilityLabel).toBe(
-			"Manage exchange rates",
-		);
+		const clockButton = findByPredicate(
+			headerActions,
+			(node) => node?.props?.accessibilityLabel === "Custom period",
+		)[0];
+		expect(clockButton?.props.icon).toBe("time-outline");
+		expect(clockButton?.props.isActive).toBe(false);
+		clockButton?.props.onPress();
+		const ratesButton = findByPredicate(
+			headerActions,
+			(node) =>
+				node?.props?.accessibilityLabel === "Manage exchange rates",
+		)[0];
 		expect(ratesButton?.props.icon).toBe("swap-horizontal-outline");
 		ratesButton?.props.onPress();
 		findByPredicate(
@@ -418,21 +427,29 @@ describe("AnalysisScreen", () => {
 		expect(JSON.stringify(tree)).not.toContain("Manage exchange rates");
 		reactMocks.useLayoutEffect.mock.calls.forEach(([effect]) => effect());
 		expect(navigation.setOptions).toHaveBeenCalledOnce();
-		const ratesButton =
-			navigation.setOptions.mock.calls[0]?.[0].headerRight();
-		expect(ratesButton?.props.accessibilityLabel).toBe(
-			"Manage exchange rates",
-		);
+		const ratesButton = findByPredicate(
+			navigation.setOptions.mock.calls[0]?.[0].headerRight(),
+			(node) =>
+				node?.props?.accessibilityLabel === "Manage exchange rates",
+		)[0];
 		ratesButton?.props.onPress();
 		expect(navigation.navigate).toHaveBeenCalledWith("ExchangeRates");
 	});
 
 	it("renders custom period controls when period is CUSTOM", async () => {
-		const navigation = { navigate: vi.fn() };
+		const navigation = {
+			navigate: vi.fn(),
+			setOptions:
+				vi.fn<
+					(options: HeaderOptions<HeaderIconButtonProps>) => void
+				>(),
+		};
+		const periodSetter = vi.fn();
 		let stateCall = 0;
 		reactMocks.useState.mockImplementation((initial: any) => {
 			stateCall += 1;
-			if (stateCall === 1) return ["CUSTOM", vi.fn()];
+			if (stateCall === 1) return ["CUSTOM", periodSetter];
+			if (stateCall === 12) return ["YEAR", vi.fn()];
 			return [
 				typeof initial === "function" ? initial() : initial,
 				vi.fn(),
@@ -450,6 +467,15 @@ describe("AnalysisScreen", () => {
 					node?.props?.label === "To",
 			),
 		).toHaveLength(2);
+
+		reactMocks.useLayoutEffect.mock.calls.forEach(([effect]) => effect());
+		const clockButton = findByPredicate(
+			navigation.setOptions.mock.calls[0]?.[0].headerRight(),
+			(node) => node?.props?.accessibilityLabel === "Custom period",
+		)[0];
+		expect(clockButton?.props.isActive).toBe(true);
+		clockButton?.props.onPress();
+		expect(periodSetter).toHaveBeenCalledWith("YEAR");
 	});
 
 	it("renders ALL period notice with empty analysis and trend states", async () => {

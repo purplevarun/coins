@@ -286,6 +286,9 @@ const AnalysisScreen = ({
 	const [trendExchangeRates, setTrendExchangeRates] = useState<
 		readonly ExchangeRate[]
 	>([]);
+	const [lastPeriod, setLastPeriod] = useState<AnalysisPeriod>(
+		DEFAULT_ANALYSIS_PERIOD,
+	);
 
 	const dateRange = useMemo(
 		() =>
@@ -335,14 +338,31 @@ const AnalysisScreen = ({
 	useLayoutEffect(() => {
 		navigation.setOptions({
 			headerRight: () => (
-				<HeaderIconButton
-					accessibilityLabel={MESSAGES.ANALYSIS.MANAGE_EXCHANGE_RATES}
-					icon="swap-horizontal-outline"
-					onPress={() => navigation.navigate("ExchangeRates")}
-				/>
+				<View style={styles.headerActions}>
+					<HeaderIconButton
+						accessibilityLabel={MESSAGES.ANALYSIS.CUSTOM_PERIOD}
+						icon="time-outline"
+						isActive={period === "CUSTOM"}
+						onPress={() => {
+							if (period === "CUSTOM") {
+								setPeriod(lastPeriod);
+							} else {
+								setLastPeriod(period);
+								setPeriod("CUSTOM");
+							}
+						}}
+					/>
+					<HeaderIconButton
+						accessibilityLabel={
+							MESSAGES.ANALYSIS.MANAGE_EXCHANGE_RATES
+						}
+						icon="swap-horizontal-outline"
+						onPress={() => navigation.navigate("ExchangeRates")}
+					/>
+				</View>
 			),
 		});
-	}, [navigation]);
+	}, [lastPeriod, navigation, period, styles]);
 
 	const handlePeriodChange = (value: string): void => {
 		setPeriod(value as AnalysisPeriod);
@@ -640,6 +660,11 @@ const {
 
 const themedStyles = createThemedStyles((COLORS) =>
 	StyleSheet.create({
+		headerActions: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S8,
+		},
 		periodRow: {
 			flexDirection: FLEX.ROW,
 			alignItems: ALIGN.CENTER,

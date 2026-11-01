@@ -25,7 +25,6 @@ const ANALYSIS_PERIOD_OPTIONS = [
 	{ label: "FY", value: "FY" },
 	{ label: "Last 12M", value: "LAST_12M" },
 	{ label: "All", value: "ALL" },
-	{ label: "Custom", value: "CUSTOM" },
 ] as const;
 const BUDGET_PERIOD_OPTIONS = [
 	{ label: "Monthly", value: "MONTHLY" },
