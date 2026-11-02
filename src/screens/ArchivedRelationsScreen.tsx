@@ -7,6 +7,7 @@ import {
 	type ComponentProps,
 	useCallback,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useState,
 } from "react";
@@ -14,6 +15,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 
 import EmptyState from "@/components/EmptyState";
 import GlassCard from "@/components/GlassCard";
+import HeaderIconButton from "@/components/HeaderIconButton";
 import ListHeader from "@/components/ListHeader";
 import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
@@ -52,9 +54,9 @@ const KIND_ICON: Record<RelationKind, ComponentProps<typeof Ionicons>["name"]> =
 		INVESTMENT: "trending-up",
 	};
 
-const ArchivedRelationsScreen = (
-	_props: ArchivedRelationsScreenProps,
-): React.JSX.Element => {
+const ArchivedRelationsScreen = ({
+	navigation,
+}: ArchivedRelationsScreenProps): React.JSX.Element => {
 	const { colors: COLORS } = useTheme();
 	const styles = useThemedStyles(themedStyles);
 	const { database, refreshData } = useDatabaseContext();
@@ -64,6 +66,7 @@ const ArchivedRelationsScreen = (
 	const [trips, setTrips] = useState<readonly Trip[]>([]);
 	const [investments, setInvestments] = useState<readonly Investment[]>([]);
 	const [error, setError] = useState("");
+	const [searchVisible, setSearchVisible] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [searchDebounced, setSearchDebounced] = useState("");
 
@@ -100,6 +103,27 @@ const ArchivedRelationsScreen = (
 		const timer = setTimeout(() => setSearchDebounced(searchQuery), 250);
 		return () => clearTimeout(timer);
 	}, [searchQuery]);
+
+	useLayoutEffect(() => {
+		navigation.setOptions({
+			headerRight: () => (
+				<HeaderIconButton
+					accessibilityLabel={
+						searchVisible
+							? MESSAGES.COMMON.CLOSE_SEARCH
+							: MESSAGES.COMMON.SEARCH
+					}
+					icon={searchVisible ? "close-outline" : "search-outline"}
+					isActive={searchVisible}
+					onPress={() => {
+						setSearchVisible((visible) => !visible);
+						setSearchQuery("");
+						setSearchDebounced("");
+					}}
+				/>
+			),
+		});
+	}, [navigation, searchVisible]);
 
 	const handleRestore = useCallback(
 		async (kind: RelationKind, id: string): Promise<void> => {
@@ -234,16 +258,17 @@ const ArchivedRelationsScreen = (
 	const listHeader = useMemo(
 		() => (
 			<ListHeader>
-				<SearchBar
-					autoFocus={false}
-					onChangeText={setSearchQuery}
-					placeholder={MESSAGES.ARCHIVED.SEARCH_PLACEHOLDER}
-					value={searchQuery}
-				/>
+				{searchVisible ? (
+					<SearchBar
+						onChangeText={setSearchQuery}
+						placeholder={MESSAGES.ARCHIVED.SEARCH_PLACEHOLDER}
+						value={searchQuery}
+					/>
+				) : null}
 				{error ? <Notice message={error} tone="danger" /> : null}
 			</ListHeader>
 		),
-		[error, searchQuery],
+		[error, searchQuery, searchVisible],
 	);
 
 	const listEmpty = useMemo(

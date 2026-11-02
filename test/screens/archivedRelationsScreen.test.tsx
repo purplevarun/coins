@@ -7,6 +7,7 @@ const reactMocks = vi.hoisted(() => ({
 		if (typeof cleanup === "function") cleanup();
 	}),
 	useMemo: vi.fn((factory: () => unknown) => factory()),
+	useLayoutEffect: vi.fn<(effect: () => void) => void>(),
 	useState: vi.fn(),
 }));
 
@@ -34,6 +35,7 @@ vi.mock("react", async (importOriginal) => {
 		useCallback: reactMocks.useCallback,
 		useEffect: reactMocks.useEffect,
 		useMemo: reactMocks.useMemo,
+		useLayoutEffect: reactMocks.useLayoutEffect,
 		useState: reactMocks.useState,
 	};
 });
@@ -60,6 +62,9 @@ vi.mock("@/components/EmptyState", () => ({
 }));
 vi.mock("@/components/GlassCard", () => ({
 	default: (props: any) => ({ type: "GlassCard", props }),
+}));
+vi.mock("@/components/HeaderIconButton", () => ({
+	default: (props: any) => ({ type: "HeaderIconButton", props }),
 }));
 vi.mock("@/components/ListHeader", () => ({
 	default: (props: any) => ({ type: "ListHeader", props }),
@@ -152,6 +157,7 @@ const findByPredicate = (
 describe("ArchivedRelationsScreen", () => {
 	beforeEach(() => {
 		reactMocks.useState.mockReset();
+		reactMocks.useLayoutEffect.mockReset();
 		reactMocks.useState.mockImplementation((initial: any) => [
 			typeof initial === "function" ? initial() : initial,
 			vi.fn(),
@@ -252,8 +258,8 @@ describe("ArchivedRelationsScreen", () => {
 			if (call === 3) return [[], vi.fn()];
 			if (call === 4) return [[{ id: "i1", name: "MF" }], vi.fn()];
 			if (call === 5) return ["", setError];
-			if (call === 6) return ["mf", vi.fn()];
 			if (call === 7) return ["mf", vi.fn()];
+			if (call === 8) return ["mf", vi.fn()];
 			return [
 				typeof initial === "function" ? initial() : initial,
 				vi.fn(),
@@ -304,7 +310,7 @@ describe("ArchivedRelationsScreen", () => {
 		let call = 0;
 		reactMocks.useState.mockImplementation((initial: any) => {
 			call += 1;
-			if (call === 7) return ["term", setSearchDebounced];
+			if (call === 8) return ["term", setSearchDebounced];
 			return [
 				typeof initial === "function" ? initial() : initial,
 				vi.fn(),
@@ -315,5 +321,82 @@ describe("ArchivedRelationsScreen", () => {
 		await flush();
 
 		expect(setSearchDebounced).toHaveBeenCalledWith("");
+	});
+
+	it("toggles search from the header and clears the query", async () => {
+		const setSearchVisible = vi.fn();
+		const setSearchQuery = vi.fn();
+		const setSearchDebounced = vi.fn();
+		let call = 0;
+		reactMocks.useState.mockImplementation((initial: any) => {
+			call += 1;
+			if (call === 6) return [false, setSearchVisible];
+			if (call === 7) return ["", setSearchQuery];
+			if (call === 8) return ["", setSearchDebounced];
+			return [
+				typeof initial === "function" ? initial() : initial,
+				vi.fn(),
+			];
+		});
+		const navigation = { setOptions: vi.fn() };
+		const tree = ArchivedRelationsScreen({ navigation } as any);
+		await flush();
+
+		for (const [effect] of reactMocks.useLayoutEffect.mock.calls) effect();
+		const options = navigation.setOptions.mock.calls[0]?.[0];
+		const headerButton = options.headerRight();
+		expect(headerButton.props.icon).toBe("search-outline");
+		expect(headerButton.props.isActive).toBe(false);
+		expect(headerButton.props.accessibilityLabel).toBe("Search");
+		headerButton.props.onPress();
+		expect(setSearchVisible.mock.calls[0]?.[0](false)).toBe(true);
+		expect(setSearchQuery).toHaveBeenCalledWith("");
+		expect(setSearchDebounced).toHaveBeenCalledWith("");
+
+		const searchBars = findByPredicate(
+			tree,
+			(node) =>
+				node?.props?.placeholder === "Search archived relations...",
+		);
+		expect(searchBars.length).toBe(0);
+	});
+
+	it("shows the focused search bar when search is active", async () => {
+		const setSearchVisible = vi.fn();
+		const setSearchQuery = vi.fn();
+		const setSearchDebounced = vi.fn();
+		let call = 0;
+		reactMocks.useState.mockImplementation((initial: any) => {
+			call += 1;
+			if (call === 6) return [true, setSearchVisible];
+			if (call === 7) return ["", setSearchQuery];
+			if (call === 8) return ["", setSearchDebounced];
+			return [
+				typeof initial === "function" ? initial() : initial,
+				vi.fn(),
+			];
+		});
+		const navigation = { setOptions: vi.fn() };
+		const tree = ArchivedRelationsScreen({ navigation } as any);
+		await flush();
+
+		for (const [effect] of reactMocks.useLayoutEffect.mock.calls) effect();
+		const options = navigation.setOptions.mock.calls[0]?.[0];
+		const headerButton = options.headerRight();
+		expect(headerButton.props.icon).toBe("close-outline");
+		expect(headerButton.props.isActive).toBe(true);
+		expect(headerButton.props.accessibilityLabel).toBe("Close search");
+		headerButton.props.onPress();
+		expect(typeof setSearchVisible.mock.calls[0]?.[0]).toBe("function");
+		expect(setSearchVisible.mock.calls[0]?.[0](true)).toBe(false);
+		expect(setSearchQuery).toHaveBeenCalledWith("");
+		expect(setSearchDebounced).toHaveBeenCalledWith("");
+
+		const searchBars = findByPredicate(
+			tree,
+			(node) =>
+				node?.props?.placeholder === "Search archived relations...",
+		);
+		expect(searchBars.length).toBe(1);
 	});
 });
