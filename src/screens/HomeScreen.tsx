@@ -112,22 +112,26 @@ const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
 			>
 				<ScreenContainer isScrollable={false}>
 					<View style={styles.header}>
-						<HeaderIconButton
-							accessibilityLabel={MESSAGES.HOME.SETTINGS}
-							icon="settings-outline"
-							onPress={() => navigation.navigate("Settings")}
-						/>
 						<CustomText style={styles.appName}>
 							Purple
 							<CustomText style={styles.appNameAccent}>
 								coins
 							</CustomText>
 						</CustomText>
-						<HeaderIconButton
-							accessibilityLabel={MESSAGES.COMMON.SEARCH}
-							icon="search-outline"
-							onPress={() => navigation.navigate("GlobalSearch")}
-						/>
+						<View style={styles.headerActions}>
+							<HeaderIconButton
+								accessibilityLabel={MESSAGES.COMMON.SEARCH}
+								icon="search-outline"
+								onPress={() =>
+									navigation.navigate("GlobalSearch")
+								}
+							/>
+							<HeaderIconButton
+								accessibilityLabel={MESSAGES.HOME.SETTINGS}
+								icon="settings-outline"
+								onPress={() => navigation.navigate("Settings")}
+							/>
+						</View>
 					</View>
 					<View style={styles.grid}>
 						{[0, 1, 2, 3].map((row) => (
@@ -208,6 +212,11 @@ const themedStyles = createThemedStyles((COLORS) =>
 		},
 		appNameAccent: {
 			color: COLORS.primary,
+		},
+		headerActions: {
+			flexDirection: FLEX.ROW,
+			flexShrink: FLEX.NONE,
+			gap: SPACING.S8,
 		},
 		grid: {
 			flex: FLEX.FILL,
