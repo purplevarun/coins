@@ -1,9 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
   <title>Purplecoins faceted amethyst coin</title>
   <defs>
-    <path id="coin" fill-rule="evenodd" d="M481 238Q503 222 526 231L698 306Q720 315 731 339L782 526Q790 551 775 573L643 753Q626 776 598 778L400 752Q376 749 362 731L248 585Q231 564 238 537L289 344Q294 319 318 305ZM512 373Q504 370 497 377L449 438Q442 447 445 458L466 531Q469 540 478 544L536 568Q546 572 553 564L606 509Q614 501 611 490L592 419Q590 409 580 405Z"/>
+    <path id="coin" d="M481 238Q503 222 526 231L698 306Q720 315 731 339L782 526Q790 551 775 573L643 753Q626 776 598 778L400 752Q376 749 362 731L248 585Q231 564 238 537L289 344Q294 319 318 305Z"/>
+    <path id="table" d="M512 373Q504 370 497 377L449 438Q442 447 445 458L466 531Q469 540 478 544L536 568Q546 572 553 564L606 509Q614 501 611 490L592 419Q590 409 580 405Z"/>
     <clipPath id="facets">
-      <use href="#coin" clip-rule="evenodd"/>
+      <use href="#coin"/>
     </clipPath>
     <linearGradient id="body" x1="342" y1="282" x2="702" y2="750" gradientUnits="userSpaceOnUse">
       <stop stop-color="#BB94FA"/>
@@ -30,6 +31,11 @@
       <stop offset="0.6" stop-color="#7D43D1"/>
       <stop offset="1" stop-color="#B18AF0"/>
     </linearGradient>
+    <linearGradient id="tableFill" x1="449" y1="373" x2="611" y2="568" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B98DF4"/>
+      <stop offset="0.55" stop-color="#9963E8"/>
+      <stop offset="1" stop-color="#6F37C8"/>
+    </linearGradient>
     <linearGradient id="edge" x1="340" y1="234" x2="704" y2="765" gradientUnits="userSpaceOnUse">
       <stop stop-color="#E9D9FF" stop-opacity="0.7"/>
       <stop offset="0.45" stop-color="#BD92F4" stop-opacity="0.2"/>
@@ -47,10 +53,10 @@
       <path d="M526 231L698 306Q720 315 731 339L782 526C714 493 666 483 611 490L592 419Q590 409 580 405L512 373Q504 370 497 377C505 342 550 297 526 231Z" fill="url(#right)"/>
       <path d="M611 490C666 483 714 493 782 526Q790 551 775 573L643 753Q626 776 598 778C553 717 530 641 553 564L606 509Q614 501 611 490Z" fill="url(#lower)"/>
       <path d="M238 537C309 565 382 581 478 544L536 568Q546 572 553 564C530 641 553 717 598 778L400 752Q376 749 362 731L248 585Q231 564 238 537Z" fill="url(#left)"/>
-      <path d="M238 537C309 565 382 581 478 544M611 490C666 483 714 493 782 526" stroke="#E5D4FF" stroke-opacity="0.32" stroke-width="3"/>
-      <path d="M553 564C530 641 553 717 598 778" stroke="#C5A3F7" stroke-opacity="0.28" stroke-width="3"/>
-      <path d="M449 438Q442 447 445 458L466 531Q469 540 478 544L536 568Q546 572 553 564" stroke="#E7D4FF" stroke-opacity="0.65" stroke-width="5"/>
-      <path d="M512 373Q504 370 497 377L449 438M512 373L580 405Q590 409 592 419L611 490Q614 501 606 509" stroke="#4D217F" stroke-opacity="0.5" stroke-width="7"/>
+      <use href="#table" fill="url(#tableFill)"/>
+      <path d="M238 537C309 565 382 581 478 544M611 490C666 483 714 493 782 526" stroke="#E5D4FF" stroke-opacity="0.32" stroke-width="3" fill="none"/>
+      <path d="M553 564C530 641 553 717 598 778" stroke="#C5A3F7" stroke-opacity="0.28" stroke-width="3" fill="none"/>
+      <use href="#table" stroke="#E7D4FF" stroke-opacity="0.55" stroke-width="4" fill="none"/>
     </g>
     <use href="#coin" stroke="url(#edge)" stroke-width="2"/>
   </g>
