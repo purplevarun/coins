@@ -31,22 +31,14 @@ const COMMON = {
 
 const HOME = {
 	ANALYSIS_LABEL: "Analysis",
-	ANALYSIS_SUBTITLE: "Category-driven",
 	CARDS_LABEL: "Cards",
-	CARDS_SUBTITLE: "Payment details",
 	CATEGORIES_LABEL: "Categories",
-	CATEGORIES_SUBTITLE: "Income & expense",
 	INVESTMENTS_LABEL: "Investments",
-	INVESTMENTS_SUBTITLE: "Invested & redeemed",
 	PASSWORDS_LABEL: "Passwords",
-	PASSWORDS_SUBTITLE: "Local credentials",
 	SETTINGS: "Settings",
 	SOURCES_LABEL: "Sources",
-	SOURCES_SUBTITLE: "Accounts & cards",
 	TRANSACTIONS_LABEL: "Transactions",
-	TRANSACTIONS_SUBTITLE: "Money movements",
 	TRIPS_LABEL: "Trips",
-	TRIPS_SUBTITLE: "Travel spending",
 } as const;
 
 const TRANSACTIONS = {

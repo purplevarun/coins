@@ -8,7 +8,7 @@ import useThemedStyles from "@/hooks/useThemedStyles";
 import type GlassCardProps from "@/types/GlassCardProps";
 import createThemedStyles from "@/utils/createThemedStyles";
 
-const { BORDER, OVERFLOW, RADIUS, SHADOW, SPACING } = styleConstants;
+const { BORDER, FLEX, OVERFLOW, RADIUS, SHADOW, SPACING } = styleConstants;
 
 const getAccentColor = (
 	COLORS: ThemeColors,
@@ -63,6 +63,7 @@ const themedStyles = createThemedStyles((COLORS) =>
 			elevation: SHADOW.ELEVATION_LOW,
 		},
 		content: {
+			flexGrow: FLEX.FILL,
 			backgroundColor: COLORS.glass,
 			padding: SPACING.S16,
 		},
