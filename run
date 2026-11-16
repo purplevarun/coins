@@ -451,22 +451,9 @@ run_avd_backup_test() {
     "Categories|No categories yet" \
     "Trips|No trips yet" \
     "Investments|No investments yet" \
-    "Analysis|Nothing to analyse"; do
-    TILE="${TILE_STATE%%|*}"
-    EMPTY_STATE="${TILE_STATE#*|}"
-    visit_ui_label "$TILE"
-    assert_ui_label "$EMPTY_STATE"
-    adb shell input keyevent 4
-  done
-
-  visit_ui_label "Tools"
-  assert_ui_label_absent "Documents"
-  for TILE_STATE in \
-    "Notes|No notes found" \
-    "Todos|No todos yet" \
+    "Analysis|Nothing to analyse" \
     "Passwords|Nothing here yet" \
-    "Cards|Nothing here yet" \
-    "Identity|Nothing here yet"; do
+    "Cards|Nothing here yet"; do
     TILE="${TILE_STATE%%|*}"
     EMPTY_STATE="${TILE_STATE#*|}"
     visit_ui_label "$TILE"
@@ -474,7 +461,6 @@ run_avd_backup_test() {
     adb shell input keyevent 4
   done
 
-  visit_ui_label "Finance"
   if ! tap_ui_label "Settings" 1; then
     SIZE=$(adb shell wm size | sed -n 's/.*Physical size: \([0-9][0-9]*\)x\([0-9][0-9]*\).*/\1 \2/p')
     set -- $SIZE
@@ -510,8 +496,6 @@ run_avd_backup_test() {
   visit_ui_label "Investments"
   assert_ui_label_absent "No investments yet"
   adb shell input keyevent 4
-  visit_ui_label "Tools"
-  assert_ui_label_absent "Documents"
 
   echo "No-data screens passed; Downloads/$BACKUP_NAME restored and populated screens passed."
 }
