@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Purplecoins — Personal finance, kept private</title>
+		<meta
+			name="description"
+			content="Purplecoins is an offline-first Android app for tracking transactions, sources, categories, trips, investments and more — with portable .pc backups."
+		/>
+		<link rel="icon" type="image/svg+xml" href="./icon.svg" />
+		<style>
+			:root {
+				--bg: #120e1d;
+				--bg-tint: #1c1530;
+				--card: #211a38;
+				--text: #f4f1fb;
+				--muted: #a99fc7;
+				--primary: #a78bfa;
+				--primary-dark: #7c5ce0;
+				--border: #342a52;
+			}
+			* {
+				box-sizing: border-box;
+				margin: 0;
+			}
+			body {
+				background:
+					radial-gradient(80% 60% at 50% 0%, var(--bg-tint), transparent),
+					var(--bg);
+				color: var(--text);
+				font-family:
+					-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+					Helvetica, Arial, sans-serif;
+				min-height: 100vh;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				padding: 48px 20px 32px;
+			}
+			main {
+				width: 100%;
+				max-width: 720px;
+				text-align: center;
+			}
+			.logo {
+				width: 120px;
+				height: 120px;
+				filter: drop-shadow(0 12px 32px rgba(124, 92, 224, 0.45));
+			}
+			h1 {
+				font-size: clamp(2.2rem, 6vw, 3.4rem);
+				font-weight: 900;
+				letter-spacing: -0.02em;
+				margin-top: 20px;
+			}
+			h1 span {
+				color: var(--primary);
+			}
+			.tagline {
+				color: var(--muted);
+				font-size: 1.15rem;
+				line-height: 1.6;
+				margin: 16px auto 0;
+				max-width: 540px;
+			}
+			.cta {
+				display: inline-flex;
+				align-items: center;
+				gap: 10px;
+				background: linear-gradient(
+					135deg,
+					var(--primary),
+					var(--primary-dark)
+				);
+				color: #fff;
+				font-size: 1.15rem;
+				font-weight: 700;
+				padding: 16px 34px;
+				border-radius: 16px;
+				text-decoration: none;
+				margin-top: 36px;
+				box-shadow: 0 12px 32px rgba(124, 92, 224, 0.4);
+				transition:
+					transform 0.15s ease,
+					box-shadow 0.15s ease;
+			}
+			.cta:hover {
+				transform: translateY(-2px);
+				box-shadow: 0 16px 40px rgba(124, 92, 224, 0.55);
+			}
+			.version {
+				display: block;
+				margin-top: 14px;
+				color: var(--muted);
+				font-size: 0.9rem;
+			}
+			.version a {
+				color: var(--muted);
+			}
+			.features {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+				gap: 14px;
+				margin-top: 52px;
+				text-align: left;
+			}
+			.feature {
+				background: var(--card);
+				border: 1px solid var(--border);
+				border-radius: 16px;
+				padding: 20px;
+			}
+			.feature h2 {
+				font-size: 1rem;
+				font-weight: 800;
+				margin-bottom: 6px;
+			}
+			.feature p {
+				color: var(--muted);
+				font-size: 0.9rem;
+				line-height: 1.5;
+			}
+			footer {
+				margin-top: 56px;
+				color: var(--muted);
+				font-size: 0.85rem;
+			}
+			footer a {
+				color: var(--primary);
+				text-decoration: none;
+			}
+		</style>
+	</head>
+	<body>
+		<main>
+			<img class="logo" src="./icon.svg" alt="Purplecoins logo" />
+			<h1>Purple<span>coins</span></h1>
+			<p class="tagline">
+				An offline-first Android app for personal finance — track
+				transactions, sources, categories, trips and investments, plus a
+				local vault for passwords and cards. Your data stays on your
+				device, backed up as portable .pc files.
+			</p>
+			<a class="cta" href="{{DOWNLOAD_URL}}">
+				<svg
+					width="22"
+					height="22"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+					<polyline points="7 10 12 15 17 10" />
+					<line x1="12" y1="15" x2="12" y2="3" />
+				</svg>
+				Download APK
+			</a>
+			<span class="version"
+				>Latest release {{VERSION}} ·
+				<a href="{{RELEASES_URL}}">all releases</a></span
+			>
+			<section class="features">
+				<div class="feature">
+					<h2>Transactions</h2>
+					<p>
+						Income, expense, transfer and investment entries with
+						itemized categories, trips and sources.
+					</p>
+				</div>
+				<div class="feature">
+					<h2>Analysis</h2>
+					<p>
+						Trends and breakdowns across categories, trips and
+						sources — fully offline.
+					</p>
+				</div>
+				<div class="feature">
+					<h2>Vault</h2>
+					<p>
+						Keep passwords and card details alongside your finances
+						in a local-only vault.
+					</p>
+				</div>
+				<div class="feature">
+					<h2>Portable backups</h2>
+					<p>
+						Export and restore your entire database as a single .pc
+						file — no account, no cloud.
+					</p>
+				</div>
+			</section>
+		</main>
+		<footer>
+			<a href="{{REPO_URL}}">Source on GitHub</a>
+		</footer>
+	</body>
+</html>

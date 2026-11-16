@@ -63,4 +63,4 @@ __pycache__/
 
 /bun.lock
 /package-lock.json
-/yarn.lock
+/yarn.lockgh-pages/dist/
