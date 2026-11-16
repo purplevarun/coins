@@ -62,6 +62,7 @@ describe("categoryService", () => {
 				name: "Rent",
 				kind: "EXPENSE",
 				isIncome: 0,
+				tripAgnostic: 1,
 				archived: 1,
 			},
 		]);
@@ -87,6 +88,7 @@ describe("categoryService", () => {
 			expect.objectContaining({
 				kind: "EXPENSE",
 				isIncome: false,
+				tripAgnostic: true,
 				archived: true,
 			}),
 		]);
@@ -152,6 +154,7 @@ describe("categoryService", () => {
 			undefined,
 			"  Rent  ",
 			"EXPENSE",
+			true,
 		);
 		expect(createdId).toBe("category-id");
 		expect(mocks.upsertCategoryRow).toHaveBeenCalledWith(
@@ -161,6 +164,7 @@ describe("categoryService", () => {
 				name: "Rent",
 				kind: "EXPENSE",
 				isIncome: false,
+				tripAgnostic: true,
 				createdAt: new Date("2026-08-25T12:00:00.000Z").getTime(),
 				updatedAt: new Date("2026-08-25T12:00:00.000Z").getTime(),
 				archived: false,
@@ -191,6 +195,7 @@ describe("categoryService", () => {
 				name: "New",
 				kind: "INCOME",
 				isIncome: true,
+				tripAgnostic: false,
 				createdAt: 123,
 				archived: true,
 			}),

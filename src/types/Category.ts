@@ -5,6 +5,7 @@ type Category = Readonly<{
 	name: string;
 	kind: CategoryKind;
 	isIncome: boolean;
+	tripAgnostic?: boolean;
 	createdAt: number;
 	updatedAt: number;
 	archived: boolean;

@@ -525,6 +525,7 @@ describe("financeRepository", () => {
 			"c1",
 			"Food",
 			"EXPENSE",
+			0,
 			1,
 			2,
 		);
@@ -534,6 +535,7 @@ describe("financeRepository", () => {
 			name: "Salary",
 			kind: "INCOME",
 			isIncome: true,
+			tripAgnostic: true,
 			createdAt: 3,
 			updatedAt: 4,
 			archived: false,
@@ -543,6 +545,7 @@ describe("financeRepository", () => {
 			"c2",
 			"Salary",
 			"INCOME",
+			1,
 			3,
 			4,
 		);
@@ -840,6 +843,7 @@ describe("financeRepository", () => {
 			name: "Food",
 			kind: "EXPENSE",
 			isIncome: false,
+			tripAgnostic: true,
 			createdAt: 1,
 			updatedAt: 2,
 			archived: false,
@@ -848,6 +852,7 @@ describe("financeRepository", () => {
 			expect.stringContaining("UPDATE categories"),
 			"Food",
 			"EXPENSE",
+			1,
 			2,
 			"c1",
 		);

@@ -146,6 +146,11 @@ const prepareExpenseInput = async (
 					"CATEGORY_NOT_FOUND",
 					"The selected category no longer exists.",
 				);
+			if (input.tripId && category.tripAgnostic)
+				throw new AppError(
+					"TRIP_AGNOSTIC_CATEGORY",
+					`"${category.name.trim()}" is trip agnostic. Remove the trip or pick another category.`,
+				);
 			items.push({ ...item, amount });
 			categoryNames.add(category.name.trim());
 		} catch (error) {
@@ -210,10 +215,17 @@ const prepareTransactionInput = async (
 		if (!input.categoryId) {
 			throw new AppError("CATEGORY_REQUIRED", "Select a category.");
 		}
-		if (!(await getCategoryRow(database, input.categoryId))) {
+		const category = await getCategoryRow(database, input.categoryId);
+		if (!category) {
 			throw new AppError(
 				"CATEGORY_NOT_FOUND",
 				"The selected category no longer exists.",
+			);
+		}
+		if (input.tripId && category.tripAgnostic) {
+			throw new AppError(
+				"TRIP_AGNOSTIC_CATEGORY",
+				`"${category.name.trim()}" is trip agnostic. Remove the trip or pick another category.`,
 			);
 		}
 		return {

@@ -360,6 +360,99 @@ describe("transactionService", () => {
 		);
 	});
 
+	it("rejects a trip when an expense item category is trip agnostic", async () => {
+		mocks.getCategoryRow.mockResolvedValueOnce({
+			id: "c1",
+			name: "Fuel",
+			tripAgnostic: 1,
+		});
+
+		await expect(
+			transactionService.saveTransaction(database, {
+				classification: "GENERAL",
+				type: "DEBIT",
+				sourceId: "s1",
+				tripId: "tr1",
+				amount: "10",
+				reason: "ok",
+				transactionAt: 1,
+				items: [{ categoryId: "c1", amount: "10" }],
+			}),
+		).rejects.toMatchObject({
+			code: "TRIP_AGNOSTIC_CATEGORY",
+			message:
+				'Item 1: "Fuel" is trip agnostic. Remove the trip or pick another category.',
+		});
+		expect(mocks.createTransactionRow).not.toHaveBeenCalled();
+	});
+
+	it("saves a trip-agnostic expense when no trip is selected", async () => {
+		mocks.getCategoryRow.mockResolvedValueOnce({
+			id: "c1",
+			name: "Fuel",
+			tripAgnostic: 1,
+		});
+
+		await transactionService.saveTransaction(database, {
+			classification: "GENERAL",
+			type: "DEBIT",
+			sourceId: "s1",
+			amount: "10",
+			reason: "ok",
+			transactionAt: 1,
+			items: [{ categoryId: "c1", amount: "10" }],
+		});
+		const savedInput = mocks.createTransactionRow.mock
+			.calls[0]?.[1] as { tripId?: string };
+		expect(savedInput.tripId).toBeUndefined();
+	});
+
+	it("rejects a trip when the credit category is trip agnostic", async () => {
+		mocks.getCategoryRow.mockResolvedValueOnce({
+			id: "c1",
+			name: "Refund",
+			tripAgnostic: 1,
+		});
+
+		await expect(
+			transactionService.saveTransaction(database, {
+				classification: "GENERAL",
+				type: "CREDIT",
+				sourceId: "s1",
+				categoryId: "c1",
+				tripId: "tr1",
+				amount: "10",
+				reason: "ok",
+				transactionAt: 1,
+			}),
+		).rejects.toMatchObject({ code: "TRIP_AGNOSTIC_CATEGORY" });
+	});
+
+	it("keeps the trip when the credit category is not trip agnostic", async () => {
+		mocks.getCategoryRow.mockResolvedValueOnce({
+			id: "c1",
+			name: "Salary",
+			tripAgnostic: 0,
+		});
+
+		await transactionService.saveTransaction(database, {
+			classification: "GENERAL",
+			type: "CREDIT",
+			sourceId: "s1",
+			categoryId: "c1",
+			tripId: "tr1",
+			amount: "10",
+			reason: "ok",
+			transactionAt: 1,
+		});
+		expect(mocks.createTransactionRow).toHaveBeenCalledWith(
+			database,
+			expect.objectContaining({ tripId: "tr1" }),
+			"new-transaction-id",
+			expect.any(Number),
+		);
+	});
+
 	it("fails when a blank non-transfer reason has no matching category", async () => {
 		mocks.getCategoryRow.mockResolvedValueOnce(null);
 

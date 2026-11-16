@@ -1,7 +1,7 @@
 import CustomText from "@/components/CustomText";
 
 import { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Switch, View } from "react-native";
 
 import AppButton from "@/components/AppButton";
 import GlassCard from "@/components/GlassCard";
@@ -14,6 +14,7 @@ import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
+import useTheme from "@/hooks/useTheme";
 import useThemedStyles from "@/hooks/useThemedStyles";
 import categoryService from "@/services/categoryService";
 import type CategoryFormScreenProps from "@/types/CategoryFormScreenProps";
@@ -28,6 +29,7 @@ const CategoryFormScreen = ({
 	route,
 }: CategoryFormScreenProps): React.JSX.Element => {
 	const styles = useThemedStyles(themedStyles);
+	const { colors: COLORS } = useTheme();
 	const { database, refreshData } = useDatabaseContext();
 	const dialog = useAppDialog();
 	const entityId = route.params?.entityId;
@@ -36,6 +38,7 @@ const CategoryFormScreen = ({
 	const [originalKind, setOriginalKind] = useState<CategoryKind>(
 		DEFAULT_CATEGORY_KIND,
 	);
+	const [tripAgnostic, setTripAgnostic] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	const [error, setError] = useState("");
 
@@ -50,6 +53,7 @@ const CategoryFormScreen = ({
 					setName(category.name);
 					setKind(category.kind);
 					setOriginalKind(category.kind);
+					setTripAgnostic(Boolean(category.tripAgnostic));
 				}
 			} catch (caughtError: unknown) {
 				setError(getErrorMessage(caughtError));
@@ -62,7 +66,7 @@ const CategoryFormScreen = ({
 		setIsSaving(true);
 		setError("");
 		try {
-			await saveCategory(database, entityId, name, kind);
+			await saveCategory(database, entityId, name, kind, tripAgnostic);
 			// Bump dataVersion first so CategoriesScreen reloads when we pop back
 			refreshData();
 			// Small delay to ensure the state update propagates before navigation
@@ -123,6 +127,34 @@ const CategoryFormScreen = ({
 							value={kind}
 						/>
 					</View>
+					<View style={styles.switchRow}>
+						<View style={styles.switchContent}>
+							<View style={styles.switchText}>
+								<CustomText style={styles.switchTitle}>
+									Trip agnostic
+								</CustomText>
+								<CustomText style={styles.switchDescription}>
+									Transactions using this category cannot be
+									tagged to a trip.
+								</CustomText>
+							</View>
+							<Switch
+								accessibilityLabel="Trip agnostic"
+								value={tripAgnostic}
+								onValueChange={setTripAgnostic}
+								disabled={isSaving}
+								trackColor={{
+									false: COLORS.borderStrong,
+									true: COLORS.primaryMuted,
+								}}
+								thumbColor={
+									tripAgnostic
+										? COLORS.primary
+										: COLORS.textMuted
+								}
+							/>
+						</View>
+					</View>
 					{error ? <Notice message={error} tone="danger" /> : null}
 					<AppButton
 						isLoading={isSaving}
@@ -136,6 +168,7 @@ const CategoryFormScreen = ({
 };
 
 const {
+	ALIGN,
 	BORDER,
 	FLEX,
 	FONT_SIZE,
@@ -164,6 +197,11 @@ const themedStyles = createThemedStyles((COLORS) =>
 			borderWidth: BORDER.THIN,
 			borderColor: COLORS.border,
 			backgroundColor: COLORS.surfaceSoft,
+		},
+		switchContent: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S12,
 		},
 		switchText: {
 			flex: FLEX.FILL,

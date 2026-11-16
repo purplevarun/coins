@@ -343,6 +343,69 @@ describe("TransactionFormScreen", () => {
 		},
 	);
 
+	it("clears the trip when a trip-agnostic category is picked", () => {
+		const harness = createFormHarness(
+			new Map<number, unknown>([
+				[2, "CREDIT"],
+				[8, "tr1"],
+				[
+					13,
+					[
+						{
+							id: "c1",
+							name: "Fuel",
+							kind: "EXPENSE",
+							isIncome: false,
+							tripAgnostic: true,
+						},
+						{
+							id: "c2",
+							name: "Salary",
+							kind: "INCOME",
+							isIncome: true,
+						},
+					],
+				],
+			]),
+		);
+		const tree = harness.render();
+		const categoryField = formElements<ComponentProps<typeof SelectField>>(
+			tree,
+			SelectField,
+		).find((field) => field.props.label === "Category");
+		categoryField?.props.onChange("c1");
+		expect(harness.values.get(8)).toBe("");
+		harness.values.set(8, "tr1");
+		categoryField?.props.onChange("c2");
+		expect(harness.values.get(8)).toBe("tr1");
+	});
+
+	it("clears the trip when a trip-agnostic item category is picked", () => {
+		const harness = createFormHarness(
+			new Map<number, unknown>([
+				[8, "tr1"],
+				[
+					13,
+					[
+						{
+							id: "c1",
+							name: "Fuel",
+							kind: "EXPENSE",
+							isIncome: false,
+							tripAgnostic: true,
+						},
+					],
+				],
+				[18, [{ key: "one", amount: "10", categoryId: "" }]],
+			]),
+		);
+		const tree = harness.render();
+		formElements<ComponentProps<typeof SelectField>>(tree, SelectField)
+			.find((field) => field.props.label === "Category")
+			?.props.onChange("c1");
+		expect(harness.values.get(8)).toBe("");
+	});
+
 	it.each([
 		["GENERAL", "DEBIT", "Category"],
 		["GENERAL", "CREDIT", "Category"],

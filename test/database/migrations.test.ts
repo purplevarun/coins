@@ -40,6 +40,48 @@ describe("migration baseline", () => {
 		).toEqual({ is_applicable: 0 });
 	});
 
+	it("adds trip_agnostic to legacy categories and preserves flags on repeated migration", async () => {
+		const { database, sqlite } = createTestDatabase();
+		await database.execAsync(SCHEMA_SQL);
+		sqlite.exec("ALTER TABLE categories DROP COLUMN trip_agnostic;");
+		const categoryId = randomUUID();
+		sqlite
+			.prepare(
+				"INSERT INTO categories (id, name, kind) VALUES (?, 'Kept category', 'EXPENSE');",
+			)
+			.run(categoryId);
+		await migrateDatabase(database);
+		expect(
+			sqlite.prepare("SELECT id, trip_agnostic FROM categories;").all(),
+		).toEqual([{ id: categoryId, trip_agnostic: 0 }]);
+		sqlite
+			.prepare("UPDATE categories SET trip_agnostic = 1 WHERE id = ?;")
+			.run(categoryId);
+		await migrateDatabase(database);
+		expect(
+			sqlite.prepare("SELECT trip_agnostic FROM categories;").get(),
+		).toEqual({ trip_agnostic: 1 });
+	});
+
+	it("removes the obsolete daily vacuum marker", async () => {
+		const { database, sqlite } = createTestDatabase();
+		await database.execAsync(SCHEMA_SQL);
+		sqlite
+			.prepare(
+				"INSERT INTO settings (key, value, updated_at) VALUES ('database.lastVacuumDay', '2026-10-19', 1);",
+			)
+			.run();
+		sqlite
+			.prepare(
+				"INSERT INTO settings (key, value, updated_at) VALUES ('other.key', 'v', 1);",
+			)
+			.run();
+		await migrateDatabase(database);
+		expect(
+			sqlite.prepare("SELECT key FROM settings ORDER BY key;").all(),
+		).toEqual([{ key: "other.key" }]);
+	});
+
 	it("normalizes missing applicability on fresh schemas without SQL defaults", async () => {
 		const { database, sqlite } = createTestDatabase();
 		await database.execAsync(SCHEMA_SQL);
@@ -145,6 +187,7 @@ describe("migration baseline", () => {
 
 	it("finalizes metadata statements and propagates migration failures", async () => {
 		const { database } = createTestDatabase();
+		await database.execAsync(SCHEMA_SQL);
 		const finalizeAsync = vi.fn().mockResolvedValue(undefined);
 		vi.spyOn(database, "prepareAsync").mockResolvedValueOnce({
 			getColumnNamesAsync: vi

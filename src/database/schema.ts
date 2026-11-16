@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS categories (
 	id TEXT,
 	name TEXT,
 	kind TEXT,
+	trip_agnostic INTEGER,
 	archived INTEGER,
 	created_at INTEGER,
 	updated_at INTEGER

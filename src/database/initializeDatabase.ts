@@ -2,35 +2,18 @@ import appConstants from "@/constants/appConstants";
 
 import { migrateDatabase } from "@/database/migrations";
 import SCHEMA_SQL from "@/database/schema";
-import settingsRepository from "@/repositories/settingsRepository";
 import type SqliteTableRow from "@/types/SqliteTableRow";
 import { Directory, File, Paths } from "expo-file-system";
 import { openDatabaseAsync, type SQLiteDatabase } from "expo-sqlite";
 
-const { DATABASE_NAME, LAST_VACUUM_DAY_KEY } = appConstants;
-const { getSettingRow, upsertSettingRow } = settingsRepository;
+const { DATABASE_NAME } = appConstants;
 const databasesBeingVacuumed = new WeakSet<SQLiteDatabase>();
 
-const vacuumDatabaseIfNeeded = async (
-	database: SQLiteDatabase,
-): Promise<boolean> => {
-	if (databasesBeingVacuumed.has(database)) return false;
+const vacuumDatabase = async (database: SQLiteDatabase): Promise<void> => {
+	if (databasesBeingVacuumed.has(database)) return;
 	databasesBeingVacuumed.add(database);
 	try {
-		const now = new Date();
-		const day = [now.getFullYear(), now.getMonth() + 1, now.getDate()].join(
-			"-",
-		);
-		if ((await getSettingRow(database, LAST_VACUUM_DAY_KEY)) === day)
-			return false;
 		await database.execAsync("VACUUM;");
-		await upsertSettingRow(
-			database,
-			LAST_VACUUM_DAY_KEY,
-			day,
-			now.getTime(),
-		);
-		return true;
 	} finally {
 		databasesBeingVacuumed.delete(database);
 	}
@@ -71,5 +54,5 @@ const initializeDatabase = async (): Promise<SQLiteDatabase> => {
 	}
 };
 
-export { vacuumDatabaseIfNeeded };
+export { vacuumDatabase };
 export default initializeDatabase;

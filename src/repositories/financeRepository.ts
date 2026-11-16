@@ -249,6 +249,7 @@ const getCategoryRows = async (
 			category.id,
 			category.name,
 			category.kind AS kind,
+			COALESCE(category.trip_agnostic, 0) AS tripAgnostic,
 			category.created_at AS createdAt,
 			category.updated_at AS updatedAt,
 			COALESCE(category.archived, 0) AS archived
@@ -280,6 +281,7 @@ const getArchivedCategoryRows = async (
 			id,
 			name,
 			kind AS kind,
+			COALESCE(trip_agnostic, 0) AS tripAgnostic,
 			created_at AS createdAt,
 			updated_at AS updatedAt,
 			COALESCE(archived, 0) AS archived
@@ -298,6 +300,7 @@ const getCategoryRow = async (
 				id,
 				name,
 				kind AS kind,
+				COALESCE(trip_agnostic, 0) AS tripAgnostic,
 				created_at AS createdAt,
 				updated_at AS updatedAt,
 				COALESCE(archived, 0) AS archived
@@ -312,9 +315,10 @@ const upsertCategoryRow = async (
 	category: Category,
 ): Promise<void> => {
 	const result = await database.runAsync(
-		`UPDATE categories SET name = ?, kind = ?, updated_at = ? WHERE id = ?;`,
+		`UPDATE categories SET name = ?, kind = ?, trip_agnostic = ?, updated_at = ? WHERE id = ?;`,
 		category.name,
 		category.kind,
+		category.tripAgnostic ? 1 : 0,
 		category.updatedAt,
 		category.id,
 	);
@@ -322,12 +326,13 @@ const upsertCategoryRow = async (
 	await database.runAsync(
 		`
 			INSERT INTO categories (
-				id, name, kind, created_at, updated_at
-			) VALUES (?, ?, ?, ?, ?);
+				id, name, kind, trip_agnostic, created_at, updated_at
+			) VALUES (?, ?, ?, ?, ?, ?);
 		`,
 		category.id,
 		category.name,
 		category.kind,
+		category.tripAgnostic ? 1 : 0,
 		category.createdAt,
 		category.updatedAt,
 	);

@@ -20,6 +20,7 @@ const {
 const mapCategory = (category: Category): Category => ({
 	...category,
 	isIncome: category.kind === "INCOME",
+	tripAgnostic: Boolean(category.tripAgnostic),
 	archived: Boolean(category.archived),
 });
 
@@ -51,6 +52,7 @@ const saveCategory = async (
 	id: string | undefined,
 	name: string,
 	kind: CategoryKind,
+	tripAgnostic = false,
 ): Promise<string> => {
 	const normalizedName = name.trim();
 	if (!normalizedName) {
@@ -73,6 +75,7 @@ const saveCategory = async (
 		name: normalizedName,
 		kind,
 		isIncome: kind === "INCOME",
+		tripAgnostic,
 		createdAt: existingCategory?.createdAt ?? now,
 		updatedAt: now,
 		archived: existingCategory?.archived ?? false,

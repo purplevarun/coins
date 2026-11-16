@@ -23,7 +23,6 @@ const COMMON = {
 	SELECT: "Select",
 	SEND: "Send",
 	VALIDATE: "Validate",
-	VACUUM_DONE: "Vacuum done!",
 	VIEW: "View",
 	UNABLE_TO_ARCHIVE: "Unable to archive",
 	UNABLE_TO_DELETE: "Unable to delete",

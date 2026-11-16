@@ -6,8 +6,6 @@ const {
 	execAsync,
 	closeAsync,
 	getFirstAsync,
-	getSettingRow,
-	upsertSettingRow,
 	cacheList,
 	cacheDelete,
 	openDatabaseAsync,
@@ -32,10 +30,6 @@ const {
 		execAsync: mockedExecAsync,
 		closeAsync: mockedCloseAsync,
 		getFirstAsync: mockedGetFirstAsync,
-		getSettingRow: vi.fn<TestAsyncFunction>().mockResolvedValue(null),
-		upsertSettingRow: vi
-			.fn<TestAsyncFunction>()
-			.mockResolvedValue(undefined),
 		cacheList,
 		cacheDelete,
 		openDatabaseAsync: mockedOpenDatabaseAsync,
@@ -44,10 +38,6 @@ const {
 
 vi.mock("expo-sqlite", () => ({
 	openDatabaseAsync,
-}));
-
-vi.mock("@/repositories/settingsRepository", () => ({
-	default: { getSettingRow, upsertSettingRow },
 }));
 
 vi.mock("expo-file-system", () => {
@@ -77,7 +67,6 @@ import { Directory, File } from "expo-file-system";
 vi.mock("@/constants/appConstants", () => ({
 	default: {
 		DATABASE_NAME: "test.db",
-		LAST_VACUUM_DAY_KEY: "database.lastVacuumDay",
 	},
 }));
 
@@ -91,7 +80,7 @@ vi.mock("@/database/schema", () => ({
 }));
 
 import initializeDatabase, {
-	vacuumDatabaseIfNeeded,
+	vacuumDatabase,
 } from "@/database/initializeDatabase";
 
 describe("initializeDatabase", () => {
@@ -113,8 +102,6 @@ describe("initializeDatabase", () => {
 		closeAsync.mockClear();
 		openDatabaseAsync.mockClear();
 		getFirstAsync.mockReset().mockResolvedValue(null);
-		getSettingRow.mockReset().mockResolvedValue(null);
-		upsertSettingRow.mockReset().mockResolvedValue(undefined);
 		cacheList.mockReset().mockReturnValue([]);
 		cacheDelete.mockReset();
 	});
@@ -172,70 +159,29 @@ describe("initializeDatabase", () => {
 		expect(closeAsync).toHaveBeenCalledOnce();
 	});
 
-	it("skips compaction on later runs of the same local day", async () => {
+	it("compacts on every run", async () => {
 		const database =
 			(await openDatabaseAsync()) as unknown as SQLiteDatabase;
-		getSettingRow
-			.mockResolvedValueOnce(null)
-			.mockResolvedValueOnce("2026-10-19");
-		vi.setSystemTime(new Date(2026, 9, 19, 23, 55));
-		expect(await vacuumDatabaseIfNeeded(database)).toBe(true);
-		expect(await vacuumDatabaseIfNeeded(database)).toBe(false);
+		await vacuumDatabase(database);
+		await vacuumDatabase(database);
 		expect(
 			execAsync.mock.calls.filter(([sql]) => sql === "VACUUM;"),
-		).toHaveLength(1);
-		expect(upsertSettingRow).toHaveBeenCalledOnce();
+		).toHaveLength(2);
 	});
 
-	it("compacts again on the first run of the next local day", async () => {
-		const database =
-			(await openDatabaseAsync()) as unknown as SQLiteDatabase;
-		getSettingRow.mockResolvedValueOnce("2026-10-19");
-		vi.setSystemTime(new Date(2026, 9, 20, 0, 1));
-		expect(await vacuumDatabaseIfNeeded(database)).toBe(true);
-		expect(execAsync).toHaveBeenLastCalledWith("VACUUM;");
-		expect(upsertSettingRow).toHaveBeenCalledWith(
-			database,
-			"database.lastVacuumDay",
-			"2026-10-20",
-			Date.now(),
-		);
-	});
-
-	it("does not mark failed compaction complete and retries on the next run", async () => {
+	it("propagates compaction failures and retries on the next run", async () => {
 		const database =
 			(await openDatabaseAsync()) as unknown as SQLiteDatabase;
 		execAsync.mockRejectedValueOnce(new Error("vacuum failed"));
-		await expect(vacuumDatabaseIfNeeded(database)).rejects.toThrow(
-			"vacuum failed",
-		);
-		expect(upsertSettingRow).not.toHaveBeenCalled();
-		expect(await vacuumDatabaseIfNeeded(database)).toBe(true);
-		expect(upsertSettingRow).toHaveBeenCalledOnce();
+		await expect(vacuumDatabase(database)).rejects.toThrow("vacuum failed");
+		await vacuumDatabase(database);
+		expect(execAsync).toHaveBeenLastCalledWith("VACUUM;");
 	});
 
-	it("does not report success when saving the completion marker fails", async () => {
+	it("prevents overlapping compactions on the same connection", async () => {
 		const database =
 			(await openDatabaseAsync()) as unknown as SQLiteDatabase;
-		upsertSettingRow.mockRejectedValueOnce(
-			new Error("settings write failed"),
-		);
-		await expect(vacuumDatabaseIfNeeded(database)).rejects.toThrow(
-			"settings write failed",
-		);
-	});
-
-	it("prevents overlapping compaction checks on the same connection", async () => {
-		const database =
-			(await openDatabaseAsync()) as unknown as SQLiteDatabase;
-		getSettingRow.mockImplementationOnce(() => Promise.resolve(null));
-		const results = await Promise.all([
-			vacuumDatabaseIfNeeded(database),
-			vacuumDatabaseIfNeeded(database),
-		]);
-		expect(results).toEqual([true, false]);
-		expect(getSettingRow).toHaveBeenCalledOnce();
+		await Promise.all([vacuumDatabase(database), vacuumDatabase(database)]);
 		expect(execAsync).toHaveBeenCalledExactlyOnceWith("VACUUM;");
-		expect(upsertSettingRow).toHaveBeenCalledOnce();
 	});
 });

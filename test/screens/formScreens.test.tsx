@@ -356,8 +356,8 @@ describe("form screens", () => {
 				Screen: CategoryFormScreen,
 				load: "getCategory",
 				save: "saveCategory",
-				savingIndex: 4,
-				errorIndex: 5,
+				savingIndex: 5,
+				errorIndex: 6,
 				values: { 2: "INCOME", 3: "INCOME" },
 			},
 			{
@@ -495,7 +495,7 @@ describe("form screens", () => {
 					source: entityId
 						? [entityId, "Entered"]
 						: ["Entered", "USD"],
-					category: [entityId, "Entered", "INCOME"],
+					category: [entityId, "Entered", "INCOME", false],
 					trip: [entityId, "Entered", "trip-type"],
 					investment: [entityId, "Entered", "type", "platform"],
 				};
@@ -613,6 +613,7 @@ describe("form screens", () => {
 					"category",
 					"Category",
 					nextKind,
+					false,
 				);
 				expect(navigation.goBack).toHaveBeenCalledOnce();
 				findElement<{
@@ -629,6 +630,26 @@ describe("form screens", () => {
 				expect(setters.get(2)).toHaveBeenLastCalledWith("EXPENSE");
 			},
 		);
+
+		it("renders and toggles the trip-agnostic switch on the category form", () => {
+			const setters = setStateValues({ 4: true });
+			const tree = (
+				CategoryFormScreen as (props: unknown) => ReactElement
+			)({
+				navigation: { goBack: vi.fn() },
+				route: { params: { entityId: "category" } },
+			});
+			const toggle = findElement<{
+				accessibilityLabel?: string;
+				onValueChange: (value: boolean) => void;
+				thumbColor?: string;
+				value: boolean;
+			}>(tree, (props) => props.accessibilityLabel === "Trip agnostic");
+			expect(toggle.props.value).toBe(true);
+			expect(toggle.props.thumbColor).toBeTruthy();
+			toggle.props.onValueChange(false);
+			expect(setters.get(4)).toHaveBeenCalledWith(false);
+		});
 
 		it("uses selection-only investment relations and saves with no type", async () => {
 			const setters = setStateValues({ 1: "Fund", 2: "", 4: "" });

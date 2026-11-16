@@ -7,11 +7,9 @@ const DEFAULT_PAGE_SIZE = 100;
 const DEFAULT_TRANSACTION_VIEW_MODE = "SCROLL" as const;
 const EXCHANGE_RATE_API_URL = "https://api.frankfurter.dev/v2/rates";
 const LEGACY_BACKUP_EXTENSION = ".purplecoins";
-const LAST_VACUUM_DAY_KEY = "database.lastVacuumDay";
 const LIST_PAGE_SIZE = 10;
 const MILLISECONDS_PER_DAY = 86_400_000;
 const TRANSACTION_PAGE_SIZE = 10;
-const VACUUM_NOTICE_MS = 2400;
 
 const appConstants = {
 	APP_NAME,
@@ -23,11 +21,9 @@ const appConstants = {
 	DEFAULT_TRANSACTION_VIEW_MODE,
 	EXCHANGE_RATE_API_URL,
 	LEGACY_BACKUP_EXTENSION,
-	LAST_VACUUM_DAY_KEY,
 	LIST_PAGE_SIZE,
 	MILLISECONDS_PER_DAY,
 	TRANSACTION_PAGE_SIZE,
-	VACUUM_NOTICE_MS,
 };
 
 export default appConstants;

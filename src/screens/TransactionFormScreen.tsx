@@ -269,6 +269,13 @@ const TransactionFormScreen = ({
 		label: trip.name,
 		value: trip.id,
 	}));
+	const clearTripForAgnosticCategory = (selectedId: string): void => {
+		if (
+			categories.find((category) => category.id === selectedId)
+				?.tripAgnostic
+		)
+			setTripId("");
+	};
 	const investmentOptions: readonly SelectOption[] = investments.map(
 		(investment) => ({
 			label: investment.name,
@@ -549,7 +556,12 @@ const TransactionFormScreen = ({
 												MESSAGES.TRANSACTION_FORM
 													.CATEGORY_LABEL
 											}
-											onChange={setCategoryId}
+											onChange={(value) => {
+												setCategoryId(value);
+												clearTripForAgnosticCategory(
+													value,
+												);
+											}}
 											options={categoryOptions}
 											placeholder={
 												MESSAGES.TRANSACTION_FORM
@@ -634,11 +646,14 @@ const TransactionFormScreen = ({
 														.SELECT_CATEGORY
 												}
 												value={item.categoryId}
-												onChange={(value) =>
+												onChange={(value) => {
 													updateItem(item.key, {
 														categoryId: value,
-													})
-												}
+													});
+													clearTripForAgnosticCategory(
+														value,
+													);
+												}}
 												options={
 													item.categoryId &&
 													!categoryOptions.some(
