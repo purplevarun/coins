@@ -9,7 +9,9 @@ const mocks = vi.hoisted(() => ({
 	isAvailableAsync: vi.fn(async () => true),
 	shareAsync: vi.fn<TestAsyncFunction>().mockResolvedValue(undefined),
 	openDatabaseAsync: vi.fn(),
-	fileBytes: vi.fn(async () => new Uint8Array([1, 2, 3])),
+	fileBytes: vi
+		.fn<TestAsyncFunction>()
+		.mockResolvedValue(new Uint8Array([1, 2, 3])),
 	fileCreate: vi.fn<TestCallback>().mockReturnValue(undefined),
 	fileWrite: vi.fn<TestCallback>().mockReturnValue(undefined),
 	fileDelete: vi.fn<TestCallback>().mockReturnValue(undefined),
@@ -49,6 +51,12 @@ vi.mock("expo-sqlite", () => ({
 	openDatabaseAsync: mocks.openDatabaseAsync,
 }));
 
+vi.mock("expo-crypto", () => ({
+	getRandomBytesAsync: vi.fn(async (length: number) =>
+		new Uint8Array(length).fill(7),
+	),
+}));
+
 vi.mock("expo-file-system", () => {
 	class MockFile {
 		uri: string;
@@ -66,7 +74,7 @@ vi.mock("expo-file-system", () => {
 		}
 
 		async bytes(): Promise<Uint8Array> {
-			return mocks.fileBytes();
+			return (await mocks.fileBytes()) as Uint8Array;
 		}
 
 		create(): void {
@@ -93,6 +101,11 @@ vi.mock("expo-file-system", () => {
 	};
 });
 
+import {
+	decryptBackup,
+	encryptBackup,
+	isEncryptedBackup,
+} from "@/services/backupEncryption";
 import backupService from "@/services/backupService";
 
 const database = {
@@ -184,10 +197,12 @@ describe("backupService", () => {
 		vi.setSystemTime(new Date("2026-08-25T10:00:00.000Z"));
 	});
 
-	it("exports a raw SQLite backup", async () => {
+	it("exports an encrypted PCENC1 backup", async () => {
 		await backupService.exportBackup(database);
 		expect(database.serializeAsync).toHaveBeenCalledOnce();
-		expect(mocks.fileWrite).toHaveBeenCalledWith(new Uint8Array([5, 6]));
+		const written = mocks.fileWrite.mock.calls[0]?.[0] as Uint8Array;
+		expect(isEncryptedBackup(written)).toBe(true);
+		expect(decryptBackup(written)).toEqual(new Uint8Array([5, 6]));
 		expect(mocks.shareAsync).toHaveBeenCalledWith(
 			"cache-dir/purplecoins-2026-08-25.pc",
 			expect.objectContaining({
@@ -195,6 +210,17 @@ describe("backupService", () => {
 				mimeType: "application/x-sqlite3",
 			}),
 		);
+	});
+
+	it("restores an encrypted backup file", async () => {
+		const plaintext = new Uint8Array([9, 8, 7]);
+		mocks.fileBytes.mockResolvedValueOnce(
+			encryptBackup(plaintext, new Uint8Array(40).fill(3)),
+		);
+		selectBackup();
+		mocks.openDatabaseAsync.mockResolvedValueOnce(validTempDatabase());
+		expect(await backupService.restoreBackup(database)).toBe(true);
+		expect(mocks.fileWrite).toHaveBeenCalledWith(plaintext);
 	});
 
 	it("rejects invalid exports and canceled restores", async () => {

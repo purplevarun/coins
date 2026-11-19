@@ -41,60 +41,106 @@ const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
 	const { colors: COLORS } = useTheme();
 	const styles = useThemedStyles(themedStyles);
 
-	const tiles = useMemo(
-		(): readonly HomeTile[] => [
-			{
-				label: MESSAGES.HOME.TRANSACTIONS_LABEL,
-				icon: "swap-horizontal",
-				color: COLORS.primary,
-				handlePress: () => navigation.navigate("Transactions"),
-			},
-			{
-				label: MESSAGES.HOME.SOURCES_LABEL,
-				icon: "wallet-outline",
-				color: COLORS.blue,
-				handlePress: () => navigation.navigate("Sources"),
-			},
-			{
-				label: MESSAGES.HOME.CATEGORIES_LABEL,
-				icon: "pricetags-outline",
-				color: COLORS.warning,
-				handlePress: () => navigation.navigate("Categories"),
-			},
-			{
-				label: MESSAGES.HOME.TRIPS_LABEL,
-				icon: "airplane-outline",
-				color: COLORS.cyan,
-				handlePress: () => navigation.navigate("Trips"),
-			},
-			{
-				label: MESSAGES.HOME.INVESTMENTS_LABEL,
-				icon: "trending-up",
-				color: COLORS.success,
-				handlePress: () => navigation.navigate("Investments"),
-			},
-			{
-				label: MESSAGES.HOME.ANALYSIS_LABEL,
-				icon: "pie-chart-outline",
-				color: COLORS.lavender,
-				handlePress: () => navigation.navigate("Analysis"),
-			},
-			{
-				label: MESSAGES.HOME.PASSWORDS_LABEL,
-				icon: "key-outline",
-				color: COLORS.warning,
-				handlePress: () =>
-					navigation.navigate("Vault", { kind: "PASSWORD" }),
-			},
-			{
-				label: MESSAGES.HOME.CARDS_LABEL,
-				icon: "card-outline",
-				color: COLORS.pink,
-				handlePress: () =>
-					navigation.navigate("Vault", { kind: "CARD" }),
-			},
+	const tileRows = useMemo(
+		(): readonly (readonly HomeTile[])[] => [
+			[
+				{
+					label: MESSAGES.HOME.TRANSACTIONS_LABEL,
+					icon: "swap-horizontal",
+					color: COLORS.primary,
+					handlePress: () => navigation.navigate("Transactions"),
+				},
+				{
+					label: MESSAGES.HOME.SOURCES_LABEL,
+					icon: "wallet-outline",
+					color: COLORS.blue,
+					handlePress: () => navigation.navigate("Sources"),
+				},
+			],
+			[
+				{
+					label: MESSAGES.HOME.CATEGORIES_LABEL,
+					icon: "pricetags-outline",
+					color: COLORS.warning,
+					handlePress: () => navigation.navigate("Categories"),
+				},
+				{
+					label: MESSAGES.HOME.SECTORS_LABEL,
+					icon: "grid-outline",
+					color: COLORS.periwinkle,
+					handlePress: () => navigation.navigate("Sectors"),
+				},
+			],
+			[
+				{
+					label: MESSAGES.HOME.INVESTMENTS_LABEL,
+					icon: "trending-up",
+					color: COLORS.success,
+					handlePress: () => navigation.navigate("Investments"),
+				},
+				{
+					label: MESSAGES.HOME.TRIPS_LABEL,
+					icon: "airplane-outline",
+					color: COLORS.cyan,
+					handlePress: () => navigation.navigate("Trips"),
+				},
+			],
+			[
+				{
+					label: MESSAGES.HOME.ANALYSIS_LABEL,
+					icon: "pie-chart-outline",
+					color: COLORS.lavender,
+					handlePress: () => navigation.navigate("Analysis"),
+				},
+				{
+					label: MESSAGES.HOME.VAULT_LABEL,
+					icon: "lock-closed-outline",
+					color: COLORS.pink,
+					handlePress: () =>
+						navigation.navigate("Vault", { kind: "PASSWORD" }),
+				},
+			],
 		],
 		[navigation, COLORS],
+	);
+
+	const renderTile = (tile: HomeTile): React.JSX.Element => (
+		<Pressable
+			key={tile.label}
+			onPress={tile.handlePress}
+			style={({ pressed }) => [
+				styles.tileWrapper,
+				...getPressableScaleStyle(pressed),
+			]}
+		>
+			<GlassCard style={styles.tileCard}>
+				<View style={styles.tile}>
+					<View
+						style={[
+							styles.tileIcon,
+							{
+								backgroundColor: getTileIconBackgroundColor(
+									tile.color,
+								),
+							},
+						]}
+					>
+						<Ionicons
+							color={tile.color}
+							name={tile.icon}
+							size={24}
+						/>
+					</View>
+					<CustomText
+						adjustsFontSizeToFit
+						numberOfLines={1}
+						style={styles.tileTitle}
+					>
+						{tile.label}
+					</CustomText>
+				</View>
+			</GlassCard>
+		</Pressable>
 	);
 
 	return (
@@ -134,51 +180,9 @@ const HomeScreen = ({ navigation }: HomeScreenProps): React.JSX.Element => {
 						</View>
 					</View>
 					<View style={styles.grid}>
-						{[0, 1, 2, 3].map((row) => (
-							<View key={row} style={styles.row}>
-								{tiles
-									.slice(row * 2, row * 2 + 2)
-									.map((tile) => (
-										<Pressable
-											key={tile.label}
-											onPress={tile.handlePress}
-											style={({ pressed }) => [
-												styles.tileWrapper,
-												...getPressableScaleStyle(
-													pressed,
-												),
-											]}
-										>
-											<GlassCard style={styles.tileCard}>
-												<View style={styles.tile}>
-													<View
-														style={[
-															styles.tileIcon,
-															{
-																backgroundColor:
-																	getTileIconBackgroundColor(
-																		tile.color,
-																	),
-															},
-														]}
-													>
-														<Ionicons
-															color={tile.color}
-															name={tile.icon}
-															size={24}
-														/>
-													</View>
-													<CustomText
-														adjustsFontSizeToFit
-														numberOfLines={1}
-														style={styles.tileTitle}
-													>
-														{tile.label}
-													</CustomText>
-												</View>
-											</GlassCard>
-										</Pressable>
-									))}
+						{tileRows.map((row, rowIndex) => (
+							<View key={rowIndex} style={styles.row}>
+								{row.map((tile) => renderTile(tile))}
 							</View>
 						))}
 					</View>

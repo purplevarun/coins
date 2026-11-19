@@ -23,6 +23,7 @@ const { FLEX, SPACING } = styleConstants;
 const ScreenContainer = ({
 	children,
 	isScrollable = true,
+	header,
 	footer,
 }: ScreenContainerProps): ReactNode => {
 	const { colors: COLORS } = useTheme();
@@ -84,6 +85,7 @@ const ScreenContainer = ({
 					}
 					style={styles.keyboardView}
 				>
+					{header}
 					{content}
 					{footer ? (
 						<View style={styles.footer}>{footer}</View>

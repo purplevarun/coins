@@ -7,6 +7,14 @@ const SCHEMA_MIGRATIONS: readonly string[] = [
 	"DROP TABLE IF EXISTS folders;",
 	"DROP TABLE IF EXISTS identities;",
 	"DELETE FROM settings WHERE key = 'database.lastVacuumDay';",
+	`CREATE TABLE IF NOT EXISTS sectors (
+		id TEXT, name TEXT, created_at INTEGER, updated_at INTEGER
+	);`,
+	`CREATE TABLE IF NOT EXISTS sector_categories (
+		sector_id TEXT, category_id TEXT, created_at INTEGER, updated_at INTEGER
+	);`,
+	"CREATE INDEX IF NOT EXISTS idx_sector_categories_sector ON sector_categories(sector_id);",
+	"CREATE INDEX IF NOT EXISTS idx_sector_categories_category ON sector_categories(category_id);",
 ];
 
 const migrateDatabase = async (database: SQLiteDatabase): Promise<void> => {

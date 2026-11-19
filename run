@@ -449,17 +449,22 @@ run_avd_backup_test() {
     "Transactions|No transactions found" \
     "Sources|No sources yet" \
     "Categories|No categories yet" \
+    "Sectors|No sectors yet" \
     "Trips|No trips yet" \
     "Investments|No investments yet" \
-    "Analysis|Nothing to analyse" \
-    "Passwords|Nothing here yet" \
-    "Cards|Nothing here yet"; do
+    "Analysis|Nothing to analyse"; do
     TILE="${TILE_STATE%%|*}"
     EMPTY_STATE="${TILE_STATE#*|}"
     visit_ui_label "$TILE"
     assert_ui_label "$EMPTY_STATE"
     adb shell input keyevent 4
   done
+
+  visit_ui_label "Vault"
+  assert_ui_label "Nothing here yet"
+  visit_ui_label "Cards"
+  assert_ui_label "Nothing here yet"
+  adb shell input keyevent 4
 
   if ! tap_ui_label "Settings" 1; then
     SIZE=$(adb shell wm size | sed -n 's/.*Physical size: \([0-9][0-9]*\)x\([0-9][0-9]*\).*/\1 \2/p')

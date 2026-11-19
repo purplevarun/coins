@@ -1,10 +1,14 @@
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import type GitHubRelease from "./types/GitHubRelease";
+
 const ROOT = new URL(".", import.meta.url).pathname;
 const DIST = join(ROOT, "dist");
 
-const repository = process.env.GITHUB_REPOSITORY ?? "purplevarun/coins";
+const repository =
+	(process.env.GITHUB_REPOSITORY as string | undefined) ??
+	"purplevarun/coins";
 const repoUrl = `https://github.com/${repository}`;
 const releasesUrl = `${repoUrl}/releases`;
 
@@ -22,10 +26,7 @@ try {
 		{ headers },
 	);
 	if (response.ok) {
-		const release = (await response.json()) as {
-			tag_name?: string;
-			assets?: { name: string; browser_download_url: string }[];
-		};
+		const release = (await response.json()) as GitHubRelease;
 		const apk = release.assets?.find((asset) =>
 			asset.name.endsWith(".apk"),
 		);

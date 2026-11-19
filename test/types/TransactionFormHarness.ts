@@ -1,10 +1,10 @@
-import type AppButtonProps from "@/types/AppButtonProps";
+import type HeaderIconButtonProps from "@/types/HeaderIconButtonProps";
 import type { ReactElement } from "react";
 import type { Mock } from "vitest";
 
 type TransactionFormHarness = Readonly<{
 	render: () => ReactElement;
-	renderHeader: () => ReactElement<AppButtonProps> | null;
+	renderHeader: () => ReactElement<HeaderIconButtonProps> | null;
 	values: Map<number, unknown>;
 	navigation: Readonly<{ goBack: Mock; setOptions: Mock }>;
 }>;

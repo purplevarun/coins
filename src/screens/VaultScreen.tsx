@@ -23,6 +23,7 @@ import ListHeader from "@/components/ListHeader";
 import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
 import SearchBar from "@/components/SearchBar";
+import SegmentedControl from "@/components/SegmentedControl";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
@@ -55,6 +56,11 @@ const VAULT_ENTRY_LABEL: Record<VaultKind, VaultEntryLabel> = {
 	PASSWORD: { one: "password", many: "passwords" },
 	CARD: { one: "card", many: "cards" },
 };
+
+const VAULT_TAB_OPTIONS = [
+	{ label: MESSAGES.HOME.PASSWORDS_LABEL, value: "PASSWORD" },
+	{ label: MESSAGES.HOME.CARDS_LABEL, value: "CARD" },
+];
 
 const getVaultFormParams = (
 	kind: VaultKind,
@@ -466,6 +472,13 @@ const VaultScreen = ({
 	const listHeader = useMemo(
 		() => (
 			<ListHeader>
+				<SegmentedControl
+					onChange={(value) =>
+						navigation.setParams({ kind: value as VaultKind })
+					}
+					options={VAULT_TAB_OPTIONS}
+					value={kind}
+				/>
 				{searchVisible ? (
 					<SearchBar
 						onChangeText={setSearchQuery}
@@ -483,7 +496,16 @@ const VaultScreen = ({
 				</CustomText>
 			</ListHeader>
 		),
-		[entryCount, error, kind, message, searchQuery, searchVisible, styles],
+		[
+			entryCount,
+			error,
+			kind,
+			message,
+			navigation,
+			searchQuery,
+			searchVisible,
+			styles,
+		],
 	);
 
 	const listEmpty = useMemo(() => {

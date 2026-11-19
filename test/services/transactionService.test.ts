@@ -402,8 +402,9 @@ describe("transactionService", () => {
 			transactionAt: 1,
 			items: [{ categoryId: "c1", amount: "10" }],
 		});
-		const savedInput = mocks.createTransactionRow.mock
-			.calls[0]?.[1] as { tripId?: string };
+		const savedInput = mocks.createTransactionRow.mock.calls[0]?.[1] as {
+			tripId?: string;
+		};
 		expect(savedInput.tripId).toBeUndefined();
 	});
 

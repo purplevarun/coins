@@ -4,9 +4,15 @@ import appConstants from "@/constants/appConstants";
 import { migrateDatabase } from "@/database/migrations";
 import SCHEMA_SQL from "@/database/schema";
 import AppError from "@/errors/AppError";
+import {
+	decryptBackup,
+	encryptBackup,
+	isEncryptedBackup,
+} from "@/services/backupEncryption";
 import type DatabaseCountRow from "@/types/DatabaseCountRow";
 import type DatabaseIntegrityResult from "@/types/DatabaseIntegrityResult";
 import type SqliteTableRow from "@/types/SqliteTableRow";
+import * as Crypto from "expo-crypto";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { openDatabaseAsync, type SQLiteDatabase } from "expo-sqlite";
@@ -35,7 +41,10 @@ const exportBackup = async (database: SQLiteDatabase): Promise<void> => {
 	}
 	const output = new File(Paths.cache, createBackupFileName());
 	output.create({ overwrite: true, intermediates: true });
-	output.write(await database.serializeAsync());
+	const plaintext = await database.serializeAsync();
+	output.write(
+		encryptBackup(plaintext, await Crypto.getRandomBytesAsync(40)),
+	);
 	if (!(await Sharing.isAvailableAsync())) {
 		throw new AppError(
 			"SHARING_UNAVAILABLE",
@@ -83,7 +92,12 @@ const restoreBackup = async (database: SQLiteDatabase): Promise<boolean> => {
 	let tempDatabase: SQLiteDatabase | undefined;
 	try {
 		tempFile.create({ overwrite: true });
-		tempFile.write(await pickedFile.bytes());
+		const pickedBytes = await pickedFile.bytes();
+		tempFile.write(
+			isEncryptedBackup(pickedBytes)
+				? decryptBackup(pickedBytes)
+				: pickedBytes,
+		);
 		tempDatabase = await openDatabaseAsync(TEMP_RESTORE_DB_NAME);
 		const tables = await tempDatabase.getFirstAsync<DatabaseCountRow>(
 			`SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table'

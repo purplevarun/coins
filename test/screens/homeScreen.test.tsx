@@ -110,10 +110,11 @@ describe("HomeScreen", () => {
 		expect(navigation.navigate).toHaveBeenCalledWith("Trips");
 		expect(navigation.navigate).toHaveBeenCalledWith("Investments");
 		expect(navigation.navigate).toHaveBeenCalledWith("Analysis");
+		expect(navigation.navigate).toHaveBeenCalledWith("Sectors");
 		expect(navigation.navigate).toHaveBeenCalledWith("Vault", {
 			kind: "PASSWORD",
 		});
-		expect(navigation.navigate).toHaveBeenCalledWith("Vault", {
+		expect(navigation.navigate).not.toHaveBeenCalledWith("Vault", {
 			kind: "CARD",
 		});
 		expect(navigation.navigate).not.toHaveBeenCalledWith("Notes");

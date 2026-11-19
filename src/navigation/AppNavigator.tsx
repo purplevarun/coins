@@ -24,6 +24,8 @@ import InvestmentTypesScreen from "@/screens/InvestmentTypesScreen";
 import LinkedTransactionsScreen from "@/screens/LinkedTransactionsScreen";
 import PlatformsScreen from "@/screens/PlatformsScreen";
 import RelationDetailsScreen from "@/screens/RelationDetailsScreen";
+import SectorFormScreen from "@/screens/SectorFormScreen";
+import SectorsScreen from "@/screens/SectorsScreen";
 import SettingsScreen from "@/screens/SettingsScreen";
 import SourceFormScreen from "@/screens/SourceFormScreen";
 import SourcesScreen from "@/screens/SourcesScreen";
@@ -129,6 +131,20 @@ const AppNavigator = (): React.JSX.Element => {
 						title: route.params?.entityId
 							? MESSAGES.RELATION_FORMS.EDIT_CATEGORY
 							: MESSAGES.RELATION_FORMS.NEW_CATEGORY,
+					})}
+				/>
+				<Stack.Screen
+					component={SectorsScreen}
+					name="Sectors"
+					options={{ title: "Sectors" }}
+				/>
+				<Stack.Screen
+					component={SectorFormScreen}
+					name="SectorForm"
+					options={({ route }) => ({
+						title: route.params?.entityId
+							? MESSAGES.RELATION_FORMS.EDIT_SECTOR
+							: MESSAGES.RELATION_FORMS.NEW_SECTOR,
 					})}
 				/>
 				<Stack.Screen
@@ -248,12 +264,7 @@ const AppNavigator = (): React.JSX.Element => {
 				<Stack.Screen
 					component={VaultScreen}
 					name="Vault"
-					options={({ route }) => ({
-						title:
-							route.params.kind === "PASSWORD"
-								? "Passwords"
-								: "Cards",
-					})}
+					options={{ title: MESSAGES.HOME.VAULT_LABEL }}
 				/>
 				<Stack.Screen
 					component={VaultFormScreen}

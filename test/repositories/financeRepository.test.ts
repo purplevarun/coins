@@ -29,6 +29,9 @@ const {
 	getSourceRows,
 	getCategoryAnalysisRows,
 	getInvestmentAnalysisRows,
+	getSectorCategoryIdRows,
+	getSectorRow,
+	getSectorRows,
 	getTransactionCurrencyRows,
 	getTransactionMinMaxDate,
 	getTransactionPageRows,
@@ -38,6 +41,10 @@ const {
 	getTripRows,
 	getTripTotalRows,
 	budgetExistsRow,
+	deleteSectorRow,
+	replaceSectorCategoryRows,
+	sectorNameExistsRow,
+	upsertSectorRow,
 	categoryInUseRow,
 	investmentInUseRow,
 	investmentTypeNameExistsRow,
@@ -920,6 +927,93 @@ describe("financeRepository", () => {
 		expect(await budgetExistsRow(database, "c1", "MONTHLY")).toBe(true);
 		expect(await budgetExistsRow(database, "c1", "MONTHLY", "b1")).toBe(
 			false,
+		);
+	});
+
+	it("reads, writes and deletes sector rows with category mappings", async () => {
+		const database = {
+			getAllAsync: vi
+				.fn()
+				.mockResolvedValueOnce([{ id: "sec1", categoryCount: 2 }])
+				.mockResolvedValueOnce([{ id: "c1" }, { id: "c2" }]),
+			getFirstAsync: vi
+				.fn()
+				.mockResolvedValueOnce({ id: "sec1" })
+				.mockResolvedValueOnce({ id: "sec1" })
+				.mockResolvedValueOnce(null),
+			runAsync: vi
+				.fn<TestAsyncFunction>()
+				.mockResolvedValue({ changes: 0 }),
+		} as any;
+
+		expect(await getSectorRows(database)).toEqual([
+			{ id: "sec1", categoryCount: 2 },
+		]);
+		expect(await getSectorRow(database, "sec1")).toEqual({ id: "sec1" });
+		expect(await sectorNameExistsRow(database, "Home", "sec1")).toBe(true);
+		expect(await sectorNameExistsRow(database, "Nope")).toBe(false);
+		expect(await getSectorCategoryIdRows(database, "sec1")).toEqual([
+			"c1",
+			"c2",
+		]);
+
+		await upsertSectorRow(database, {
+			id: "sec1",
+			name: "Home",
+			createdAt: 1,
+			updatedAt: 2,
+		});
+		expect(database.runAsync).toHaveBeenCalledWith(
+			"UPDATE sectors SET name = ?, updated_at = ? WHERE id = ?;",
+			"Home",
+			2,
+			"sec1",
+		);
+		expect(database.runAsync).toHaveBeenCalledWith(
+			expect.stringContaining("INSERT INTO sectors"),
+			"sec1",
+			"Home",
+			1,
+			2,
+		);
+
+		database.runAsync.mockResolvedValueOnce({ changes: 1 });
+		await upsertSectorRow(database, {
+			id: "sec1",
+			name: "Casa",
+			createdAt: 1,
+			updatedAt: 3,
+		});
+		expect(
+			database.runAsync.mock.calls.filter((call: unknown[]) =>
+				String(call[0]).includes("INSERT INTO sectors"),
+			),
+		).toHaveLength(1);
+
+		await replaceSectorCategoryRows(database, "sec1", ["c1", "c2"], 9);
+		expect(database.runAsync).toHaveBeenCalledWith(
+			"DELETE FROM sector_categories WHERE sector_id = ?;",
+			"sec1",
+		);
+		expect(database.runAsync).toHaveBeenCalledWith(
+			expect.stringContaining("INSERT INTO sector_categories"),
+			"sec1",
+			"c1",
+			9,
+			9,
+		);
+		expect(database.runAsync).toHaveBeenCalledWith(
+			expect.stringContaining("INSERT INTO sector_categories"),
+			"sec1",
+			"c2",
+			9,
+			9,
+		);
+
+		await deleteSectorRow(database, "sec1");
+		expect(database.runAsync).toHaveBeenCalledWith(
+			"DELETE FROM sectors WHERE id = ?;",
+			"sec1",
 		);
 	});
 });

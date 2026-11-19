@@ -37,10 +37,10 @@ import getRelationLabels from "@/utils/relation";
 import runAfterRender from "@/utils/runAfterRender";
 const { deleteCategory } = categoryService;
 const { deleteInvestment } = investmentService;
-const { deleteSource } = sourceService;
+const { deleteSource, getSources } = sourceService;
 const { getLinkedTransactions } = transactionService;
 const { deleteTrip } = tripService;
-const { compareMoney, ZERO_AMOUNT } = moneyUtils;
+const { compareMoney, formatMoney, ZERO_AMOUNT } = moneyUtils;
 
 const getRelationIcon = (
 	kind: RelationKind,
@@ -92,11 +92,22 @@ const LinkedTransactionsScreen = ({
 	);
 	const [error, setError] = useState("");
 	const [isConvertOpen, setIsConvertOpen] = useState(false);
+	const [sourceBalance, setSourceBalance] = useState<string | null>(null);
 	const relationLabels = getRelationLabels(kind);
 	const isConvertible = kind === "CATEGORY" || kind === "INVESTMENT";
 
 	const getScreenData = useCallback(async (): Promise<void> => {
 		try {
+			if (kind === "SOURCE") {
+				const source = (await getSources(database)).find(
+					(candidate) => candidate.id === entityId,
+				);
+				setSourceBalance(
+					source
+						? formatMoney(source.balance, source.currencyCode)
+						: null,
+				);
+			}
 			const all = await getLinkedTransactions(database, {
 				entityId,
 				kind,
@@ -228,6 +239,11 @@ const LinkedTransactionsScreen = ({
 									? "transaction"
 									: "transactions"}
 							</CustomText>
+							{sourceBalance !== null ? (
+								<CustomText style={styles.balance}>
+									Balance · {sourceBalance}
+								</CustomText>
+							) : null}
 						</View>
 					</View>
 					<View style={styles.actions}>
@@ -270,6 +286,7 @@ const LinkedTransactionsScreen = ({
 			handleEdit,
 			isConvertible,
 			kind,
+			sourceBalance,
 			transactions.length,
 			styles,
 			COLORS,
@@ -297,6 +314,11 @@ const LinkedTransactionsScreen = ({
 				onPress={() =>
 					navigation.navigate("TransactionForm", {
 						transactionId: transaction.id,
+					})
+				}
+				onLongPress={() =>
+					navigation.navigate("TransactionForm", {
+						cloneFromTransactionId: transaction.id,
 					})
 				}
 			/>
@@ -383,6 +405,11 @@ const themedStyles = createThemedStyles((COLORS) =>
 		subtitle: {
 			color: COLORS.textMuted,
 			fontSize: FONT_SIZE.S12,
+		},
+		balance: {
+			color: COLORS.success,
+			fontSize: FONT_SIZE.S13,
+			fontWeight: FONT_WEIGHT.BOLD,
 		},
 		actions: {
 			flexDirection: FLEX.ROW,

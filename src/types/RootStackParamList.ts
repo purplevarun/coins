@@ -17,6 +17,8 @@ type RootStackParamList = {
 	SourceForm: { entityId?: string } | undefined;
 	Categories: undefined;
 	CategoryForm: { entityId?: string } | undefined;
+	Sectors: undefined;
+	SectorForm: { entityId?: string } | undefined;
 	Trips: undefined;
 	TripForm: { entityId?: string; tripTypeId?: string } | undefined;
 	Investments: undefined;

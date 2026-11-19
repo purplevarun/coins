@@ -209,13 +209,10 @@ const TransactionFormScreen = ({
 		navigation.setOptions({
 			headerRight: () =>
 				isExpense ? (
-					<AppButton
+					<HeaderIconButton
 						icon="add"
-						isCompact
 						isDisabled={isSaving}
-						label={MESSAGES.TRANSACTION_FORM.ADD_ITEM}
-						style={styles.headerAddItem}
-						variant="secondary"
+						accessibilityLabel={MESSAGES.TRANSACTION_FORM.ADD_ITEM}
 						onPress={() => {
 							const item = createItemDraft();
 							setItems((current) => [...current, item]);
@@ -408,6 +405,157 @@ const TransactionFormScreen = ({
 
 	return (
 		<ScreenContainer
+			header={
+				<View
+					style={styles.pinned}
+					pointerEvents={isSaving ? "none" : "auto"}
+				>
+					<View style={styles.pinnedRow}>
+						<View style={styles.pinnedCell}>
+							<SelectField
+								isCompact
+								isSearchable={false}
+								label={
+									MESSAGES.TRANSACTION_FORM
+										.CLASSIFICATION_LABEL
+								}
+								onChange={handleClassificationChange}
+								options={TRANSACTION_CLASSIFICATION_OPTIONS}
+								value={classification}
+							/>
+						</View>
+						<View style={styles.pinnedCell}>
+							<SelectField
+								isCompact
+								isSearchable={false}
+								label={
+									MESSAGES.TRANSACTION_FORM.PAYMENT_TYPE_LABEL
+								}
+								onChange={handleTypeChange}
+								options={
+									classification === "GENERAL"
+										? GENERAL_TRANSACTION_TYPE_OPTIONS
+										: INVESTMENT_TRANSACTION_TYPE_OPTIONS
+								}
+								value={type}
+							/>
+						</View>
+					</View>
+					<View style={styles.pinnedRow}>
+						<View style={styles.pinnedCell}>
+							<SelectField
+								isCompact
+								label={
+									type === "CREDIT"
+										? MESSAGES.TRANSACTION_FORM
+												.DESTINATION_SOURCE
+										: "Source"
+								}
+								onChange={setSourceId}
+								options={sourceOptions}
+								placeholder={
+									MESSAGES.TRANSACTION_FORM.SELECT_SOURCE
+								}
+								value={sourceId}
+							/>
+						</View>
+						<View style={styles.pinnedCell}>
+							{isTransfer ? (
+								<SelectField
+									isCompact
+									label={
+										MESSAGES.TRANSACTION_FORM
+											.DESTINATION_SOURCE
+									}
+									onChange={setDestinationSourceId}
+									options={sourceOptions.filter(
+										(option) => option.value !== sourceId,
+									)}
+									placeholder={
+										MESSAGES.TRANSACTION_FORM
+											.SELECT_DESTINATION
+									}
+									value={destinationSourceId}
+								/>
+							) : isInvestment ? (
+								<SelectField
+									isCompact
+									label={MESSAGES.TRANSACTION_FORM.INVESTMENT}
+									onChange={setInvestmentId}
+									options={investmentOptions}
+									placeholder={
+										MESSAGES.TRANSACTION_FORM
+											.SELECT_INVESTMENT
+									}
+									value={investmentId}
+								/>
+							) : (
+								<SelectField
+									isCompact
+									label={
+										MESSAGES.TRANSACTION_FORM.CATEGORY_LABEL
+									}
+									placeholder={
+										MESSAGES.TRANSACTION_FORM
+											.SELECT_CATEGORY
+									}
+									value={
+										isExpense
+											? (items[0]?.categoryId ?? "")
+											: categoryId
+									}
+									onChange={(value) => {
+										if (isExpense) {
+											if (items[0])
+												updateItem(items[0].key, {
+													categoryId: value,
+												});
+										} else {
+											setCategoryId(value);
+										}
+										clearTripForAgnosticCategory(value);
+									}}
+									options={categoryOptions}
+								/>
+							)}
+						</View>
+					</View>
+					<View style={styles.pinnedRow}>
+						<View style={styles.pinnedCell}>
+							<DateField
+								isCompact
+								label={MESSAGES.TRANSACTION_FORM.DATE_LABEL}
+								onChange={setTransactionAt}
+								value={transactionAt}
+							/>
+						</View>
+						<View style={styles.pinnedCell}>
+							<View style={styles.applicability}>
+								<CustomText style={styles.applicabilityLabel}>
+									{MESSAGES.TRANSACTION_FORM.APPLICABLE}
+								</CustomText>
+								<Switch
+									accessibilityLabel={
+										MESSAGES.TRANSACTION_FORM.APPLICABLE
+									}
+									value={isApplicable}
+									onValueChange={setIsApplicable}
+									disabled={isSaving}
+									trackColor={{
+										false: COLORS.borderStrong,
+										true: COLORS.primaryMuted,
+									}}
+									thumbColor={
+										isApplicable
+											? COLORS.primary
+											: COLORS.textMuted
+									}
+								/>
+							</View>
+						</View>
+					</View>
+				</View>
+			}
 			footer={
 				<View style={styles.footer}>
 					{sources.length === 0 ? (
@@ -450,143 +598,32 @@ const TransactionFormScreen = ({
 					style={styles.form}
 					pointerEvents={isSaving ? "none" : "auto"}
 				>
-					<View style={styles.metadata}>
+					{classification === "GENERAL" && !isTransfer ? (
 						<SelectField
-							isCompact
-							isSearchable={false}
-							label={
-								MESSAGES.TRANSACTION_FORM.CLASSIFICATION_LABEL
-							}
-							onChange={handleClassificationChange}
-							options={TRANSACTION_CLASSIFICATION_OPTIONS}
-							value={classification}
+							isOptional
+							label={MESSAGES.TRANSACTION_FORM.TRIP_LABEL}
+							onChange={setTripId}
+							options={tripOptions}
+							placeholder={MESSAGES.COMPONENTS.NO_TRIP}
+							value={tripId}
 						/>
-						<SelectField
-							isCompact
-							isSearchable={false}
-							label={MESSAGES.TRANSACTION_FORM.PAYMENT_TYPE_LABEL}
-							onChange={handleTypeChange}
-							options={
-								classification === "GENERAL"
-									? GENERAL_TRANSACTION_TYPE_OPTIONS
-									: INVESTMENT_TRANSACTION_TYPE_OPTIONS
-							}
-							value={type}
-						/>
-						<SelectField
-							isCompact
-							label={
-								type === "CREDIT"
-									? MESSAGES.TRANSACTION_FORM
-											.DESTINATION_SOURCE
-									: "Source"
-							}
-							onChange={setSourceId}
-							options={sourceOptions}
-							placeholder={
-								MESSAGES.TRANSACTION_FORM.SELECT_SOURCE
-							}
-							value={sourceId}
-						/>
-						<DateField
-							isCompact
-							label={MESSAGES.TRANSACTION_FORM.DATE_LABEL}
-							onChange={setTransactionAt}
-							value={transactionAt}
-						/>
-						{classification === "GENERAL" && !isTransfer ? (
-							<SelectField
-								isCompact
-								isOptional
-								label={MESSAGES.TRANSACTION_FORM.TRIP_LABEL}
-								onChange={setTripId}
-								options={tripOptions}
-								placeholder={MESSAGES.COMPONENTS.NO_TRIP}
-								value={tripId}
-							/>
-						) : null}
-						<View style={styles.applicability}>
-							<CustomText style={styles.applicabilityLabel}>
-								{MESSAGES.TRANSACTION_FORM.APPLICABLE}
-							</CustomText>
-							<Switch
-								accessibilityLabel={
-									MESSAGES.TRANSACTION_FORM.APPLICABLE
-								}
-								value={isApplicable}
-								onValueChange={setIsApplicable}
-								disabled={isSaving}
-								trackColor={{
-									false: COLORS.borderStrong,
-									true: COLORS.primaryMuted,
-								}}
-								thumbColor={
-									isApplicable
-										? COLORS.primary
-										: COLORS.textMuted
-								}
-							/>
-						</View>
-					</View>
+					) : null}
 					{!isExpense ? (
-						<View style={styles.itemFields}>
-							<View style={styles.fieldColumn}>
-								<TextField
-									autoFocus={
-										!transactionId &&
-										!cloneFromTransactionId
-									}
-									isEditable={!isSaving}
-									keyboardType="decimal-pad"
-									label={
-										isTransfer && selectedSource
-											? `From (${selectedSource.currencyCode})`
-											: `Amount${selectedSource ? ` (${selectedSource.currencyCode})` : ""}`
-									}
-									onChangeText={setAmount}
-									placeholder="0.00"
-									value={amount}
-								/>
-							</View>
-							{!isTransfer ? (
-								<View style={styles.fieldColumn}>
-									{classification === "GENERAL" ? (
-										<SelectField
-											label={
-												MESSAGES.TRANSACTION_FORM
-													.CATEGORY_LABEL
-											}
-											onChange={(value) => {
-												setCategoryId(value);
-												clearTripForAgnosticCategory(
-													value,
-												);
-											}}
-											options={categoryOptions}
-											placeholder={
-												MESSAGES.TRANSACTION_FORM
-													.SELECT_CATEGORY
-											}
-											value={categoryId}
-										/>
-									) : (
-										<SelectField
-											label={
-												MESSAGES.TRANSACTION_FORM
-													.INVESTMENT
-											}
-											onChange={setInvestmentId}
-											options={investmentOptions}
-											placeholder={
-												MESSAGES.TRANSACTION_FORM
-													.SELECT_INVESTMENT
-											}
-											value={investmentId}
-										/>
-									)}
-								</View>
-							) : null}
-						</View>
+						<TextField
+							autoFocus={
+								!transactionId && !cloneFromTransactionId
+							}
+							isEditable={!isSaving}
+							keyboardType="decimal-pad"
+							label={
+								isTransfer && selectedSource
+									? `From (${selectedSource.currencyCode})`
+									: `Amount${selectedSource ? ` (${selectedSource.currencyCode})` : ""}`
+							}
+							onChangeText={setAmount}
+							placeholder="0.00"
+							value={amount}
+						/>
 					) : null}
 					{isExpense ? (
 						<View style={styles.items}>
@@ -680,29 +717,14 @@ const TransactionFormScreen = ({
 						</View>
 					) : null}
 					{isTransfer ? (
-						<>
-							<SelectField
-								label={
-									MESSAGES.TRANSACTION_FORM.DESTINATION_SOURCE
-								}
-								onChange={setDestinationSourceId}
-								options={sourceOptions.filter(
-									(option) => option.value !== sourceId,
-								)}
-								placeholder={
-									MESSAGES.TRANSACTION_FORM.SELECT_DESTINATION
-								}
-								value={destinationSourceId}
-							/>
-							<TextField
-								isEditable={!isSameCurrencyTransfer}
-								keyboardType="decimal-pad"
-								label={`To amount${selectedDestination ? ` (${selectedDestination.currencyCode})` : ""}`}
-								onChangeText={setToAmount}
-								placeholder="0.00"
-								value={effectiveToAmount}
-							/>
-						</>
+						<TextField
+							isEditable={!isSameCurrencyTransfer}
+							keyboardType="decimal-pad"
+							label={`To amount${selectedDestination ? ` (${selectedDestination.currencyCode})` : ""}`}
+							onChangeText={setToAmount}
+							placeholder="0.00"
+							value={effectiveToAmount}
+						/>
 					) : null}
 					<TextField
 						isEditable={!isSaving}
@@ -745,6 +767,7 @@ const themedStyles = createThemedStyles((COLORS) =>
 			minHeight: SIZES.S44,
 			flexDirection: FLEX.ROW,
 			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.SPACE_BETWEEN,
 			gap: SPACING.S8,
 			paddingHorizontal: SPACING.S8,
 			borderWidth: BORDER.THIN,
@@ -753,19 +776,23 @@ const themedStyles = createThemedStyles((COLORS) =>
 			backgroundColor: COLORS.surfaceLight,
 		},
 		applicabilityLabel: { color: COLORS.text, fontSize: FONT_SIZE.S13 },
-		metadata: {
-			flexDirection: FLEX.ROW,
-			flexWrap: FLEX.WRAP,
-			alignItems: ALIGN.CENTER,
+		pinned: {
+			backgroundColor: COLORS.background,
+			paddingHorizontal: SPACING.S16,
+			paddingTop: SPACING.S8,
+			paddingBottom: SPACING.S12,
 			gap: SPACING.S8,
+			borderBottomWidth: BORDER.THIN,
+			borderBottomColor: COLORS.border,
 		},
+		pinnedRow: { flexDirection: FLEX.ROW, gap: SPACING.S8 },
+		pinnedCell: { flex: FLEX.FILL, minWidth: 0 },
 		itemFields: {
 			flexDirection: FLEX.ROW,
 			flexWrap: FLEX.WRAP,
 			gap: SPACING.S12,
 		},
 		fieldColumn: { flexGrow: 1, flexBasis: SIZES.S120, minWidth: 0 },
-		headerAddItem: { minHeight: SIZES.S38, paddingHorizontal: SPACING.S8 },
 		footer: { gap: SPACING.S8 },
 		totalSummary: { flexGrow: 1, flexBasis: 140, minWidth: 0 },
 		totalLabel: { color: COLORS.textMuted, fontSize: FONT_SIZE.S12 },

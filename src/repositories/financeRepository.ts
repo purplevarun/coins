@@ -9,6 +9,7 @@ import type Investment from "@/types/Investment";
 import type InvestmentAnalysisRow from "@/types/InvestmentAnalysisRow";
 import type InvestmentType from "@/types/InvestmentType";
 import type RelationKind from "@/types/RelationKind";
+import type Sector from "@/types/Sector";
 import type SimpleEntity from "@/types/SimpleEntity";
 import type Source from "@/types/Source";
 import type Transaction from "@/types/Transaction";
@@ -342,6 +343,10 @@ const deleteCategoryRow = async (
 	database: SQLiteDatabase,
 	id: string,
 ): Promise<void> => {
+	await database.runAsync(
+		"DELETE FROM sector_categories WHERE category_id = ?;",
+		id,
+	);
 	await database.runAsync("DELETE FROM categories WHERE id = ?;", id);
 };
 
@@ -385,6 +390,18 @@ const mergeCategoryRows = async (
 		updatedAt,
 		sourceId,
 	);
+	await database.runAsync(
+		`DELETE FROM sector_categories WHERE category_id = ? AND sector_id IN
+			(SELECT sector_id FROM sector_categories WHERE category_id = ?);`,
+		sourceId,
+		targetId,
+	);
+	await database.runAsync(
+		"UPDATE sector_categories SET category_id = ?, updated_at = ? WHERE category_id = ?;",
+		targetId,
+		updatedAt,
+		sourceId,
+	);
 	await deleteCategoryRow(database, sourceId);
 };
 
@@ -420,6 +437,128 @@ const setCategoryArchivedRow = async (
 		updatedAt,
 		id,
 	);
+};
+
+const getSectorRows = async (
+	database: SQLiteDatabase,
+): Promise<readonly Sector[]> =>
+	database.getAllAsync<Sector>(
+		`
+		SELECT
+			sector.id,
+			sector.name,
+			COUNT(mapping.category_id) AS categoryCount,
+			sector.created_at AS createdAt,
+			sector.updated_at AS updatedAt
+		FROM sectors sector
+		LEFT JOIN sector_categories mapping
+			ON mapping.sector_id = sector.id
+		GROUP BY sector.id
+		ORDER BY lower(sector.name) ASC;
+		`,
+	);
+
+const getSectorRow = async (
+	database: SQLiteDatabase,
+	id: string,
+): Promise<Sector | null> =>
+	database.getFirstAsync<Sector>(
+		`
+		SELECT
+			sector.id,
+			sector.name,
+			COUNT(mapping.category_id) AS categoryCount,
+			sector.created_at AS createdAt,
+			sector.updated_at AS updatedAt
+		FROM sectors sector
+		LEFT JOIN sector_categories mapping
+			ON mapping.sector_id = sector.id
+		WHERE sector.id = ?
+		GROUP BY sector.id;
+		`,
+		id,
+	);
+
+const upsertSectorRow = async (
+	database: SQLiteDatabase,
+	sector: Pick<Sector, "id" | "name" | "createdAt" | "updatedAt">,
+): Promise<void> => {
+	const result = await database.runAsync(
+		"UPDATE sectors SET name = ?, updated_at = ? WHERE id = ?;",
+		sector.name,
+		sector.updatedAt,
+		sector.id,
+	);
+	if (result.changes > 0) return;
+	await database.runAsync(
+		"INSERT INTO sectors (id, name, created_at, updated_at) VALUES (?, ?, ?, ?);",
+		sector.id,
+		sector.name,
+		sector.createdAt,
+		sector.updatedAt,
+	);
+};
+
+const deleteSectorRow = async (
+	database: SQLiteDatabase,
+	id: string,
+): Promise<void> => {
+	await database.runAsync(
+		"DELETE FROM sector_categories WHERE sector_id = ?;",
+		id,
+	);
+	await database.runAsync("DELETE FROM sectors WHERE id = ?;", id);
+};
+
+const sectorNameExistsRow = async (
+	database: SQLiteDatabase,
+	name: string,
+	excludeId?: string,
+): Promise<boolean> => {
+	const row = excludeId
+		? await database.getFirstAsync<Pick<SimpleEntity, "id">>(
+				"SELECT id FROM sectors WHERE lower(name) = lower(?) AND id != ? LIMIT 1;",
+				name,
+				excludeId,
+			)
+		: await database.getFirstAsync<Pick<SimpleEntity, "id">>(
+				"SELECT id FROM sectors WHERE lower(name) = lower(?) LIMIT 1;",
+				name,
+			);
+	return row !== null;
+};
+
+const getSectorCategoryIdRows = async (
+	database: SQLiteDatabase,
+	sectorId: string,
+): Promise<readonly string[]> =>
+	(
+		await database.getAllAsync<Pick<SimpleEntity, "id">>(
+			"SELECT category_id AS id FROM sector_categories WHERE sector_id = ?;",
+			sectorId,
+		)
+	).map((row) => row.id);
+
+const replaceSectorCategoryRows = async (
+	database: SQLiteDatabase,
+	sectorId: string,
+	categoryIds: readonly string[],
+	updatedAt: number,
+): Promise<void> => {
+	await database.runAsync(
+		"DELETE FROM sector_categories WHERE sector_id = ?;",
+		sectorId,
+	);
+	for (const categoryId of categoryIds) {
+		await database.runAsync(
+			`INSERT INTO sector_categories (sector_id, category_id, created_at, updated_at)
+				VALUES (?, ?, ?, ?);`,
+			sectorId,
+			categoryId,
+			updatedAt,
+			updatedAt,
+		);
+	}
 };
 
 const categoryNameExistsRow = async (
@@ -1337,6 +1476,7 @@ const financeRepository = {
 	deleteBudgetRow,
 	deleteCategoryBudgetRows,
 	deleteCategoryRow,
+	deleteSectorRow,
 	deleteSimpleEntityRow,
 	deleteSourceRow,
 	deleteTransactionRow,
@@ -1359,6 +1499,9 @@ const financeRepository = {
 	getInvestmentTypeRow,
 	getInvestmentTypeRows,
 	getLinkedTransactionIdRows,
+	getSectorCategoryIdRows,
+	getSectorRow,
+	getSectorRows,
 	getSourceRow,
 	getSourceRows,
 	getTransactionCurrencyRows,
@@ -1376,6 +1519,8 @@ const financeRepository = {
 	investmentTypeNameExistsRow,
 	insertTransactionRow,
 	mergeCategoryRows,
+	replaceSectorCategoryRows,
+	sectorNameExistsRow,
 	setCategoryArchivedRow,
 	setSimpleEntityArchivedRow,
 	setSourceArchivedRow,
@@ -1390,6 +1535,7 @@ const financeRepository = {
 	upsertExchangeRateRow,
 	upsertInvestmentRow,
 	upsertInvestmentTypeRow,
+	upsertSectorRow,
 	upsertSimpleEntityRow,
 	validateSourceRow,
 };

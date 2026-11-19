@@ -74,6 +74,9 @@ vi.mock("@/components/Notice", () => ({
 vi.mock("@/components/ScreenList", () => ({
 	default: (props: any) => ({ type: "ScreenList", props }),
 }));
+vi.mock("@/components/SegmentedControl", () => ({
+	default: (props: any) => ({ type: "SegmentedControl", props }),
+}));
 vi.mock("@/components/SearchBar", () => ({
 	default: (props: any) => ({ type: "SearchBar", props }),
 }));
@@ -296,6 +299,30 @@ describe("VaultScreen", () => {
 			).toHaveLength(1);
 		},
 	);
+
+	it("switches vault kind via the segmented tabs", async () => {
+		const navigation = {
+			navigate: vi.fn(),
+			setOptions: vi.fn(),
+			setParams: vi.fn(),
+		};
+
+		const tree = VaultScreen({
+			navigation,
+			route: { key: "t", name: "Vault", params: { kind: "PASSWORD" } },
+		} as any);
+		await flush();
+
+		const tabs = findByPredicate(
+			tree,
+			(node) =>
+				Array.isArray(node?.props?.options) &&
+				node?.props?.value === "PASSWORD",
+		)[0];
+		expect(tabs).toBeTruthy();
+		tabs.props.onChange("CARD");
+		expect(navigation.setParams).toHaveBeenCalledWith({ kind: "CARD" });
+	});
 
 	it("executes CARD delete flow", async () => {
 		const navigation = { navigate: vi.fn(), setOptions: vi.fn() };

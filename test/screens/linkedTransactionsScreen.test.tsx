@@ -14,6 +14,7 @@ const reactMocks = vi.hoisted(() => ({
 
 const serviceMocks = vi.hoisted(() => ({
 	getLinkedTransactions: vi.fn(),
+	getSources: vi.fn(),
 	deleteSource: vi.fn(),
 	deleteCategory: vi.fn(),
 	deleteTrip: vi.fn(),
@@ -98,7 +99,10 @@ vi.mock("@/services/transactionService", () => ({
 	default: { getLinkedTransactions: serviceMocks.getLinkedTransactions },
 }));
 vi.mock("@/services/sourceService", () => ({
-	default: { deleteSource: serviceMocks.deleteSource },
+	default: {
+		deleteSource: serviceMocks.deleteSource,
+		getSources: serviceMocks.getSources,
+	},
 }));
 vi.mock("@/services/categoryService", () => ({
 	default: { deleteCategory: serviceMocks.deleteCategory },
@@ -165,6 +169,7 @@ describe("LinkedTransactionsScreen", () => {
 		serviceMocks.getLinkedTransactions.mockResolvedValue([
 			{ id: "tx1", transactionAt: 100 },
 		]);
+		serviceMocks.getSources.mockResolvedValue([]);
 		serviceMocks.deleteSource.mockResolvedValue(undefined);
 		serviceMocks.deleteCategory.mockResolvedValue(undefined);
 		serviceMocks.deleteTrip.mockResolvedValue(undefined);
@@ -284,8 +289,46 @@ describe("LinkedTransactionsScreen", () => {
 					transactionId: "tx9",
 				},
 			);
+			rendered.props.onLongPress();
+			expect(navigation.navigate).toHaveBeenCalledWith(
+				"TransactionForm",
+				{
+					cloneFromTransactionId: "tx9",
+				},
+			);
 		},
 	);
+
+	it("shows the source balance beside a source detail", async () => {
+		const navigation = { navigate: vi.fn(), goBack: vi.fn() };
+		serviceMocks.getSources.mockResolvedValue([
+			{ id: "e1", name: "Cash", currencyCode: "INR", balance: "1000" },
+		]);
+		let call = 0;
+		reactMocks.useState.mockImplementation((initial: any) => {
+			call += 1;
+			if (call === 4) return ["₹1,000", vi.fn()];
+			return [initial, vi.fn()];
+		});
+		const tree = LinkedTransactionsScreen({
+			navigation,
+			route: {
+				key: "source",
+				name: "LinkedTransactions",
+				params: { entityId: "e1", entityName: "Cash", kind: "SOURCE" },
+			},
+		} as any);
+		await flush();
+		expect(serviceMocks.getSources).toHaveBeenCalledWith({ id: "db" });
+		expect(
+			findByPredicate(
+				tree,
+				(node) =>
+					Array.isArray(node?.props?.children) &&
+					node.props.children.includes("₹1,000"),
+			),
+		).not.toHaveLength(0);
+	});
 
 	it.each([
 		{ kind: "CATEGORY" as const, relation: "category" },

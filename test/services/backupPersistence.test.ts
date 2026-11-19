@@ -25,6 +25,10 @@ vi.mock("expo-document-picker", () => ({
 	getDocumentAsync: native.getDocumentAsync,
 }));
 vi.mock("expo-sqlite", () => ({ openDatabaseAsync: native.openDatabaseAsync }));
+vi.mock("expo-crypto", () => ({
+	getRandomBytesAsync: async (bytes: number) =>
+		crypto.getRandomValues(new Uint8Array(bytes)),
+}));
 vi.mock("expo-sharing", () => ({}));
 vi.mock("expo-file-system", () => {
 	class MockFile {

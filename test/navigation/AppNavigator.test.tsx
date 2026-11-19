@@ -69,6 +69,10 @@ vi.mock("@/screens/InvestmentsScreen", () => ({
 vi.mock("@/screens/LinkedTransactionsScreen", () => ({
 	default: "LinkedTransactionsScreen",
 }));
+vi.mock("@/screens/SectorFormScreen", () => ({
+	default: "SectorFormScreen",
+}));
+vi.mock("@/screens/SectorsScreen", () => ({ default: "SectorsScreen" }));
 vi.mock("@/screens/SettingsScreen", () => ({ default: "SettingsScreen" }));
 vi.mock("@/screens/SourceFormScreen", () => ({
 	default: "SourceFormScreen",
@@ -151,7 +155,7 @@ describe("AppNavigator", () => {
 		expect(options.headerLeft()).toBeNull();
 
 		const screens = findAllByType(tree, "Screen");
-		expect(screens).toHaveLength(26);
+		expect(screens).toHaveLength(28);
 
 		const byName = (name: string): any =>
 			screens.find((screen) => screen?.props?.name === name);
@@ -199,6 +203,7 @@ describe("AppNavigator", () => {
 				"New investment platform",
 				"Edit investment platform",
 			],
+			["SectorForm", "New sector", "Edit sector"],
 		] as const) {
 			const options = byName(name)?.props?.options;
 			expect(options({ route: { params: undefined } }).title).toBe(
@@ -227,6 +232,7 @@ describe("AppNavigator", () => {
 		);
 		expect(byName("Sources")?.props?.options?.title).toBe("Sources");
 		expect(byName("Categories")?.props?.options?.title).toBe("Categories");
+		expect(byName("Sectors")?.props?.options?.title).toBe("Sectors");
 		expect(byName("Trips")?.props?.options?.title).toBe("Trips");
 		expect(byName("Investments")?.props?.options?.title).toBe(
 			"Investments",
@@ -237,16 +243,7 @@ describe("AppNavigator", () => {
 			}).title,
 		).toBe("Rent");
 		expect(byName("GlobalSearch")?.props?.options?.title).toBe("Search");
-		expect(
-			byName("Vault")?.props?.options({
-				route: { params: { kind: "CARD" } },
-			}).title,
-		).toBe("Cards");
-		expect(
-			byName("Vault")?.props?.options({
-				route: { params: { kind: "PASSWORD" } },
-			}).title,
-		).toBe("Passwords");
+		expect(byName("Vault")?.props?.options?.title).toBe("Vault");
 
 		const budgetFormOptions = byName("BudgetForm")?.props?.options;
 		expect(budgetFormOptions({ route: { params: {} } }).title).toBe(

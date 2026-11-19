@@ -217,7 +217,7 @@ const createFormHarness = (
 		navigation,
 		renderHeader: () =>
 			navigation.setOptions.mock.lastCall?.[0].headerRight() as ReactElement<
-				ComponentProps<typeof AppButton>
+				ComponentProps<typeof HeaderIconButton>
 			> | null,
 		render: () => {
 			stateIndex = 0;
@@ -406,6 +406,20 @@ describe("TransactionFormScreen", () => {
 		expect(harness.values.get(8)).toBe("");
 	});
 
+	it("ignores the pinned category change when no items exist", () => {
+		const harness = createFormHarness(new Map<number, unknown>([[18, []]]));
+		const tree = harness.render() as ReactElement<
+			ComponentProps<typeof ScreenContainer>
+		>;
+		formElements<ComponentProps<typeof SelectField>>(
+			tree.props.header as ReactElement,
+			SelectField,
+		)
+			.find((field) => field.props.label === "Category")
+			?.props.onChange("c1");
+		expect(harness.values.get(18)).toEqual([]);
+	});
+
 	it.each([
 		["GENERAL", "DEBIT", "Category"],
 		["GENERAL", "CREDIT", "Category"],
@@ -424,15 +438,18 @@ describe("TransactionFormScreen", () => {
 			const tree = harness.render() as ReactElement<
 				ComponentProps<typeof ScreenContainer>
 			>;
-			const fields = findByPredicate(
+			const textFields = findByPredicate(
 				tree.props.children,
-				(node) =>
-					node?.type === TextField ||
-					(node?.type === SelectField && !node.props.isCompact),
+				(node) => node?.type === TextField,
 			);
-			expect(fields[0]?.props.keyboardType).toBe("decimal-pad");
-			expect(fields[0]?.props.autoFocus).toBe(true);
-			expect(fields[1]?.props.label).toBe(detailLabel);
+			expect(textFields[0]?.props.keyboardType).toBe("decimal-pad");
+			expect(textFields[0]?.props.autoFocus).toBe(true);
+			const headerFields = formElements<
+				ComponentProps<typeof SelectField>
+			>(tree.props.header as ReactElement, SelectField);
+			expect(
+				headerFields.some((field) => field.props.label === detailLabel),
+			).toBe(true);
 			expect(
 				formElements(
 					tree.props.children as ReactElement,
@@ -460,7 +477,9 @@ describe("TransactionFormScreen", () => {
 				),
 			).toHaveLength(2);
 			if (classification === "GENERAL" && type === "DEBIT") {
-				expect(harness.renderHeader()?.props.label).toBe("Add item");
+				expect(harness.renderHeader()?.props.accessibilityLabel).toBe(
+					"Add item",
+				);
 			} else {
 				expect(harness.renderHeader()).toBeNull();
 			}
@@ -474,7 +493,10 @@ describe("TransactionFormScreen", () => {
 	])(
 		"keeps the title out of the form and separates its mode pickers: %j",
 		(params) => {
-			const tree = createFormHarness(new Map(), params).render();
+			const tree = createFormHarness(
+				new Map(),
+				params,
+			).render() as ReactElement<ComponentProps<typeof ScreenContainer>>;
 			const titles = [
 				"New transaction",
 				"Edit transaction",
@@ -499,19 +521,31 @@ describe("TransactionFormScreen", () => {
 					DateField,
 				).filter((field) => field.props.isCompact),
 			];
-			const [row] = findByPredicate(
-				tree,
+			const header = tree.props.header as ReactElement;
+			const rows = findByPredicate(
+				header,
 				(node) =>
-					Array.isArray(node?.props?.children) &&
-					defaults.every((field) =>
-						node.props.children.includes(field),
-					),
+					node?.props?.style?.flexDirection === "row" &&
+					node?.props?.style?.gap === 8 &&
+					node?.props?.style?.borderWidth === undefined,
 			);
 			expect(modes).toHaveLength(2);
 			expect(defaults).toHaveLength(5);
-			expect(row.props.style).toMatchObject({ gap: 8, flexWrap: "wrap" });
-			expect(row.props.style).not.toHaveProperty("marginLeft");
-			expect(row.props.style).not.toHaveProperty("width");
+			expect(
+				defaults.every(
+					(field) =>
+						findByPredicate(header, (node) => node === field)
+							.length > 0,
+				),
+			).toBe(true);
+			expect(rows).toHaveLength(3);
+			expect(
+				rows.every(
+					(row) =>
+						Array.isArray(row.props.children) &&
+						row.props.children.length === 2,
+				),
+			).toBe(true);
 		},
 	);
 
@@ -538,17 +572,16 @@ describe("TransactionFormScreen", () => {
 		).filter((field) => field.props.keyboardType === "decimal-pad");
 		expect(amounts[1]?.props.autoFocus).toBe(true);
 		const addAction = harness.renderHeader();
-		expect(addAction?.type).toBe(AppButton);
+		expect(addAction?.type).toBe(HeaderIconButton);
 		expect(addAction?.props).toMatchObject({
 			icon: "add",
-			label: "Add item",
-			isCompact: true,
+			accessibilityLabel: "Add item",
 		});
 		expect(
-			formElements<ComponentProps<typeof AppButton>>(
+			formElements<ComponentProps<typeof HeaderIconButton>>(
 				expanded,
-				AppButton,
-			).some((button) => button.props.label === "Add item"),
+				HeaderIconButton,
+			).some((button) => button.props.accessibilityLabel === "Add item"),
 		).toBe(false);
 		harness.values.set(16, true);
 		harness.render();
@@ -579,7 +612,7 @@ describe("TransactionFormScreen", () => {
 		expect(amounts.map((field) => field.props.value)).toEqual(["100", ""]);
 		amounts[1]?.props.onChangeText("100");
 		formElements<ComponentProps<typeof SelectField>>(tree, SelectField)
-			.filter((field) => field.props.label === "Category")[1]
+			.filter((field) => field.props.label === "Category")[2]
 			?.props.onChange("grocery");
 		tree = harness.render();
 		formElements<ComponentProps<typeof AppButton>>(tree, AppButton)
@@ -714,7 +747,7 @@ describe("TransactionFormScreen", () => {
 				tree,
 				SelectField,
 			).filter((field) => field.props.label === "Category");
-			expect(categories[1]?.props.options).toContainEqual({
+			expect(categories[2]?.props.options).toContainEqual({
 				label: "Old category",
 				value: "archived",
 			});
@@ -759,7 +792,7 @@ describe("TransactionFormScreen", () => {
 						ComponentProps<typeof import("react-native").View>
 					>(node) && node.props.pointerEvents === "none",
 			),
-		).toHaveLength(1);
+		).toHaveLength(2);
 		completeSave("payment");
 		await flush();
 		expect(harness.navigation.goBack).toHaveBeenCalledOnce();

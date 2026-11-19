@@ -34,10 +34,12 @@ const HOME = {
 	CATEGORIES_LABEL: "Categories",
 	INVESTMENTS_LABEL: "Investments",
 	PASSWORDS_LABEL: "Passwords",
+	SECTORS_LABEL: "Sectors",
 	SETTINGS: "Settings",
 	SOURCES_LABEL: "Sources",
 	TRANSACTIONS_LABEL: "Transactions",
 	TRIPS_LABEL: "Trips",
+	VAULT_LABEL: "Vault",
 } as const;
 
 const TRANSACTIONS = {
@@ -73,6 +75,13 @@ const CATEGORIES = {
 	NO_MATCHES_TITLE: "No matching categories",
 	REFUND_NET_PREFIX: "Refund net ",
 	SEARCH_PLACEHOLDER: "Search categories...",
+} as const;
+
+const SECTORS = {
+	EMPTY_MESSAGE: "Add your first sector to get started.",
+	EMPTY_TITLE: "No sectors yet",
+	NO_MATCHES_TITLE: "No matching sectors",
+	SEARCH_PLACEHOLDER: "Search sectors...",
 } as const;
 
 const TRIPS = {
@@ -292,6 +301,7 @@ const RELATION_FORMS = {
 	EDIT_INVESTMENT: "Edit investment",
 	EDIT_INVESTMENT_TYPE: "Edit investment type",
 	EDIT_PLATFORM: "Edit investment platform",
+	EDIT_SECTOR: "Edit sector",
 	EDIT_SOURCE: "Edit source",
 	EDIT_TRIP: "Edit trip",
 	EDIT_TRIP_TYPE: "Edit trip type",
@@ -301,12 +311,15 @@ const RELATION_FORMS = {
 	NEW_INVESTMENT: "New investment",
 	NEW_INVESTMENT_TYPE: "New investment type",
 	NEW_PLATFORM: "New investment platform",
+	NEW_SECTOR: "New sector",
 	NEW_SOURCE: "New source",
 	NEW_TRIP: "New trip",
 	NEW_TRIP_TYPE: "New trip type",
 	RECLASSIFY_MESSAGE:
 		"This will reclassify the category across all historical analysis.",
 	RECLASSIFY_TITLE: "Change analysis classification?",
+	SECTOR_CATEGORIES: "Categories in this sector",
+	SECTOR_NAME: "Sector name",
 	SELECT_TRIP_TYPE: "Select trip type",
 	SOURCE_NAME: "Source name",
 	TRIP_NAME: "Trip name",
@@ -384,6 +397,7 @@ const MESSAGES = {
 	RELATION_DETAILS,
 	RELATION_ACTIONS,
 	RELATION_FORMS,
+	SECTORS,
 	SETTINGS,
 	SOURCES,
 	TRANSACTION_FORM,

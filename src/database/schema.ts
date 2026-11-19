@@ -60,6 +60,20 @@ CREATE TABLE IF NOT EXISTS trip_types (
 	updated_at INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS sectors (
+	id TEXT,
+	name TEXT,
+	created_at INTEGER,
+	updated_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS sector_categories (
+	sector_id TEXT,
+	category_id TEXT,
+	created_at INTEGER,
+	updated_at INTEGER
+);
+
 CREATE TABLE IF NOT EXISTS transactions (
 	id TEXT,
 	classification TEXT,
@@ -153,6 +167,10 @@ CREATE INDEX IF NOT EXISTS idx_investments_platform
 	ON investments(platform_id);
 CREATE INDEX IF NOT EXISTS idx_transaction_items_category
 	ON transaction_items(category_id);
+CREATE INDEX IF NOT EXISTS idx_sector_categories_sector
+	ON sector_categories(sector_id);
+CREATE INDEX IF NOT EXISTS idx_sector_categories_category
+	ON sector_categories(category_id);
 `;
 
 export default SCHEMA_SQL;

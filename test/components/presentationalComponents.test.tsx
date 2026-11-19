@@ -291,7 +291,7 @@ describe("presentational components", () => {
 			withFooter,
 			"KeyboardAvoidingView",
 		);
-		expect(footerKeyboardView.props.children[1].props.children).toBe(
+		expect(footerKeyboardView.props.children[2].props.children).toBe(
 			"save",
 		);
 		findFirstByType(withFooter, "SafeAreaView").props.onLayout();
