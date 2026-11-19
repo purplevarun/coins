@@ -488,6 +488,10 @@ describe("SectorFormScreen", () => {
 			sector: { id: "sec1", name: "Home" },
 			categoryIds: ["c1"],
 		});
+		serviceMocks.getCategories.mockResolvedValue([
+			{ id: "c2", name: "Salary", kind: "INCOME", isIncome: true },
+			{ id: "c1", name: "Rent", kind: "EXPENSE", isIncome: false },
+		]);
 		const overrides = new Map<number, unknown>([
 			[1, "Home"],
 			[

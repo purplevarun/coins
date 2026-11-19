@@ -45,7 +45,11 @@ const SectorFormScreen = ({
 	useEffect(() => {
 		const getEntity = async (): Promise<void> => {
 			try {
-				setCategories(await getCategories(database));
+				setCategories(
+					(await getCategories(database))
+						.slice()
+						.sort((a, b) => a.name.localeCompare(b.name)),
+				);
 				if (entityId) {
 					const loaded = await getSector(database, entityId);
 					if (loaded) {
