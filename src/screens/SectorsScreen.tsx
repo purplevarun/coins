@@ -20,19 +20,25 @@ import ListHeader from "@/components/ListHeader";
 import Notice from "@/components/Notice";
 import ScreenList from "@/components/ScreenList";
 import SearchBar from "@/components/SearchBar";
+import appConstants from "@/constants/appConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import useDatabaseContext from "@/hooks/useDatabaseContext";
 import useTheme from "@/hooks/useTheme";
 import useThemedStyles from "@/hooks/useThemedStyles";
+import analysisService from "@/services/analysisService";
 import sectorService from "@/services/sectorService";
 import type Sector from "@/types/Sector";
 import type SectorsScreenProps from "@/types/SectorsScreenProps";
 import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
+import moneyUtils from "@/utils/money";
 
+const { DEFAULT_CURRENCY_CODE } = appConstants;
 const { deleteSector, getSectors } = sectorService;
+const { getSectorSpend } = analysisService;
+const { formatMoney, ZERO_AMOUNT } = moneyUtils;
 
 const SectorsScreen = ({
 	navigation,
@@ -46,11 +52,19 @@ const SectorsScreen = ({
 	const [searchVisible, setSearchVisible] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [searchDebounced, setSearchDebounced] = useState("");
+	const [sectorSpend, setSectorSpend] = useState<ReadonlyMap<string, string>>(
+		new Map(),
+	);
 
 	const getScreenData = useCallback(async (): Promise<void> => {
 		try {
 			setError("");
-			setSectors(await getSectors(database));
+			const [sectorRows, spend] = await Promise.all([
+				getSectors(database),
+				getSectorSpend(database),
+			]);
+			setSectors(sectorRows);
+			setSectorSpend(spend);
 		} catch (caughtError: unknown) {
 			setError(getErrorMessage(caughtError));
 		}
@@ -150,7 +164,12 @@ const SectorsScreen = ({
 								{sector.categoryCount}{" "}
 								{sector.categoryCount === 1
 									? "category"
-									: "categories"}
+									: "categories"}{" "}
+								•{" "}
+								{formatMoney(
+									sectorSpend.get(sector.id) ?? ZERO_AMOUNT,
+									DEFAULT_CURRENCY_CODE,
+								)}
 							</CustomText>
 						</View>
 						<Pressable
@@ -173,7 +192,7 @@ const SectorsScreen = ({
 				</GlassCard>
 			</Pressable>
 		),
-		[handleDelete, navigation, styles, COLORS],
+		[handleDelete, navigation, styles, COLORS, sectorSpend],
 	);
 
 	const listHeader = useMemo(

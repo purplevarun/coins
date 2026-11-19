@@ -1,4 +1,5 @@
 import appConstants from "@/constants/appConstants";
+import dateConstants from "@/constants/dateConstants";
 import financeRepository from "@/repositories/financeRepository";
 import type AnalysisOptions from "@/types/AnalysisOptions";
 import type AnalysisSummary from "@/types/AnalysisSummary";
@@ -8,14 +9,18 @@ import type CategoryCurrencySummary from "@/types/CategoryCurrencySummary";
 import type CategoryKind from "@/types/CategoryKind";
 import type InvestmentAnalysis from "@/types/InvestmentAnalysis";
 import type InvestmentAnalysisRow from "@/types/InvestmentAnalysisRow";
+import type SectorAnalysis from "@/types/SectorAnalysis";
+import type SectorAnalysisRow from "@/types/SectorAnalysisRow";
 import moneyUtils from "@/utils/money";
 import type { SQLiteDatabase } from "expo-sqlite";
 
 const { DEFAULT_CURRENCY_CODE } = appConstants;
+const { ALL_TIME_END, ALL_TIME_START } = dateConstants;
 const {
 	getCategoryAnalysisRows,
 	getExchangeRateRows,
 	getInvestmentAnalysisRows,
+	getSectorAnalysisRows,
 	getTransactionCurrencyRows,
 } = financeRepository;
 const {
@@ -131,6 +136,56 @@ const buildInvestmentAnalysis = (
 	);
 };
 
+const buildSectorAnalysis = (
+	rows: readonly SectorAnalysisRow[],
+	isNativeCurrency: boolean,
+	rateMap: ReadonlyMap<string, string>,
+): readonly SectorAnalysis[] => {
+	const totals = new Map<string, SectorAnalysis>();
+
+	rows.forEach((row) => {
+		const rate = getConversionRate(
+			row.currencyCode,
+			isNativeCurrency,
+			rateMap,
+		);
+		if (rate === null) {
+			return;
+		}
+		const currencyCode = isNativeCurrency
+			? row.currencyCode
+			: DEFAULT_CURRENCY_CODE;
+		const sectorId = row.sectorId ?? "";
+		const key = `${sectorId}:${currencyCode}`;
+		const current = totals.get(key) ?? {
+			sectorId,
+			sectorName: row.sectorName ?? "",
+			currencyCode,
+			credits: ZERO_AMOUNT,
+			debits: ZERO_AMOUNT,
+			net: ZERO_AMOUNT,
+		};
+		const credits = addMoney(
+			current.credits,
+			multiplyMoney(row.credits, rate),
+		);
+		const debits = addMoney(
+			current.debits,
+			multiplyMoney(row.debits, rate),
+		);
+		totals.set(key, {
+			...current,
+			credits,
+			debits,
+			net: subtractMoney(credits, debits),
+		});
+	});
+
+	return [...totals.values()].sort((left, right) =>
+		compareMoney(left.net, right.net),
+	);
+};
+
 const buildCategoryCurrencySummaries = (
 	categoryAnalysis: readonly CategoryAnalysis[],
 ): readonly CategoryCurrencySummary[] => {
@@ -167,10 +222,11 @@ const getAnalysisSummary = async (
 	options: AnalysisOptions,
 ): Promise<AnalysisSummary> => {
 	const { start, end } = options.dateRange;
-	const [categoryRows, investmentRows, rates, currencyRows] =
+	const [categoryRows, investmentRows, sectorRows, rates, currencyRows] =
 		await Promise.all([
 			getCategoryAnalysisRows(database, start, end),
 			getInvestmentAnalysisRows(database, start, end),
+			getSectorAnalysisRows(database, start, end),
 			getExchangeRateRows(database),
 			options.isNativeCurrency
 				? []
@@ -208,6 +264,11 @@ const getAnalysisSummary = async (
 		categories,
 		refundNets,
 		investments: investmentAnalysis,
+		sectors: buildSectorAnalysis(
+			sectorRows,
+			options.isNativeCurrency,
+			rateMap,
+		),
 		totalIncome,
 		totalExpense,
 		netProfit: subtractMoney(totalIncome, totalExpense),
@@ -231,13 +292,30 @@ const getInvestmentNetLabel = (net: string): string => {
 
 const getInvestmentNetAmount = (net: string): string => absoluteMoney(net);
 
+const getSectorSpend = async (
+	database: SQLiteDatabase,
+): Promise<ReadonlyMap<string, string>> => {
+	const [rows, rates] = await Promise.all([
+		getSectorAnalysisRows(database, ALL_TIME_START, ALL_TIME_END),
+		getExchangeRateRows(database),
+	]);
+	return new Map(
+		buildSectorAnalysis(rows, false, getRateMap(rates)).map((sector) => [
+			sector.sectorId,
+			sector.net,
+		]),
+	);
+};
+
 const analysisService = {
 	buildCategoryAnalysis,
 	buildCategoryCurrencySummaries,
 	buildInvestmentAnalysis,
+	buildSectorAnalysis,
 	getAnalysisSummary,
 	getInvestmentNetAmount,
 	getInvestmentNetLabel,
+	getSectorSpend,
 };
 
 export default analysisService;

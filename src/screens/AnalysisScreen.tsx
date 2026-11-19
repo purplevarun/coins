@@ -39,9 +39,11 @@ import type AnalysisDateRangeInput from "@/types/AnalysisDateRangeInput";
 import type AnalysisPeriod from "@/types/AnalysisPeriod";
 import type AnalysisScreenProps from "@/types/AnalysisScreenProps";
 import type AnalysisSummary from "@/types/AnalysisSummary";
+import type CategoryAnalysis from "@/types/CategoryAnalysis";
 import type ChartDatum from "@/types/ChartDatum";
 import type DateRange from "@/types/DateRange";
 import type ExchangeRate from "@/types/ExchangeRate";
+import type SectorAnalysis from "@/types/SectorAnalysis";
 import type SummaryMetricInput from "@/types/SummaryMetricInput";
 import type Transaction from "@/types/Transaction";
 import createThemedStyles from "@/utils/createThemedStyles";
@@ -172,21 +174,27 @@ const getChartData = (
 	COLORS: ThemeColors,
 	summary: AnalysisSummary | null,
 	hasMissingCurrencies: boolean,
+	breakdown: "CATEGORIES" | "SECTORS",
 	chartColors: readonly string[] = DEFAULT_CHART_COLORS,
 ): readonly ChartDatum[] => {
 	if (hasMissingCurrencies) {
 		return [];
 	}
-	return (
-		summary?.categories
-			.filter((category) => compareMoney(category.net, ZERO_AMOUNT) !== 0)
-			.slice(0, chartColors.length)
-			.map((category, index) => ({
-				label: category.categoryName,
-				value: Number(absoluteMoney(category.net)),
-				color: chartColors[index] ?? COLORS.primary,
-			})) ?? []
-	);
+	const items: readonly (CategoryAnalysis | SectorAnalysis)[] =
+		breakdown === "SECTORS"
+			? (summary?.sectors ?? [])
+			: (summary?.categories ?? []);
+	return items
+		.filter((item) => compareMoney(item.net, ZERO_AMOUNT) !== 0)
+		.slice(0, chartColors.length)
+		.map((item, index) => ({
+			label:
+				"sectorName" in item
+					? item.sectorName || MESSAGES.ANALYSIS.NO_SECTOR
+					: item.categoryName,
+			value: Number(absoluteMoney(item.net)),
+			color: chartColors[index] ?? COLORS.primary,
+		}));
 };
 
 const getSummaryMetrics = (
@@ -289,6 +297,9 @@ const AnalysisScreen = ({
 	const [lastPeriod, setLastPeriod] = useState<AnalysisPeriod>(
 		DEFAULT_ANALYSIS_PERIOD,
 	);
+	const [breakdown, setBreakdown] = useState<"CATEGORIES" | "SECTORS">(
+		"CATEGORIES",
+	);
 
 	const dateRange = useMemo(
 		() =>
@@ -340,6 +351,22 @@ const AnalysisScreen = ({
 			headerRight: () => (
 				<View style={styles.headerActions}>
 					<HeaderIconButton
+						accessibilityLabel={
+							breakdown === "SECTORS"
+								? MESSAGES.ANALYSIS.SHOW_CATEGORY_BREAKDOWN
+								: MESSAGES.ANALYSIS.SHOW_SECTOR_BREAKDOWN
+						}
+						icon="grid-outline"
+						isActive={breakdown === "SECTORS"}
+						onPress={() =>
+							setBreakdown((current) =>
+								current === "SECTORS"
+									? "CATEGORIES"
+									: "SECTORS",
+							)
+						}
+					/>
+					<HeaderIconButton
 						accessibilityLabel={MESSAGES.ANALYSIS.CUSTOM_PERIOD}
 						icon="time-outline"
 						isActive={period === "CUSTOM"}
@@ -362,7 +389,7 @@ const AnalysisScreen = ({
 				</View>
 			),
 		});
-	}, [lastPeriod, navigation, period, styles]);
+	}, [breakdown, lastPeriod, navigation, period, styles]);
 
 	const handlePeriodChange = (value: string): void => {
 		setPeriod(value as AnalysisPeriod);
@@ -430,6 +457,7 @@ const AnalysisScreen = ({
 		COLORS,
 		summary,
 		hasMissingCurrencies,
+		breakdown,
 		THEME_CHART_COLORS[themeId],
 	);
 	const summaryMetrics = getSummaryMetrics(
@@ -568,12 +596,20 @@ const AnalysisScreen = ({
 					</View>
 					<View style={styles.actionGrid}>
 						<AppButton
-							icon="list-outline"
+							icon={
+								breakdown === "SECTORS"
+									? "grid-outline"
+									: "list-outline"
+							}
 							isCompact
-							label={MESSAGES.ANALYSIS.SEE_ALL_CATEGORIES}
+							label={
+								breakdown === "SECTORS"
+									? MESSAGES.ANALYSIS.SEE_ALL_SECTORS
+									: MESSAGES.ANALYSIS.SEE_ALL_CATEGORIES
+							}
 							onPress={() =>
 								navigation.navigate("AnalysisDetails", {
-									mode: "CATEGORIES",
+									mode: breakdown,
 									dateRangeStart: dateRange.start,
 									dateRangeEnd: dateRange.end,
 									dateRangeLabel:
@@ -601,8 +637,16 @@ const AnalysisScreen = ({
 						/>
 					</View>
 					<SectionHeading
-						subtitle={MESSAGES.ANALYSIS.CATEGORY_NET_DESCRIPTION}
-						title={MESSAGES.ANALYSIS.CATEGORY_NET_TITLE}
+						subtitle={
+							breakdown === "SECTORS"
+								? MESSAGES.ANALYSIS.SECTOR_NET_DESCRIPTION
+								: MESSAGES.ANALYSIS.CATEGORY_NET_DESCRIPTION
+						}
+						title={
+							breakdown === "SECTORS"
+								? MESSAGES.ANALYSIS.SECTOR_NET_TITLE
+								: MESSAGES.ANALYSIS.CATEGORY_NET_TITLE
+						}
 					/>
 					{chartData.length ? (
 						<GlassCard>

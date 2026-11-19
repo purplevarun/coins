@@ -248,7 +248,9 @@ const AppNavigator = (): React.JSX.Element => {
 							/* v8 ignore next */
 							route.params.mode === "CATEGORIES"
 								? "All categories"
-								: "All investments",
+								: route.params.mode === "SECTORS"
+									? "All sectors"
+									: "All investments",
 					})}
 				/>
 				<Stack.Screen

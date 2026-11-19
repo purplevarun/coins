@@ -196,8 +196,15 @@ const ANALYSIS = {
 	MANAGE_EXCHANGE_RATES: "Manage exchange rates",
 	NET_AFTER_INVESTMENTS_METRIC: "Net after investments",
 	SAVINGS_METRIC: "Savings %",
+	SECTOR_NET_DESCRIPTION:
+		"Credits minus debits for every sector, grouped from their categories.",
+	SECTOR_NET_TITLE: "Sector net",
 	SEE_ALL_CATEGORIES: "Categories",
 	SEE_ALL_INVESTMENTS: "Investments",
+	SEE_ALL_SECTORS: "Sectors",
+	NO_SECTOR: "No sector",
+	SHOW_CATEGORY_BREAKDOWN: "Show category breakdown",
+	SHOW_SECTOR_BREAKDOWN: "Show sector breakdown",
 	TREND_DESCRIPTION:
 		"Income, expenses and net worth year by year, across every transaction regardless of the selected period.",
 	TREND_EMPTY_MESSAGE: "Add transactions to see trends over time.",
@@ -281,6 +288,8 @@ const ANALYSIS_DETAILS = {
 	INVESTMENTS_EMPTY_MESSAGE: "No investment activity in this period.",
 	INVESTMENTS_EMPTY_TITLE: "No investment activity",
 	CATEGORIES_EMPTY_MESSAGE: "No categories in this period.",
+	SECTORS_EMPTY_MESSAGE: "No sector activity in this period.",
+	SECTORS_EMPTY_TITLE: "No sector activity",
 } as const;
 
 const BUDGET_FORM = {

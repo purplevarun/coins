@@ -16,6 +16,7 @@ const serviceMocks = vi.hoisted(() => ({
 	getSector: vi.fn<TestAsyncFunction>(),
 	saveSector: vi.fn<TestAsyncFunction>(),
 	getCategories: vi.fn<TestAsyncFunction>(),
+	getSectorSpend: vi.fn<TestAsyncFunction>().mockResolvedValue(new Map()),
 }));
 
 const hookMocks = vi.hoisted(() => ({
@@ -100,6 +101,9 @@ vi.mock("@/hooks/useAppDialog", () => ({
 	}),
 }));
 
+vi.mock("@/services/analysisService", () => ({
+	default: { getSectorSpend: serviceMocks.getSectorSpend },
+}));
 vi.mock("@/services/sectorService", () => ({
 	default: {
 		getSectors: serviceMocks.getSectors,

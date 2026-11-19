@@ -47,7 +47,7 @@ type RootStackParamList = {
 	BudgetForm: { budgetId?: string } | undefined;
 	Analysis: undefined;
 	AnalysisDetails: {
-		mode: "CATEGORIES" | "INVESTMENTS";
+		mode: "CATEGORIES" | "INVESTMENTS" | "SECTORS";
 		dateRangeStart?: number;
 		dateRangeEnd?: number;
 		dateRangeLabel?: string;

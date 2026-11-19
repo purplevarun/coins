@@ -193,6 +193,7 @@ describe("AnalysisScreen", () => {
 				THEME_PALETTES[value].colors,
 				summary as any,
 				false,
+				"CATEGORIES",
 				THEME_CHART_COLORS[value],
 			);
 			expect(chart).toHaveLength(8);
@@ -297,11 +298,13 @@ describe("AnalysisScreen", () => {
 				>(),
 		};
 		const anchorSetter = vi.fn();
+		const breakdownSetter = vi.fn();
 		let stateCall = 0;
 		reactMocks.useState.mockImplementation((initial: any) => {
 			stateCall += 1;
 			if (stateCall === 2)
 				return [new Date("2026-01-01T00:00:00.000Z"), anchorSetter];
+			if (stateCall === 13) return ["CATEGORIES", breakdownSetter];
 			return [
 				typeof initial === "function" ? initial() : initial,
 				vi.fn(),
@@ -362,6 +365,17 @@ describe("AnalysisScreen", () => {
 		)[0];
 		expect(ratesButton?.props.icon).toBe("swap-horizontal-outline");
 		ratesButton?.props.onPress();
+		const breakdownButton = findByPredicate(
+			headerActions,
+			(node) =>
+				node?.props?.accessibilityLabel === "Show sector breakdown",
+		)[0];
+		expect(breakdownButton?.props.icon).toBe("grid-outline");
+		expect(breakdownButton?.props.isActive).toBe(false);
+		breakdownButton?.props.onPress();
+		const breakdownUpdater = breakdownSetter.mock.calls[0]?.[0];
+		expect(breakdownUpdater("CATEGORIES")).toBe("SECTORS");
+		expect(breakdownUpdater("SECTORS")).toBe("CATEGORIES");
 		findByPredicate(
 			tree,
 			(node) =>
@@ -386,6 +400,37 @@ describe("AnalysisScreen", () => {
 			"AnalysisDetails",
 			expect.objectContaining({ mode: "INVESTMENTS" }),
 		);
+
+		stateCall = 0;
+		reactMocks.useState.mockImplementation((initial: any) => {
+			stateCall += 1;
+			if (stateCall === 13) return ["SECTORS", breakdownSetter];
+			return [
+				typeof initial === "function" ? initial() : initial,
+				vi.fn(),
+			];
+		});
+		const sectorTree = AnalysisScreen({ navigation } as any);
+		await flush();
+		findByPredicate(
+			sectorTree,
+			(node) =>
+				typeof node?.props?.onPress === "function" &&
+				node?.props?.label === "Sectors",
+		)[0]?.props.onPress();
+		expect(navigation.navigate).toHaveBeenCalledWith(
+			"AnalysisDetails",
+			expect.objectContaining({ mode: "SECTORS" }),
+		);
+		reactMocks.useLayoutEffect.mock.calls.forEach(([effect]) => effect());
+		const sectorHeaderActions =
+			navigation.setOptions.mock.lastCall?.[0].headerRight();
+		const sectorBreakdownButton = findByPredicate(
+			sectorHeaderActions,
+			(node) =>
+				node?.props?.accessibilityLabel === "Show category breakdown",
+		)[0];
+		expect(sectorBreakdownButton?.props.isActive).toBe(true);
 	});
 
 	it("keeps exchange rates in the header when currencies are missing", async () => {
@@ -408,6 +453,7 @@ describe("AnalysisScreen", () => {
 						netProfit: "0",
 						categories: [],
 						investments: [],
+						sectors: [],
 					},
 					vi.fn(),
 				];
@@ -489,6 +535,7 @@ describe("AnalysisScreen", () => {
 			netProfit: "0",
 			categories: [],
 			investments: [],
+			sectors: [],
 		});
 		serviceMocks.getTransactionRows.mockResolvedValue([]);
 		const navigation = { navigate: vi.fn() };
@@ -765,7 +812,7 @@ describe("AnalysisScreen", () => {
 			"Update INR exchange rates for USD, EUR before analysis can include those transactions.",
 		);
 
-		expect(getChartData(COLORS, null, true)).toEqual([]);
+		expect(getChartData(COLORS, null, true, "CATEGORIES")).toEqual([]);
 		expect(
 			getChartData(
 				COLORS,
@@ -798,8 +845,10 @@ describe("AnalysisScreen", () => {
 						},
 					],
 					investments: [],
+					sectors: [],
 				},
 				false,
+				"CATEGORIES",
 			),
 		).toEqual([{ label: "Food", value: 1, color: "#A882FF" }]);
 
@@ -828,10 +877,27 @@ describe("AnalysisScreen", () => {
 				} as any,
 			} as any,
 			false,
+			"CATEGORIES",
 		);
 		expect(fallbackColorData[0]).toEqual(
 			expect.objectContaining({ color: COLORS.primary }),
 		);
+
+		const sectorChart = getChartData(
+			COLORS,
+			{
+				sectors: [
+					{ sectorId: "s1", sectorName: "Food", net: "-2" },
+					{ sectorId: "", sectorName: "", net: "-1" },
+				],
+			} as any,
+			false,
+			"SECTORS",
+		);
+		expect(sectorChart.map((datum) => datum.label)).toEqual([
+			"Food",
+			"No sector",
+		]);
 
 		expect(
 			getSummaryMetrics(
@@ -844,6 +910,7 @@ describe("AnalysisScreen", () => {
 					categories: [],
 					refundNets: [],
 					investments: [],
+					sectors: [],
 				},
 				"-40",
 				"40",
@@ -862,6 +929,7 @@ describe("AnalysisScreen", () => {
 					categories: [],
 					refundNets: [],
 					investments: [],
+					sectors: [],
 				},
 				"-40",
 				"40",
@@ -890,6 +958,7 @@ describe("AnalysisScreen", () => {
 				categories: [],
 				refundNets: [],
 				investments: [],
+				sectors: [],
 			},
 			"-10",
 			"10",
@@ -913,6 +982,7 @@ describe("AnalysisScreen", () => {
 				categories: [],
 				refundNets: [],
 				investments: [],
+				sectors: [],
 			},
 			"-10",
 			"10",

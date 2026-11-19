@@ -4,11 +4,13 @@ import { describe, expect, it } from "vitest";
 
 import type CategoryAnalysisRow from "@/types/CategoryAnalysisRow";
 import type InvestmentAnalysisRow from "@/types/InvestmentAnalysisRow";
+import type SectorAnalysisRow from "@/types/SectorAnalysisRow";
 
 const {
 	buildCategoryAnalysis,
 	buildCategoryCurrencySummaries,
 	buildInvestmentAnalysis,
+	buildSectorAnalysis,
 } = analysisService;
 
 const createCategoryRow = (
@@ -31,6 +33,17 @@ const createInvestmentRow = (
 	currencyCode: "INR",
 	totalInvested: "0",
 	totalRedeemed: "0",
+	...overrides,
+});
+
+const createSectorRow = (
+	overrides: Partial<SectorAnalysisRow>,
+): SectorAnalysisRow => ({
+	sectorId: "food-sector",
+	sectorName: "Food",
+	currencyCode: "INR",
+	credits: "0",
+	debits: "0",
 	...overrides,
 });
 
@@ -268,6 +281,62 @@ describe("investment analysis", () => {
 				net: "60",
 			}),
 			expect.objectContaining({ investmentId: "inv2", net: "50" }),
+		]);
+	});
+});
+
+describe("sector analysis", () => {
+	it("buckets unassigned rows and sorts by net ascending", () => {
+		const result = buildSectorAnalysis(
+			[
+				createSectorRow({
+					sectorId: null,
+					sectorName: null,
+					debits: "50",
+				}),
+				createSectorRow({ debits: "10" }),
+				createSectorRow({ credits: "5", debits: "10" }),
+			],
+			true,
+			new Map(),
+		);
+
+		expect(result).toEqual([
+			expect.objectContaining({
+				sectorId: "",
+				sectorName: "",
+				net: "-50",
+			}),
+			expect.objectContaining({ sectorId: "food-sector", net: "-15" }),
+		]);
+	});
+
+	it("converts rows into base currency and skips missing rates", () => {
+		const result = buildSectorAnalysis(
+			[
+				createSectorRow({ debits: "5" }),
+				createSectorRow({
+					currencyCode: "USD",
+					debits: "10",
+				}),
+				createSectorRow({
+					currencyCode: "EUR",
+					debits: "999",
+				}),
+			],
+			false,
+			new Map([["USD", "80"]]),
+		);
+
+		expect(result).toEqual([
+			{
+				sectorId: "food-sector",
+				sectorName: "Food",
+				currencyCode: "INR",
+				credits: "0",
+				debits: "805",
+				net: "-805",
+			},
 		]);
 	});
 });

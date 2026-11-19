@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
 	getCategoryAnalysisRows: vi.fn<TestAsyncFunction>().mockResolvedValue([]),
 	getExchangeRateRows: vi.fn<TestAsyncFunction>().mockResolvedValue([]),
 	getInvestmentAnalysisRows: vi.fn<TestAsyncFunction>().mockResolvedValue([]),
+	getSectorAnalysisRows: vi.fn<TestAsyncFunction>().mockResolvedValue([]),
 	getTransactionCurrencyRows: vi
 		.fn<TestAsyncFunction>()
 		.mockResolvedValue([]),
@@ -21,6 +22,7 @@ vi.mock("@/repositories/financeRepository", () => ({
 		getCategoryAnalysisRows: mocks.getCategoryAnalysisRows,
 		getExchangeRateRows: mocks.getExchangeRateRows,
 		getInvestmentAnalysisRows: mocks.getInvestmentAnalysisRows,
+		getSectorAnalysisRows: mocks.getSectorAnalysisRows,
 		getTransactionCurrencyRows: mocks.getTransactionCurrencyRows,
 	},
 }));
@@ -199,5 +201,33 @@ describe("analysisService summary", () => {
 		expect(analysisService.getInvestmentNetAmount("-123.45")).toBe(
 			"123.45",
 		);
+	});
+
+	it("maps all-time sector spend through base-currency rates", async () => {
+		mocks.getSectorAnalysisRows.mockResolvedValueOnce([
+			{
+				sectorId: "sec1",
+				sectorName: "Food",
+				currencyCode: "USD",
+				credits: "0",
+				debits: "10",
+			},
+			{
+				sectorId: "sec2",
+				sectorName: "Travel",
+				currencyCode: "INR",
+				credits: "5",
+				debits: "20",
+			},
+		]);
+		mocks.getExchangeRateRows.mockResolvedValueOnce([
+			{ currencyCode: "USD", rateToInr: "80" },
+		]);
+
+		const spend = await analysisService.getSectorSpend(database);
+
+		expect(spend.get("sec1")).toBe("-800");
+		expect(spend.get("sec2")).toBe("-15");
+		expect(spend.size).toBe(2);
 	});
 });

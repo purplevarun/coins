@@ -144,14 +144,9 @@ describe("AnalysisDetailsScreen", () => {
 		expect(getInvestmentColor(COLORS, "0")).toBe(COLORS.text);
 		expect(
 			getCategoryBreakdownText({
-				categoryId: "1",
-				categoryName: "Food",
-				kind: "EXPENSE",
 				currencyCode: "INR",
 				credits: "10",
 				debits: "20",
-				isIncome: false,
-				net: "-10",
 			}),
 		).toBe("Credits INR 10 · Debits INR 20");
 		expect(getInvestmentNetText("40", "INR")).toBe("Net: INR 40");
@@ -261,6 +256,55 @@ describe("AnalysisDetailsScreen", () => {
 				item: investmentSummary.investments[0],
 			}),
 		).toBe("object");
+
+		const sectorSummary = {
+			missingCurrencies: [],
+			totalIncome: "0",
+			totalExpense: "0",
+			netProfit: "0",
+			categories: [],
+			investments: [],
+			sectors: [
+				{
+					sectorId: "sec-1",
+					sectorName: "",
+					currencyCode: "INR",
+					credits: "0",
+					debits: "30",
+					net: "-30",
+				},
+			],
+		};
+		reactMocks.useState.mockImplementation((initial: any) => {
+			if (initial === null) return [sectorSummary, vi.fn()];
+			return [initial, vi.fn()];
+		});
+		const sectorTree = AnalysisDetailsScreen({
+			navigation: { navigate: vi.fn() },
+			route: {
+				params: {
+					mode: "SECTORS",
+					dateRangeStart: 1,
+					dateRangeEnd: 2,
+				},
+			},
+		} as any);
+		const sectorListNode = findByPredicate(
+			sectorTree,
+			(node) => node?.props?.data && node?.props?.renderItem,
+		)[0];
+		expect(
+			sectorListNode.props.keyExtractor({
+				sectorId: "sec-1",
+				currencyCode: "INR",
+			}),
+		).toBe("sec-1:INR");
+		const sectorRow = sectorListNode.props.renderItem({
+			item: sectorSummary.sectors[0],
+		});
+		expect(typeof sectorRow).toBe("object");
+		expect(JSON.stringify(sectorRow)).toContain("No sector");
+
 		expect(resolveDetailsView("CATEGORIES", null, "")).toMatchObject({
 			type: "empty",
 			emptyMessage: "No categories in this period.",
@@ -268,6 +312,11 @@ describe("AnalysisDetailsScreen", () => {
 		expect(resolveDetailsView("INVESTMENTS", null, "")).toMatchObject({
 			type: "empty",
 			emptyMessage: "No investment activity in this period.",
+		});
+		expect(resolveDetailsView("SECTORS", null, "")).toMatchObject({
+			type: "empty",
+			emptyMessage: "No sector activity in this period.",
+			emptyTitle: "No sector activity",
 		});
 		expect(
 			resolveDetailsView("CATEGORIES", null, "detail failed"),
@@ -333,6 +382,28 @@ describe("AnalysisDetailsScreen", () => {
 			findByPredicate(
 				emptyCategoryTree,
 				(node) => node?.props?.title === "Nothing to analyse",
+			),
+		).toHaveLength(1);
+		const emptySectorTree = AnalysisDetailsScreen({
+			navigation: { navigate: vi.fn() },
+			route: {
+				params: {
+					mode: "SECTORS",
+					dateRangeStart: 1,
+					dateRangeEnd: 2,
+				},
+			},
+		} as any);
+		expect(
+			findByPredicate(
+				emptySectorTree,
+				(node) => node?.props?.title === "No sector activity",
+			),
+		).toHaveLength(1);
+		expect(
+			findByPredicate(
+				emptySectorTree,
+				(node) => node?.props?.icon === "grid-outline",
 			),
 		).toHaveLength(1);
 	});

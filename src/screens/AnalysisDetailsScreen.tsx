@@ -15,6 +15,7 @@ import type AnalysisSummary from "@/types/AnalysisSummary";
 import type CategoryAnalysis from "@/types/CategoryAnalysis";
 import type InvestmentAnalysis from "@/types/InvestmentAnalysis";
 import type ListItemProps from "@/types/ListItemProps";
+import type SectorAnalysis from "@/types/SectorAnalysis";
 import type ThemeColors from "@/types/ThemeColors";
 import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
@@ -49,14 +50,16 @@ const getInvestmentColor = (COLORS: ThemeColors, net: string): string => {
 	return COLORS.text;
 };
 
-const getCategoryBreakdownText = (category: CategoryAnalysis): string =>
+const getCategoryBreakdownText = (
+	category: Pick<CategoryAnalysis, "credits" | "debits" | "currencyCode">,
+): string =>
 	`Credits ${formatMoney(category.credits, category.currencyCode)} · Debits ${formatMoney(category.debits, category.currencyCode)}`;
 
 const getInvestmentNetText = (net: string, currencyCode: string): string =>
 	`${getInvestmentNetLabel(net)}: ${formatMoney(getInvestmentNetAmount(net), currencyCode)}`;
 
 const resolveDetailsView = (
-	mode: "CATEGORIES" | "INVESTMENTS",
+	mode: "CATEGORIES" | "INVESTMENTS" | "SECTORS",
 	summary: AnalysisSummary | null,
 	error: string,
 ): AnalysisDetailsView => {
@@ -73,7 +76,9 @@ const resolveDetailsView = (
 	const items =
 		mode === "CATEGORIES"
 			? (summary?.categories ?? [])
-			: (summary?.investments ?? []);
+			: mode === "SECTORS"
+				? (summary?.sectors ?? [])
+				: (summary?.investments ?? []);
 	if (!items.length) {
 		return {
 			type: "empty",
@@ -81,11 +86,15 @@ const resolveDetailsView = (
 			emptyMessage:
 				mode === "CATEGORIES"
 					? MESSAGES.ANALYSIS_DETAILS.CATEGORIES_EMPTY_MESSAGE
-					: MESSAGES.ANALYSIS_DETAILS.INVESTMENTS_EMPTY_MESSAGE,
+					: mode === "SECTORS"
+						? MESSAGES.ANALYSIS_DETAILS.SECTORS_EMPTY_MESSAGE
+						: MESSAGES.ANALYSIS_DETAILS.INVESTMENTS_EMPTY_MESSAGE,
 			emptyTitle:
 				mode === "CATEGORIES"
 					? MESSAGES.ANALYSIS.EMPTY_TITLE
-					: MESSAGES.ANALYSIS_DETAILS.INVESTMENTS_EMPTY_TITLE,
+					: mode === "SECTORS"
+						? MESSAGES.ANALYSIS_DETAILS.SECTORS_EMPTY_TITLE
+						: MESSAGES.ANALYSIS_DETAILS.INVESTMENTS_EMPTY_TITLE,
 			errorMessage: "",
 		};
 	}
@@ -147,7 +156,7 @@ const AnalysisDetailsScreen = ({
 		({
 			item,
 		}: ListItemProps<
-			CategoryAnalysis | InvestmentAnalysis
+			CategoryAnalysis | InvestmentAnalysis | SectorAnalysis
 		>): React.JSX.Element => {
 			if (mode === "CATEGORIES") {
 				const category = item as CategoryAnalysis;
@@ -205,6 +214,45 @@ const AnalysisDetailsScreen = ({
 							</View>
 						</GlassCard>
 					</Pressable>
+				);
+			}
+			if (mode === "SECTORS") {
+				const sector = item as SectorAnalysis;
+				return (
+					<GlassCard
+						accent={getCategoryAccent(sector.net)}
+						key={`${sector.sectorId}:${sector.currencyCode}`}
+					>
+						<View style={styles.row}>
+							<View style={styles.details}>
+								<CustomText style={styles.name}>
+									{sector.sectorName ||
+										MESSAGES.ANALYSIS.NO_SECTOR}
+								</CustomText>
+								<CustomText style={styles.meta}>
+									{getCategoryBreakdownText(sector)}
+								</CustomText>
+							</View>
+							<View style={styles.right}>
+								<CustomText
+									style={[
+										styles.net,
+										{
+											color: getCategoryNetColor(
+												COLORS,
+												sector.net,
+											),
+										},
+									]}
+								>
+									{formatMoney(
+										sector.net,
+										sector.currencyCode,
+									)}
+								</CustomText>
+							</View>
+						</View>
+					</GlassCard>
 				);
 			}
 			const investment = item as InvestmentAnalysis;
@@ -294,11 +342,16 @@ const AnalysisDetailsScreen = ({
 				<PagedScreenList
 					data={items}
 					keyExtractor={(
-						item: CategoryAnalysis | InvestmentAnalysis,
+						item:
+							| CategoryAnalysis
+							| InvestmentAnalysis
+							| SectorAnalysis,
 					) =>
 						mode === "CATEGORIES"
 							? `${(item as CategoryAnalysis).categoryId}:${(item as CategoryAnalysis).currencyCode}`
-							: `${(item as InvestmentAnalysis).investmentId}:${(item as InvestmentAnalysis).currencyCode}`
+							: mode === "SECTORS"
+								? `${(item as SectorAnalysis).sectorId}:${(item as SectorAnalysis).currencyCode}`
+								: `${(item as InvestmentAnalysis).investmentId}:${(item as InvestmentAnalysis).currencyCode}`
 					}
 					renderItem={renderItem}
 				/>
@@ -308,7 +361,9 @@ const AnalysisDetailsScreen = ({
 					icon={
 						mode === "CATEGORIES"
 							? "pie-chart-outline"
-							: "trending-up"
+							: mode === "SECTORS"
+								? "grid-outline"
+								: "trending-up"
 					}
 					message={view.emptyMessage}
 					title={view.emptyTitle}

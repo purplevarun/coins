@@ -10,6 +10,7 @@ import type InvestmentAnalysisRow from "@/types/InvestmentAnalysisRow";
 import type InvestmentType from "@/types/InvestmentType";
 import type RelationKind from "@/types/RelationKind";
 import type Sector from "@/types/Sector";
+import type SectorAnalysisRow from "@/types/SectorAnalysisRow";
 import type SimpleEntity from "@/types/SimpleEntity";
 import type Source from "@/types/Source";
 import type Transaction from "@/types/Transaction";
@@ -21,6 +22,27 @@ import type TransactionItem from "@/types/TransactionItem";
 import type Trip from "@/types/Trip";
 import type TripScopedEntity from "@/types/TripScopedEntity";
 import type TripTotalRow from "@/types/TripTotalRow";
+
+const CATEGORY_ALLOCATION_FROM = `
+	FROM (
+		SELECT item.category_id AS categoryId, item.amount AS amount,
+			t.type AS type, source.currency_code AS currencyCode
+		FROM transaction_items item
+		INNER JOIN transactions t ON t.id = item.transaction_id
+		INNER JOIN sources source ON source.id = t.source_id
+		WHERE t.classification = 'GENERAL' AND t.type = 'DEBIT'
+			AND COALESCE(t.is_applicable, 1) = 1
+			AND t.transaction_at BETWEEN ? AND ?
+		UNION ALL
+		SELECT t.category_id, t.amount, t.type, source.currency_code
+		FROM transactions t
+		INNER JOIN sources source ON source.id = t.source_id
+		WHERE t.classification = 'GENERAL' AND t.type = 'CREDIT'
+			AND COALESCE(t.is_applicable, 1) = 1
+			AND t.category_id IS NOT NULL
+			AND t.transaction_at BETWEEN ? AND ?
+	) allocation
+`;
 
 const TRANSACTION_SELECT = `
 	SELECT
@@ -991,26 +1013,34 @@ const getCategoryAnalysisRows = async (
 			allocation.currencyCode AS currencyCode,
 			CASE WHEN allocation.type = 'CREDIT' THEN allocation.amount ELSE '0' END AS credits,
 			CASE WHEN allocation.type = 'DEBIT' THEN allocation.amount ELSE '0' END AS debits
-		FROM (
-			SELECT item.category_id AS categoryId, item.amount AS amount,
-				t.type AS type, source.currency_code AS currencyCode
-			FROM transaction_items item
-			INNER JOIN transactions t ON t.id = item.transaction_id
-			INNER JOIN sources source ON source.id = t.source_id
-			WHERE t.classification = 'GENERAL' AND t.type = 'DEBIT'
-				AND COALESCE(t.is_applicable, 1) = 1
-				AND t.transaction_at BETWEEN ? AND ?
-			UNION ALL
-			SELECT t.category_id, t.amount, t.type, source.currency_code
-			FROM transactions t
-			INNER JOIN sources source ON source.id = t.source_id
-			WHERE t.classification = 'GENERAL' AND t.type = 'CREDIT'
-				AND COALESCE(t.is_applicable, 1) = 1
-				AND t.category_id IS NOT NULL
-				AND t.transaction_at BETWEEN ? AND ?
-		) allocation
+		${CATEGORY_ALLOCATION_FROM}
 		INNER JOIN categories category ON category.id = allocation.categoryId
 		ORDER BY category.id, allocation.currencyCode;
+	`,
+		start,
+		end,
+		start,
+		end,
+	);
+
+const getSectorAnalysisRows = async (
+	database: SQLiteDatabase,
+	start: number,
+	end: number,
+): Promise<readonly SectorAnalysisRow[]> =>
+	database.getAllAsync<SectorAnalysisRow>(
+		`
+		SELECT
+			sector.id AS sectorId,
+			sector.name AS sectorName,
+			allocation.currencyCode AS currencyCode,
+			CASE WHEN allocation.type = 'CREDIT' THEN allocation.amount ELSE '0' END AS credits,
+			CASE WHEN allocation.type = 'DEBIT' THEN allocation.amount ELSE '0' END AS debits
+		${CATEGORY_ALLOCATION_FROM}
+		INNER JOIN categories category ON category.id = allocation.categoryId
+		LEFT JOIN sector_categories mapping ON mapping.category_id = category.id
+		LEFT JOIN sectors sector ON sector.id = mapping.sector_id
+		ORDER BY sector.id, allocation.currencyCode;
 	`,
 		start,
 		end,
@@ -1499,6 +1529,7 @@ const financeRepository = {
 	getInvestmentTypeRow,
 	getInvestmentTypeRows,
 	getLinkedTransactionIdRows,
+	getSectorAnalysisRows,
 	getSectorCategoryIdRows,
 	getSectorRow,
 	getSectorRows,
