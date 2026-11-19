@@ -146,7 +146,7 @@
 				local vault for passwords and cards. Your data stays on your
 				device, backed up as portable .pc files.
 			</p>
-			<a class="cta" href="{{DOWNLOAD_URL}}">
+			<a class="cta" id="download" href="{{DOWNLOAD_URL}}">
 				<svg
 					width="22"
 					height="22"
@@ -165,7 +165,7 @@
 				Download APK
 			</a>
 			<span class="version"
-				>Latest release {{VERSION}} ·
+				>Latest release <span id="version">{{VERSION}}</span> ·
 				<a href="{{RELEASES_URL}}">all releases</a></span
 			>
 			<section class="features">
@@ -202,5 +202,20 @@
 		<footer>
 			<a href="{{REPO_URL}}">Source on GitHub</a>
 		</footer>
+		<script>
+			fetch("https://api.github.com/repos/{{REPOSITORY}}/releases/latest")
+				.then((response) => (response.ok ? response.json() : null))
+				.then((release) => {
+					const apk = release?.assets?.find((asset) =>
+						asset.name.endsWith(".apk"),
+					);
+					if (!apk) return;
+					document.getElementById("download").href =
+						apk.browser_download_url;
+					document.getElementById("version").textContent =
+						`(${release.tag_name})`;
+				})
+				.catch(() => {});
+		</script>
 	</body>
 </html>

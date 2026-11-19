@@ -41,7 +41,8 @@ const html = (await readFile(join(ROOT, "index.html"), "utf8"))
 	.replaceAll("{{DOWNLOAD_URL}}", downloadUrl)
 	.replaceAll("{{VERSION}}", version)
 	.replaceAll("{{RELEASES_URL}}", releasesUrl)
-	.replaceAll("{{REPO_URL}}", repoUrl);
+	.replaceAll("{{REPO_URL}}", repoUrl)
+	.replaceAll("{{REPOSITORY}}", repository);
 
 await mkdir(DIST, { recursive: true });
 await writeFile(join(DIST, "index.html"), html);
