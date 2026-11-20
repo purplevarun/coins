@@ -207,21 +207,41 @@ const TransactionFormScreen = ({
 	const effectiveToAmount = isSameCurrencyTransfer ? amount : toAmount;
 	useLayoutEffect(() => {
 		navigation.setOptions({
-			headerRight: () =>
-				isExpense ? (
-					<HeaderIconButton
-						icon="add"
-						isDisabled={isSaving}
-						accessibilityLabel={MESSAGES.TRANSACTION_FORM.ADD_ITEM}
-						onPress={() => {
-							const item = createItemDraft();
-							setItems((current) => [...current, item]);
-							setFocusedItemKey(item.key);
+			headerRight: () => (
+				<View style={styles.headerActions}>
+					<Switch
+						accessibilityLabel={
+							MESSAGES.TRANSACTION_FORM.APPLICABLE
+						}
+						value={isApplicable}
+						onValueChange={setIsApplicable}
+						disabled={isSaving}
+						trackColor={{
+							false: COLORS.borderStrong,
+							true: COLORS.primaryMuted,
 						}}
+						thumbColor={
+							isApplicable ? COLORS.primary : COLORS.textMuted
+						}
 					/>
-				) : null,
+					{isExpense ? (
+						<HeaderIconButton
+							icon="add"
+							isDisabled={isSaving}
+							accessibilityLabel={
+								MESSAGES.TRANSACTION_FORM.ADD_ITEM
+							}
+							onPress={() => {
+								const item = createItemDraft();
+								setItems((current) => [...current, item]);
+								setFocusedItemKey(item.key);
+							}}
+						/>
+					) : null}
+				</View>
+			),
 		});
-	}, [isExpense, isSaving, navigation, styles]);
+	}, [isExpense, isApplicable, isSaving, navigation, styles, COLORS]);
 	let expenseTotal: string | null;
 	try {
 		expenseTotal = sumMoney(
@@ -530,28 +550,17 @@ const TransactionFormScreen = ({
 							/>
 						</View>
 						<View style={styles.pinnedCell}>
-							<View style={styles.applicability}>
-								<CustomText style={styles.applicabilityLabel}>
-									{MESSAGES.TRANSACTION_FORM.APPLICABLE}
-								</CustomText>
-								<Switch
-									accessibilityLabel={
-										MESSAGES.TRANSACTION_FORM.APPLICABLE
-									}
-									value={isApplicable}
-									onValueChange={setIsApplicable}
-									disabled={isSaving}
-									trackColor={{
-										false: COLORS.borderStrong,
-										true: COLORS.primaryMuted,
-									}}
-									thumbColor={
-										isApplicable
-											? COLORS.primary
-											: COLORS.textMuted
-									}
+							{classification === "GENERAL" && !isTransfer ? (
+								<SelectField
+									isCompact
+									isOptional
+									label={MESSAGES.TRANSACTION_FORM.TRIP_LABEL}
+									onChange={setTripId}
+									options={tripOptions}
+									placeholder={MESSAGES.COMPONENTS.NO_TRIP}
+									value={tripId}
 								/>
-							</View>
+							) : null}
 						</View>
 					</View>
 				</View>
@@ -598,16 +607,6 @@ const TransactionFormScreen = ({
 					style={styles.form}
 					pointerEvents={isSaving ? "none" : "auto"}
 				>
-					{classification === "GENERAL" && !isTransfer ? (
-						<SelectField
-							isOptional
-							label={MESSAGES.TRANSACTION_FORM.TRIP_LABEL}
-							onChange={setTripId}
-							options={tripOptions}
-							placeholder={MESSAGES.COMPONENTS.NO_TRIP}
-							value={tripId}
-						/>
-					) : null}
 					{!isExpense ? (
 						<TextField
 							autoFocus={
@@ -763,19 +762,11 @@ const { ALIGN, BORDER, FLEX, FONT_SIZE, FONT_WEIGHT, RADIUS, SIZES, SPACING } =
 
 const themedStyles = createThemedStyles((COLORS) =>
 	StyleSheet.create({
-		applicability: {
-			minHeight: SIZES.S44,
+		headerActions: {
 			flexDirection: FLEX.ROW,
 			alignItems: ALIGN.CENTER,
-			justifyContent: ALIGN.SPACE_BETWEEN,
 			gap: SPACING.S8,
-			paddingHorizontal: SPACING.S8,
-			borderWidth: BORDER.THIN,
-			borderRadius: RADIUS.S12,
-			borderColor: COLORS.borderStrong,
-			backgroundColor: COLORS.surfaceLight,
 		},
-		applicabilityLabel: { color: COLORS.text, fontSize: FONT_SIZE.S13 },
 		pinned: {
 			backgroundColor: COLORS.background,
 			paddingHorizontal: SPACING.S16,

@@ -215,10 +215,25 @@ const createFormHarness = (
 	return {
 		values,
 		navigation,
-		renderHeader: () =>
-			navigation.setOptions.mock.lastCall?.[0].headerRight() as ReactElement<
-				ComponentProps<typeof HeaderIconButton>
-			> | null,
+		renderHeader: () => {
+			const content =
+				navigation.setOptions.mock.lastCall?.[0].headerRight() as
+					ReactElement | undefined;
+			return content
+				? (findByPredicate(
+						content,
+						(node) => node?.type === HeaderIconButton,
+					)[0] ?? null)
+				: null;
+		},
+		renderHeaderSwitch: () => {
+			const content =
+				navigation.setOptions.mock.lastCall?.[0].headerRight() as
+					ReactElement | undefined;
+			return content
+				? findByPredicate(content, (node) => node?.type === "Switch")[0]
+				: undefined;
+		},
 		render: () => {
 			stateIndex = 0;
 			const renderScreen = TransactionFormScreen as (
@@ -252,13 +267,10 @@ describe("TransactionFormScreen", () => {
 				]),
 			);
 			let tree = harness.render();
-			const toggle = findByPredicate(
-				tree,
-				(node) => node.type === "Switch",
-			)[0];
-			expect(toggle.props.accessibilityLabel).toBe("Applicable");
-			expect(toggle.props.value).toBe(isApplicable);
-			toggle.props.onValueChange(!isApplicable);
+			const toggle = harness.renderHeaderSwitch();
+			expect(toggle?.props.accessibilityLabel).toBe("Applicable");
+			expect(toggle?.props.value).toBe(isApplicable);
+			toggle?.props.onValueChange(!isApplicable);
 			tree = harness.render();
 			formElements<ComponentProps<typeof AppButton>>(tree, AppButton)
 				.find((button) => button.props.label === "Save transaction")
@@ -272,12 +284,8 @@ describe("TransactionFormScreen", () => {
 				}),
 			);
 			harness.values.set(16, true);
-			expect(
-				findByPredicate(
-					harness.render(),
-					(node) => node.type === "Switch",
-				)[0].props.disabled,
-			).toBe(true);
+			harness.render();
+			expect(harness.renderHeaderSwitch()?.props.disabled).toBe(true);
 		},
 	);
 
@@ -530,7 +538,7 @@ describe("TransactionFormScreen", () => {
 					node?.props?.style?.borderWidth === undefined,
 			);
 			expect(modes).toHaveLength(2);
-			expect(defaults).toHaveLength(5);
+			expect(defaults).toHaveLength(6);
 			expect(
 				defaults.every(
 					(field) =>
