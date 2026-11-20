@@ -11,6 +11,18 @@
 3. DDL will be very simple - just the tables and indexes
 4. Any new migration will be added to migrations file and also in the default schema for new installs!
 
+# Transaction Data Rules
+
+1. NEVER create a transaction without `category_id` when `classification = 'GENERAL'` (DEBIT/CREDIT).
+2. NEVER create a transaction without `investment_id` when `classification = 'INVESTMENT'`.
+3. INVESTMENT rows must NOT carry a `category_id` — categories belong to GENERAL rows only.
+4. Buys/sells/dividends/investment returns/related wallet movements = `INVESTMENT` + linked `investment_id`.
+5. Fees, commissions and charges = `GENERAL` DEBIT + an expense category (e.g. `Investment Charges`, `Bank Charges`).
+6. Transfers between own sources = `TRANSFER` (no category needed); set `INVESTMENT` + `investment_id` when the transfer funds an investment.
+7. After inserting/editing transactions, ALWAYS run a sweep for violations:
+   GENERAL DEBIT/CREDIT rows with NULL `category_id` and no categorized `transaction_items`,
+   and INVESTMENT rows with NULL `investment_id`. Fix before delivering.
+
 # Scope Control
 
 - Make the minimum change required to satisfy the request.
