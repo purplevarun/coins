@@ -27,6 +27,33 @@
    DEBIT rows whose position-0 item category differs from the parent, DEBIT rows with a parent
    category but no items, and INVESTMENT rows with NULL `investment_id`. Fix before delivering.
 
+# Backup (.pc) Data Editing — hard-won rules
+
+Applies when hand-editing `.pc` backup files (SQLite). Every rule below exists because
+a mistake was made without it:
+
+1. NEVER recategorize a DEBIT by only updating `transactions.category_id` — the
+   `transaction_items` row keeps the old category and the app shows the OLD one. Update both.
+2. Every DEBIT created must get a `transaction_items` row (position 0, same category + amount)
+   or the form shows empty category/items.
+3. NEVER hand-compute epoch timestamps blind — a date constant was off by a full day once.
+   Verify `transaction_at` against existing rows on the same calendar date after insert.
+4. Schema conventions: `id` = uuid string, `amount` = TEXT, `created_at`/`updated_at`/
+   `transaction_at` = epoch millis.
+5. Repo delete hooks hard-delete and require zero references — they delete `sector_categories`
+   rows first, so sectors tables must exist BEFORE running the delete in one batch.
+6. Older backups may lack newer tables (e.g. `sectors`/`sector_categories`) — safe to
+   pre-create, the app uses CREATE TABLE IF NOT EXISTS in migrations.
+7. NEVER add "adjustment" transactions when the real value is derivable — reconcile against
+   real statements; only adjust when genuinely unknowable (and flag it in the reason).
+8. Known external conventions: INDmoney posts commissions the day AFTER trades (~0.30%),
+   Groww credits settle as combined wallet amounts.
+9. Always edit the working copy first, then `cp` to every delivered location — and RE-SYNC
+   after any later edit. Verify delivered files by md5, not assumption.
+10. Final checklist before delivering an edited .pc: `PRAGMA integrity_check` ok, zero
+    orphaned `investment_id`/`category_id`/`source_id`/`trip_id` refs, rule-sweep clean
+    (section above), and wallet/source balances recomputed from scratch match expectations.
+
 # Scope Control
 
 - Make the minimum change required to satisfy the request.
@@ -73,6 +100,14 @@ When a build or test fails:
 5. Stop once the issue is resolved.
 
 Do not perform speculative fixes.
+
+# Testing & Release Notes
+
+- Screen tests mock `useState` POSITIONALLY by call index — adding a `useState` before
+  existing ones shifts every index and breaks the harness. Add new state AFTER existing hooks,
+  or update the mock indices.
+- `./run release` re-uploads assets (`--clobber`) but does NOT move an existing tag — force-move
+  it manually (`git tag -f <v> <sha> && git push -f origin <v>`) when re-releasing.
 
 # Completion Requirements
 
