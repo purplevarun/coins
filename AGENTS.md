@@ -19,9 +19,13 @@
 4. Buys/sells/dividends/investment returns/related wallet movements = `INVESTMENT` + linked `investment_id`.
 5. Fees, commissions and charges = `GENERAL` DEBIT + an expense category (e.g. `Investment Charges`, `Bank Charges`).
 6. Transfers between own sources = `TRANSFER` (no category needed); set `INVESTMENT` + `investment_id` when the transfer funds an investment.
-7. After inserting/editing transactions, ALWAYS run a sweep for violations:
+7. DEBIT expense txns store the category in BOTH `transactions.category_id` AND a `transaction_items`
+   row (position 0, same category + amount) — the form and splits read the item. CREDIT/TRANSFER/
+   INVESTMENT txns have NO items. When creating or recategorizing a DEBIT, keep parent and item in sync.
+8. After inserting/editing transactions, ALWAYS run a sweep for violations:
    GENERAL DEBIT/CREDIT rows with NULL `category_id` and no categorized `transaction_items`,
-   and INVESTMENT rows with NULL `investment_id`. Fix before delivering.
+   DEBIT rows whose position-0 item category differs from the parent, DEBIT rows with a parent
+   category but no items, and INVESTMENT rows with NULL `investment_id`. Fix before delivering.
 
 # Scope Control
 
