@@ -757,7 +757,7 @@ const TransactionFormScreen = ({
 	);
 };
 
-const { ALIGN, BORDER, FLEX, FONT_SIZE, FONT_WEIGHT, RADIUS, SIZES, SPACING } =
+const { ALIGN, BORDER, FLEX, FONT_SIZE, FONT_WEIGHT, SIZES, SPACING } =
 	styleConstants;
 
 const themedStyles = createThemedStyles((COLORS) =>

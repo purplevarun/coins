@@ -5,7 +5,12 @@ import type { Mock } from "vitest";
 type TransactionFormHarness = Readonly<{
 	render: () => ReactElement;
 	renderHeader: () => ReactElement<HeaderIconButtonProps> | null;
-	renderHeaderSwitch: () => any;
+	renderHeaderSwitch: () => ReactElement<{
+		accessibilityLabel?: string;
+		disabled?: boolean;
+		onValueChange: (value: boolean) => void;
+		value?: boolean;
+	}> | null;
 	values: Map<number, unknown>;
 	navigation: Readonly<{ goBack: Mock; setOptions: Mock }>;
 }>;
