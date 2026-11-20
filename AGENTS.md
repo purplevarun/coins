@@ -108,6 +108,11 @@ Do not perform speculative fixes.
   or update the mock indices.
 - `./run release` re-uploads assets (`--clobber`) but does NOT move an existing tag — force-move
   it manually (`git tag -f <v> <sha> && git push -f origin <v>`) when re-releasing.
+- `./run build` does a CLEAN prebuild — `android/` is regenerated and ALL manual edits there
+  (gradle.properties, build.gradle) are wiped. Persist build config in `app.json` via
+  `expo-build-properties` (e.g. `buildArchs`, `enableMinifyInReleaseBuilds`), not in android/.
+- Version format is `YYYY.MM.DD.XX` where XX is a per-day build counter starting at 00.
+  versionCode = YYYY*1e6 + MM*1e4 + DD*100 + XX.
 
 # Completion Requirements
 
