@@ -67,3 +67,7 @@ __pycache__/
 
 
 modules/*/android/build/
+
+# Release signing secrets (kept local only)
+/release.keystore
+/keystore.properties

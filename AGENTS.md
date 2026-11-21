@@ -113,6 +113,11 @@ Do not perform speculative fixes.
   `expo-build-properties` (e.g. `buildArchs`, `enableMinifyInReleaseBuilds`), not in android/.
 - Version format is `YYYY.MM.DD.XX` where XX is a per-day build counter starting at 00.
   versionCode = YYYY*1e6 + MM*1e4 + DD*100 + XX.
+- Release builds are signed with `release.keystore` at the repo root via
+  `plugins/withReleaseSigning.js` (reads `keystore.properties`). BOTH files are
+  gitignored — losing the keystore means users must uninstall before updating.
+  Back it up outside the repo. PKCS12 keystores require storePassword ==
+  keyPassword.
 
 # Completion Requirements
 

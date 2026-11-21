@@ -32,7 +32,8 @@
 						"enableShrinkResourcesInReleaseBuilds": true
 					}
 				}
-			]
+			],
+			"./plugins/withReleaseSigning.js"
 		]
 	}
 }
