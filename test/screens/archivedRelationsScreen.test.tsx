@@ -44,8 +44,8 @@ vi.mock("@react-navigation/native", () => ({
 	useFocusEffect: (callback: () => void) => callback(),
 }));
 
-vi.mock("@expo/vector-icons", () => ({
-	Ionicons: (props: any) => ({ type: "Ionicons", props }),
+vi.mock("@expo/vector-icons/Ionicons", () => ({
+	default: (props: any) => ({ type: "Ionicons", props }),
 }));
 
 vi.mock("react-native", () => ({

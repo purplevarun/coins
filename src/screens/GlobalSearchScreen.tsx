@@ -1,7 +1,7 @@
 import CustomText from "@/components/CustomText";
 import type ListItemProps from "@/types/ListItemProps";
 
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 

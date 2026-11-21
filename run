@@ -236,7 +236,7 @@ run_avd_backups() {
 
   echo "Backup files in AVD Downloads:"
   adb shell find /sdcard/Download -maxdepth 1 -type f -print |
-    grep -Ei '\.(pc|purplecoins)$' || true
+    grep -Ei '\.(pc|pczip|purplecoins)$' || true
 }
 
 get_ui_label_center() {
@@ -362,8 +362,8 @@ run_avd_restore_test() {
     set -- $SIZE
     adb shell input tap $(($1 * 91 / 100)) $(($2 * 7 / 100))
   fi
-  if ! scroll_to_ui_label "Restore .pc"; then
-    echo "Could not find Restore .pc in Settings."
+  if ! scroll_to_ui_label "Restore .pc/.pczip"; then
+    echo "Could not find Restore .pc/.pczip in Settings."
     exit 1
   fi
   if ! tap_ui_label "validation.purplecoins" 15; then
@@ -472,8 +472,8 @@ run_avd_backup_test() {
     adb shell input tap $(($1 * 91 / 100)) $(($2 * 7 / 100))
   fi
   assert_ui_label "Settings & backup"
-  if ! scroll_to_ui_label "Restore .pc"; then
-    echo "Could not find Restore .pc in Settings."
+  if ! scroll_to_ui_label "Restore .pc/.pczip"; then
+    echo "Could not find Restore .pc/.pczip in Settings."
     exit 1
   fi
   assert_ui_label "$BACKUP_NAME"
@@ -593,7 +593,7 @@ Commands:
   build    Clean prebuild Android and assemble release APK with Gradle
   avd      Start the first configured Android Virtual Device
   install  Install existing APK on local AVD/device
-  avd-backups  List .pc and .purplecoins files in AVD Downloads
+  avd-backups  List .pc, .pczip and .purplecoins files in AVD Downloads
   avd-ui  Print visible AVD UI labels and bounds
   avd-restore-test  Restore and verify a .purplecoins fixture on the AVD
   avd-backup-test <filename> Run empty-state checks, then restore a Downloads backup

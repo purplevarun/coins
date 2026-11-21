@@ -112,6 +112,7 @@ describe("financeRepository", () => {
 				"ORDER BY item.transaction_id, item.position",
 			),
 			"expense",
+			"income",
 		);
 	});
 
@@ -262,7 +263,7 @@ describe("financeRepository", () => {
 		expect(sql).toContain("UNION ALL");
 		expect(sql).not.toMatch(/SUM\(|CAST\(/);
 		expect(sql).toContain(
-			"t.classification = 'GENERAL' AND t.type = 'DEBIT'",
+			"t.classification = 'GENERAL' AND t.type IN ('DEBIT', 'CREDIT')",
 		);
 		expect(sql).toContain(
 			"t.classification = 'GENERAL' AND t.type = 'CREDIT'",

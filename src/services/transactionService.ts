@@ -123,14 +123,14 @@ const resolveGeneralTransactionReason = async (
 	return category.name.trim();
 };
 
-const prepareExpenseInput = async (
+const prepareItemizedInput = async (
 	database: SQLiteDatabase,
 	input: TransactionInput,
 ): Promise<TransactionInput> => {
 	if (!input.items?.length) {
 		throw new AppError(
 			"TRANSACTION_ITEMS_REQUIRED",
-			"Add at least one expense item.",
+			"Add at least one item.",
 		);
 	}
 	const items: TransactionItemInput[] = [];
@@ -178,13 +178,17 @@ const prepareTransactionInput = async (
 	database: SQLiteDatabase,
 	input: TransactionInput,
 ): Promise<TransactionInput> => {
-	if (input.classification === "GENERAL" && input.type === "DEBIT") {
-		return prepareExpenseInput(database, input);
+	if (
+		input.classification === "GENERAL" &&
+		(input.type === "DEBIT" ||
+			(input.type === "CREDIT" && input.items !== undefined))
+	) {
+		return prepareItemizedInput(database, input);
 	}
 	if (input.items !== undefined) {
 		throw new AppError(
 			"TRANSACTION_ITEMS_UNSUPPORTED",
-			"Only expenses can contain items.",
+			"Only debits and credits can contain items.",
 		);
 	}
 	const amount = normalizeMoney(input.amount);

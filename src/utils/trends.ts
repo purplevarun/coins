@@ -34,23 +34,32 @@ const getTrendSeries = (
 			expenses: ZERO_AMOUNT,
 			networth: ZERO_AMOUNT,
 		};
-		const nextIncome =
-			transaction.classification === "GENERAL" &&
-			transaction.type === "CREDIT" &&
-			transaction.categoryId &&
-			transaction.categoryKind !== "REFUND"
-				? addMoney(current.income, amount)
-				: current.income;
-		const nextExpenses =
-			transaction.classification === "GENERAL" &&
-			((transaction.type === "DEBIT" &&
-				(transaction.categoryId || transaction.items.length > 0)) ||
-				(transaction.type === "CREDIT" &&
-					transaction.categoryKind === "REFUND"))
-				? transaction.categoryKind === "REFUND"
-					? subtractMoney(current.expenses, amount)
-					: addMoney(current.expenses, amount)
-				: current.expenses;
+		let nextIncome = current.income;
+		let nextExpenses = current.expenses;
+		if (transaction.classification === "GENERAL") {
+			if (transaction.type === "CREDIT" && transaction.items.length > 0) {
+				for (const item of transaction.items) {
+					const itemAmount = multiplyMoney(item.amount, rate);
+					if (item.categoryKind === "REFUND") {
+						nextExpenses = subtractMoney(nextExpenses, itemAmount);
+					} else {
+						nextIncome = addMoney(nextIncome, itemAmount);
+					}
+				}
+			} else if (
+				(transaction.type === "DEBIT" &&
+					(transaction.categoryId || transaction.items.length > 0)) ||
+				(transaction.type === "CREDIT" && transaction.categoryId)
+			) {
+				if (transaction.categoryKind === "REFUND") {
+					nextExpenses = subtractMoney(nextExpenses, amount);
+				} else if (transaction.type === "DEBIT") {
+					nextExpenses = addMoney(nextExpenses, amount);
+				} else {
+					nextIncome = addMoney(nextIncome, amount);
+				}
+			}
+		}
 		yearlyTotals.set(year, {
 			...current,
 			income: nextIncome,

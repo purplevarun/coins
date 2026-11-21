@@ -1,6 +1,6 @@
 import CustomText from "@/components/CustomText";
 
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";

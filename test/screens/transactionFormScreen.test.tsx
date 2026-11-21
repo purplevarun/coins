@@ -327,13 +327,12 @@ describe("TransactionFormScreen", () => {
 	});
 
 	it.each(["", "c1"])(
-		"forwards a credit category selection of %s",
+		"forwards a credit item category selection of %s",
 		async (categoryId) => {
 			const harness = createFormHarness(
 				new Map<number, unknown>([
 					[2, "CREDIT"],
-					[5, "100"],
-					[7, categoryId],
+					[18, [{ key: "one", amount: "100", categoryId }]],
 				]),
 			);
 			const tree = harness.render();
@@ -345,7 +344,8 @@ describe("TransactionFormScreen", () => {
 				{ id: "db" },
 				expect.objectContaining({
 					type: "CREDIT",
-					categoryId: categoryId || undefined,
+					categoryId: undefined,
+					items: [{ amount: "100", categoryId }],
 				}),
 			);
 		},
@@ -484,7 +484,10 @@ describe("TransactionFormScreen", () => {
 						field.props.isSearchable === false,
 				),
 			).toHaveLength(2);
-			if (classification === "GENERAL" && type === "DEBIT") {
+			if (
+				classification === "GENERAL" &&
+				(type === "DEBIT" || type === "CREDIT")
+			) {
 				expect(harness.renderHeader()?.props.accessibilityLabel).toBe(
 					"Add item",
 				);
@@ -680,7 +683,7 @@ describe("TransactionFormScreen", () => {
 		formElements<ComponentProps<typeof SelectField>>(
 			tree,
 			SelectField,
-		)[1]?.props.onChange("CREDIT");
+		)[1]?.props.onChange("TRANSFER");
 		expect(hookMocks.confirm).toHaveBeenCalledOnce();
 		expect(harness.values.get(2)).toBe("DEBIT");
 		expect(harness.values.get(18)).toHaveLength(2);
@@ -689,7 +692,7 @@ describe("TransactionFormScreen", () => {
 			"onConfirm"
 		>;
 		confirmation.onConfirm();
-		expect(harness.values.get(2)).toBe("CREDIT");
+		expect(harness.values.get(2)).toBe("TRANSFER");
 		expect(harness.values.get(5)).toBe("0.3");
 		const incomeTree = harness.render();
 		expect(harness.renderHeader()).toBeNull();
@@ -706,6 +709,28 @@ describe("TransactionFormScreen", () => {
 		expect(harness.values.get(18)).toMatchObject([
 			{ amount: "0.3", categoryId: "food" },
 		]);
+	});
+
+	it("keeps split items when switching between debit and credit", () => {
+		const harness = createFormHarness(
+			new Map([
+				[
+					18,
+					[
+						{ key: "one", amount: "0.1", categoryId: "food" },
+						{ key: "two", amount: "0.2", categoryId: "grocery" },
+					],
+				],
+			]),
+		);
+		const tree = harness.render();
+		formElements<ComponentProps<typeof SelectField>>(
+			tree,
+			SelectField,
+		)[1]?.props.onChange("CREDIT");
+		expect(hookMocks.confirm).not.toHaveBeenCalled();
+		expect(harness.values.get(2)).toBe("CREDIT");
+		expect(harness.values.get(18)).toHaveLength(2);
 	});
 
 	it.each([false, true])(
@@ -773,6 +798,50 @@ describe("TransactionFormScreen", () => {
 			);
 		},
 	);
+
+	it("loads non-debit edits: transfer skips items, empty-item credit seeds a draft", async () => {
+		let harness = createFormHarness(new Map(), {
+			transactionId: "payment",
+		});
+		reactMocks.useEffect.mockImplementation((effect: () => void) =>
+			effect(),
+		);
+		serviceMocks.getTransaction.mockResolvedValue({
+			classification: "GENERAL",
+			type: "TRANSFER",
+			sourceId: "s1",
+			destinationSourceId: "s2",
+			amount: "50",
+			toAmount: "60",
+			reason: "Move",
+			transactionAt: 42,
+			items: [],
+		});
+		harness.render();
+		await flush();
+
+		harness = createFormHarness(new Map(), { transactionId: "payment" });
+		reactMocks.useEffect.mockImplementation((effect: () => void) =>
+			effect(),
+		);
+		serviceMocks.getTransaction.mockResolvedValue({
+			classification: "GENERAL",
+			type: "CREDIT",
+			sourceId: "s1",
+			amount: "75",
+			reason: "Refund",
+			transactionAt: 42,
+			categoryId: "refund-cat",
+			items: [],
+		});
+		harness.render();
+		await flush();
+		reactMocks.useEffect.mockImplementation(() => undefined);
+		harness.render();
+		expect(harness.values.get(18)).toMatchObject([
+			{ amount: "75", categoryId: "refund-cat" },
+		]);
+	});
 
 	it("prevents duplicate saves until the payment commits", async () => {
 		const harness = createFormHarness();

@@ -4,25 +4,43 @@ import appConstants from "@/constants/appConstants";
 import { migrateDatabase } from "@/database/migrations";
 import SCHEMA_SQL from "@/database/schema";
 import AppError from "@/errors/AppError";
-import {
-	decryptBackup,
-	encryptBackup,
-	isEncryptedBackup,
-} from "@/services/backupEncryption";
 import type DatabaseCountRow from "@/types/DatabaseCountRow";
 import type DatabaseIntegrityResult from "@/types/DatabaseIntegrityResult";
 import type SqliteTableRow from "@/types/SqliteTableRow";
-import * as Crypto from "expo-crypto";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { openDatabaseAsync, type SQLiteDatabase } from "expo-sqlite";
+import { unzipSync, zipSync } from "fflate";
 
 const {
 	APP_NAME,
 	BACKUP_EXTENSION,
 	BACKUP_MIME_TYPE,
-	LEGACY_BACKUP_EXTENSION,
+	DATABASE_NAME,
+	LEGACY_BACKUP_EXTENSIONS,
 } = appConstants;
+const ACCEPTED_BACKUP_EXTENSIONS = [
+	BACKUP_EXTENSION,
+	...LEGACY_BACKUP_EXTENSIONS,
+];
+const ZIP_MAGIC = new Uint8Array([0x50, 0x4b, 0x03, 0x04]); // "PK\x03\x04"
+
+const isZipArchive = (data: Uint8Array): boolean =>
+	data.length >= ZIP_MAGIC.length &&
+	ZIP_MAGIC.every((byte, index) => data[index] === byte);
+
+const extractDatabase = (data: Uint8Array): Uint8Array => {
+	if (!isZipArchive(data)) return data;
+	try {
+		const entries = unzipSync(data);
+		return entries[DATABASE_NAME] ?? Object.values(entries)[0]!;
+	} catch {
+		throw new AppError(
+			"INVALID_BACKUP_DATABASE",
+			"This backup archive is empty or corrupt.",
+		);
+	}
+};
 
 const createBackupFileName = (): string => {
 	const date = new Date().toISOString().slice(0, 10);
@@ -42,9 +60,7 @@ const exportBackup = async (database: SQLiteDatabase): Promise<void> => {
 	const output = new File(Paths.cache, createBackupFileName());
 	output.create({ overwrite: true, intermediates: true });
 	const plaintext = await database.serializeAsync();
-	output.write(
-		encryptBackup(plaintext, await Crypto.getRandomBytesAsync(40)),
-	);
+	output.write(zipSync({ [DATABASE_NAME]: plaintext }, { level: 9 }));
 	if (!(await Sharing.isAvailableAsync())) {
 		throw new AppError(
 			"SHARING_UNAVAILABLE",
@@ -74,12 +90,13 @@ const restoreBackup = async (database: SQLiteDatabase): Promise<boolean> => {
 	}
 	const assetName = asset.name.toLowerCase();
 	if (
-		!assetName.endsWith(BACKUP_EXTENSION) &&
-		!assetName.endsWith(LEGACY_BACKUP_EXTENSION)
+		!ACCEPTED_BACKUP_EXTENSIONS.some((extension) =>
+			assetName.endsWith(extension),
+		)
 	) {
 		throw new AppError(
 			"INVALID_BACKUP_EXTENSION",
-			`Select a ${BACKUP_EXTENSION} or ${LEGACY_BACKUP_EXTENSION} file.`,
+			`Select a ${ACCEPTED_BACKUP_EXTENSIONS.join(" or ")} file.`,
 		);
 	}
 
@@ -93,11 +110,7 @@ const restoreBackup = async (database: SQLiteDatabase): Promise<boolean> => {
 	try {
 		tempFile.create({ overwrite: true });
 		const pickedBytes = await pickedFile.bytes();
-		tempFile.write(
-			isEncryptedBackup(pickedBytes)
-				? decryptBackup(pickedBytes)
-				: pickedBytes,
-		);
+		tempFile.write(extractDatabase(pickedBytes));
 		tempDatabase = await openDatabaseAsync(TEMP_RESTORE_DB_NAME);
 		const tables = await tempDatabase.getFirstAsync<DatabaseCountRow>(
 			`SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table'

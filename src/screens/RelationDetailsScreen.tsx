@@ -22,7 +22,7 @@ import type RootStackParamList from "@/types/RootStackParamList";
 import type Trip from "@/types/Trip";
 import createThemedStyles from "@/utils/createThemedStyles";
 import getErrorMessage from "@/utils/error";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useCallback, useLayoutEffect, useState } from "react";

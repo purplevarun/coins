@@ -2,7 +2,7 @@ import categoryService from "@/services/categoryService";
 import type ListItemProps from "@/types/ListItemProps";
 import type ThemeColors from "@/types/ThemeColors";
 
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 

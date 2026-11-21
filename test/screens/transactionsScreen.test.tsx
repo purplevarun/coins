@@ -65,8 +65,8 @@ vi.mock("react-native", () => ({
 		props,
 	}),
 }));
-vi.mock("@expo/vector-icons", () => ({
-	Ionicons: (props: any) => ({ type: "Ionicons", props }),
+vi.mock("@expo/vector-icons/Ionicons", () => ({
+	default: (props: any) => ({ type: "Ionicons", props }),
 }));
 
 vi.mock("@/components/AppButton", () => ({

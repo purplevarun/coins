@@ -1,7 +1,7 @@
 import CustomText from "@/components/CustomText";
 import type ListItemProps from "@/types/ListItemProps";
 
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect } from "@react-navigation/native";
 import Decimal from "decimal.js";
 import {

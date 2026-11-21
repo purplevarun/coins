@@ -65,3 +65,5 @@ __pycache__/
 /package-lock.json
 /yarn.lock
 
+
+modules/*/android/build/

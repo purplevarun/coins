@@ -75,15 +75,17 @@ const TransactionFormScreen = ({
 	const dialog = useAppDialog();
 	const [classification, setClassification] =
 		useState<TransactionClassification>(DEFAULT_TRANSACTION_CLASSIFICATION);
-	const [type, setType] = useState<TransactionType>(DEFAULT_TRANSACTION_TYPE);
+	const [type, setType] = useState<TransactionType>(
+		route.params?.initialType ?? DEFAULT_TRANSACTION_TYPE,
+	);
 	const [sourceId, setSourceId] = useState("");
 	const [destinationSourceId, setDestinationSourceId] = useState("");
-	const [amount, setAmount] = useState("");
+	const [amount, setAmount] = useState(route.params?.initialAmount ?? "");
 	const [toAmount, setToAmount] = useState("");
 	const [categoryId, setCategoryId] = useState("");
 	const [tripId, setTripId] = useState("");
 	const [investmentId, setInvestmentId] = useState("");
-	const [reason, setReason] = useState("");
+	const [reason, setReason] = useState(route.params?.initialReason ?? "");
 	const [transactionAt, setTransactionAt] = useState(
 		() => route.params?.initialTransactionAt ?? Date.now(),
 	);
@@ -94,7 +96,10 @@ const TransactionFormScreen = ({
 	const [isSaving, setIsSaving] = useState(false);
 	const [error, setError] = useState("");
 	const [items, setItems] = useState<readonly TransactionItemDraft[]>(() => [
-		createItemDraft("", initialCategoryId ?? ""),
+		createItemDraft(
+			route.params?.initialAmount ?? "",
+			initialCategoryId ?? "",
+		),
 	]);
 	const [focusedItemKey, setFocusedItemKey] = useState<string | null>(null);
 	const [isApplicable, setIsApplicable] = useState(true);
@@ -165,16 +170,25 @@ const TransactionFormScreen = ({
 				setIsApplicable(existingTransaction.isApplicable ?? true);
 				if (
 					existingTransaction.classification === "GENERAL" &&
-					existingTransaction.type === "DEBIT"
+					existingTransaction.type !== "TRANSFER"
 				) {
 					setItems(
-						existingTransaction.items.map((item) => ({
-							key: createId(),
-							id: cloneFromTransactionId ? undefined : item.id,
-							amount: item.amount,
-							categoryId: item.categoryId,
-							categoryName: item.categoryName,
-						})),
+						existingTransaction.items.length > 0
+							? existingTransaction.items.map((item) => ({
+									key: createId(),
+									id: cloneFromTransactionId
+										? undefined
+										: item.id,
+									amount: item.amount,
+									categoryId: item.categoryId,
+									categoryName: item.categoryName,
+								}))
+							: [
+									createItemDraft(
+										existingTransaction.amount,
+										existingTransaction.categoryId ?? "",
+									),
+								],
 					);
 				}
 				// For clone mode: use today's date, not the original date
@@ -199,7 +213,8 @@ const TransactionFormScreen = ({
 		(source) => source.id === destinationSourceId,
 	);
 	const isTransfer = classification === "GENERAL" && type === "TRANSFER";
-	const isExpense = classification === "GENERAL" && type === "DEBIT";
+	const isItemized =
+		classification === "GENERAL" && (type === "DEBIT" || type === "CREDIT");
 	const isInvestment = classification === "INVESTMENT";
 	const isSameCurrencyTransfer =
 		isTransfer &&
@@ -224,7 +239,7 @@ const TransactionFormScreen = ({
 							isApplicable ? COLORS.primary : COLORS.textMuted
 						}
 					/>
-					{isExpense ? (
+					{isItemized ? (
 						<HeaderIconButton
 							icon="add"
 							isDisabled={isSaving}
@@ -241,17 +256,15 @@ const TransactionFormScreen = ({
 				</View>
 			),
 		});
-	}, [isExpense, isApplicable, isSaving, navigation, styles, COLORS]);
-	let expenseTotal: string | null;
+	}, [isItemized, isApplicable, isSaving, navigation, styles, COLORS]);
+	let itemTotal: string | null;
 	try {
-		expenseTotal = sumMoney(
-			items.map((item) => normalizeMoney(item.amount)),
-		);
+		itemTotal = sumMoney(items.map((item) => normalizeMoney(item.amount)));
 	} catch {
-		expenseTotal = null;
+		itemTotal = null;
 	}
-	let total = expenseTotal;
-	if (!isExpense) {
+	let total = itemTotal;
+	if (!isItemized) {
 		try {
 			total = normalizeMoney(amount);
 		} catch {
@@ -304,20 +317,21 @@ const TransactionFormScreen = ({
 		nextClassification: TransactionClassification,
 		nextType: TransactionType,
 	): void => {
-		const nextIsExpense =
-			nextClassification === "GENERAL" && nextType === "DEBIT";
+		const nextIsItemized =
+			nextClassification === "GENERAL" &&
+			(nextType === "DEBIT" || nextType === "CREDIT");
 		const applyChange = (): void => {
-			if (isExpense && !nextIsExpense) {
-				setAmount(expenseTotal ?? "");
+			if (isItemized && !nextIsItemized) {
+				setAmount(itemTotal ?? "");
 				setCategoryId(items[0]?.categoryId ?? "");
 				setItems([createItemDraft()]);
-			} else if (!isExpense && nextIsExpense) {
+			} else if (!isItemized && nextIsItemized) {
 				setItems([createItemDraft(amount, categoryId)]);
 			}
 			setClassification(nextClassification);
 			setType(nextType);
 		};
-		if (isExpense && !nextIsExpense && items.length > 1) {
+		if (isItemized && !nextIsItemized && items.length > 1) {
 			dialog.confirm({
 				title: MESSAGES.TRANSACTION_FORM.REMOVE_ITEMS_TITLE,
 				message: MESSAGES.TRANSACTION_FORM.REMOVE_ITEMS_MESSAGE,
@@ -363,8 +377,8 @@ const TransactionFormScreen = ({
 					isTransfer && destinationSourceId
 						? destinationSourceId
 						: undefined,
-				amount: isExpense ? (expenseTotal ?? "0") : amount,
-				items: isExpense
+				amount: isItemized ? (itemTotal ?? "0") : amount,
+				items: isItemized
 					? items.map((item) => ({
 							id: item.id,
 							amount: item.amount,
@@ -375,12 +389,7 @@ const TransactionFormScreen = ({
 					isTransfer && effectiveToAmount
 						? effectiveToAmount
 						: undefined,
-				categoryId:
-					classification === "GENERAL" &&
-					type === "CREDIT" &&
-					categoryId
-						? categoryId
-						: undefined,
+				categoryId: undefined,
 				tripId:
 					classification === "GENERAL" &&
 					type !== "TRANSFER" &&
@@ -519,20 +528,12 @@ const TransactionFormScreen = ({
 										MESSAGES.TRANSACTION_FORM
 											.SELECT_CATEGORY
 									}
-									value={
-										isExpense
-											? (items[0]?.categoryId ?? "")
-											: categoryId
-									}
+									value={items[0]?.categoryId ?? ""}
 									onChange={(value) => {
-										if (isExpense) {
-											if (items[0])
-												updateItem(items[0].key, {
-													categoryId: value,
-												});
-										} else {
-											setCategoryId(value);
-										}
+										if (items[0])
+											updateItem(items[0].key, {
+												categoryId: value,
+											});
 										clearTripForAgnosticCategory(value);
 									}}
 									options={categoryOptions}
@@ -607,7 +608,7 @@ const TransactionFormScreen = ({
 					style={styles.form}
 					pointerEvents={isSaving ? "none" : "auto"}
 				>
-					{!isExpense ? (
+					{!isItemized ? (
 						<TextField
 							autoFocus={
 								!transactionId && !cloneFromTransactionId
@@ -624,7 +625,7 @@ const TransactionFormScreen = ({
 							value={amount}
 						/>
 					) : null}
-					{isExpense ? (
+					{isItemized ? (
 						<View style={styles.items}>
 							{items.map((item, position) => (
 								<View key={item.key} style={styles.item}>
@@ -735,7 +736,7 @@ const TransactionFormScreen = ({
 								: isInvestment
 									? MESSAGES.TRANSACTION_FORM
 											.DEFAULTS_TO_INVESTMENT
-									: isExpense && items.length > 1
+									: isItemized && items.length > 1
 										? MESSAGES.TRANSACTION_FORM
 												.DEFAULTS_TO_ITEMS
 										: MESSAGES.TRANSACTION_FORM

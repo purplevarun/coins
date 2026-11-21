@@ -7,6 +7,7 @@ type AppDialogConfirmOptions = Readonly<{
 	cancelLabel?: string;
 	variant?: ButtonVariant;
 	onConfirm: () => void;
+	onDismiss?: () => void;
 }>;
 
 export type { AppDialogConfirmOptions as default };

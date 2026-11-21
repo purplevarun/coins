@@ -3,7 +3,7 @@ import type CopyRowProps from "@/types/CopyRowProps";
 import type ListItemProps from "@/types/ListItemProps";
 import type VaultFormParams from "@/types/VaultFormParams";
 
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Clipboard from "expo-clipboard";
 import {
 	useCallback,

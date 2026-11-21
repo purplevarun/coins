@@ -23,9 +23,11 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/constants/appConstants", () => ({
 	default: {
 		APP_NAME: "Purplecoins",
-		BACKUP_EXTENSION: ".pc",
-		BACKUP_MIME_TYPE: "application/x-sqlite3",
+		BACKUP_EXTENSION: ".pczip",
+		BACKUP_MIME_TYPE: "application/zip",
+		DATABASE_NAME: "purplecoins.db",
 		LEGACY_BACKUP_EXTENSION: ".purplecoins",
+		LEGACY_BACKUP_EXTENSIONS: [".purplecoins", ".pc"],
 	},
 }));
 
@@ -49,12 +51,6 @@ vi.mock("expo-sharing", () => ({
 
 vi.mock("expo-sqlite", () => ({
 	openDatabaseAsync: mocks.openDatabaseAsync,
-}));
-
-vi.mock("expo-crypto", () => ({
-	getRandomBytesAsync: vi.fn(async (length: number) =>
-		new Uint8Array(length).fill(7),
-	),
 }));
 
 vi.mock("expo-file-system", () => {
@@ -101,12 +97,8 @@ vi.mock("expo-file-system", () => {
 	};
 });
 
-import {
-	decryptBackup,
-	encryptBackup,
-	isEncryptedBackup,
-} from "@/services/backupEncryption";
 import backupService from "@/services/backupService";
+import { unzipSync, zipSync } from "fflate";
 
 const database = {
 	getFirstAsync: vi.fn(async () => ({ integrity: "ok" })),
@@ -197,30 +189,46 @@ describe("backupService", () => {
 		vi.setSystemTime(new Date("2026-08-25T10:00:00.000Z"));
 	});
 
-	it("exports an encrypted PCENC1 backup", async () => {
+	it("exports a zipped .pczip backup", async () => {
 		await backupService.exportBackup(database);
 		expect(database.serializeAsync).toHaveBeenCalledOnce();
 		const written = mocks.fileWrite.mock.calls[0]?.[0] as Uint8Array;
-		expect(isEncryptedBackup(written)).toBe(true);
-		expect(decryptBackup(written)).toEqual(new Uint8Array([5, 6]));
+		expect(unzipSync(written)["purplecoins.db"]).toEqual(
+			new Uint8Array([5, 6]),
+		);
 		expect(mocks.shareAsync).toHaveBeenCalledWith(
-			"cache-dir/purplecoins-2026-08-25.pc",
+			"cache-dir/purplecoins-2026-08-25.pczip",
 			expect.objectContaining({
 				dialogTitle: "Export Purplecoins backup",
-				mimeType: "application/x-sqlite3",
+				mimeType: "application/zip",
 			}),
 		);
 	});
 
-	it("restores an encrypted backup file", async () => {
-		const plaintext = new Uint8Array([9, 8, 7]);
+	it.each([false, true])(
+		"restores a backup file (zipped=%s)",
+		async (zipped) => {
+			const plaintext = new Uint8Array([9, 8, 7]);
+			mocks.fileBytes.mockResolvedValueOnce(
+				zipped ? zipSync({ "purplecoins.db": plaintext }) : plaintext,
+			);
+			selectBackup(zipped ? "ok.pczip" : "ok.pc");
+			mocks.openDatabaseAsync.mockResolvedValueOnce(validTempDatabase());
+			expect(await backupService.restoreBackup(database)).toBe(true);
+			expect(mocks.fileWrite).toHaveBeenCalledWith(plaintext);
+		},
+	);
+
+	it("rejects a corrupt backup archive", async () => {
 		mocks.fileBytes.mockResolvedValueOnce(
-			encryptBackup(plaintext, new Uint8Array(40).fill(3)),
+			new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0, 0, 0, 0]),
 		);
-		selectBackup();
-		mocks.openDatabaseAsync.mockResolvedValueOnce(validTempDatabase());
-		expect(await backupService.restoreBackup(database)).toBe(true);
-		expect(mocks.fileWrite).toHaveBeenCalledWith(plaintext);
+		selectBackup("corrupt.pczip");
+		await expect(
+			backupService.restoreBackup(database),
+		).rejects.toMatchObject({
+			code: "INVALID_BACKUP_DATABASE",
+		});
 	});
 
 	it("rejects invalid exports and canceled restores", async () => {
@@ -270,7 +278,7 @@ describe("backupService", () => {
 		expect(database.execAsync).not.toHaveBeenCalled();
 	});
 
-	it.each(["ok.pc", "OK.PURPLECOINS"])(
+	it.each(["ok.pc", "ok.pczip", "OK.PURPLECOINS"])(
 		"accepts raw SQLite backup %s",
 		async (name) => {
 			const tempDatabase = validTempDatabase();

@@ -1,7 +1,7 @@
 import CustomText from "@/components/CustomText";
 import type ThemeColors from "@/types/ThemeColors";
 
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import {
 	useCallback,
 	useEffect,

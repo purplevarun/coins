@@ -1,5 +1,5 @@
 import CustomTextInput from "@/components/CustomTextInput";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { StyleSheet, View } from "react-native";
 
 import MESSAGES from "@/constants/messageConstants";

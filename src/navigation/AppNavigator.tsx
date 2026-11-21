@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { View } from "react-native";
 
 import HeaderIconButton from "@/components/HeaderIconButton";
+import TransactionAlertsController from "@/components/TransactionAlertsController";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useTheme from "@/hooks/useTheme";
@@ -288,6 +289,7 @@ const AppNavigator = (): React.JSX.Element => {
 					options={{ title: "Settings & backup" }}
 				/>
 			</Stack.Navigator>
+			<TransactionAlertsController />
 		</NavigationContainer>
 	);
 };

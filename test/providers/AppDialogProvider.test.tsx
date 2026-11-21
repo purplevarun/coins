@@ -18,8 +18,8 @@ vi.mock("react", async (importOriginal) => {
 	};
 });
 
-vi.mock("@expo/vector-icons", () => ({
-	Ionicons: (props: any) => ({ type: "Ionicons", props }),
+vi.mock("@expo/vector-icons/Ionicons", () => ({
+	default: (props: any) => ({ type: "Ionicons", props }),
 }));
 
 vi.mock("expo-blur", () => ({ BlurView: "BlurView" }));
@@ -237,6 +237,13 @@ describe("AppDialogProvider", () => {
 		});
 
 		const element = AppDialogProvider({ children: null }) as any;
+		const modalNodes = collectNodesByPredicate(element, (node) =>
+			Boolean(node?.props?.onRequestClose),
+		);
+		expect(modalNodes.length).toBeGreaterThan(0);
+		modalNodes[0]?.props.onRequestClose();
+		expect(setActiveDialog).toHaveBeenCalledWith(null);
+
 		const closeButton = collectNodesByPredicate(
 			element,
 			(node) =>
@@ -247,7 +254,32 @@ describe("AppDialogProvider", () => {
 		closeButton?.props.onPress();
 
 		expect(setActiveDialog).toHaveBeenCalledWith(null);
-		expect(setActiveDialog).toHaveBeenCalledTimes(1);
+		expect(setActiveDialog).toHaveBeenCalledTimes(2);
+	});
+
+	it("invokes onDismiss when a confirm dialog is cancelled", () => {
+		const onDismiss = vi.fn();
+		setupState({
+			mode: "CONFIRM",
+			options: {
+				title: "Add?",
+				message: "Proceed?",
+				onConfirm: vi.fn(),
+				onDismiss,
+			},
+		});
+
+		const element = AppDialogProvider({ children: null }) as any;
+		const cancelButton = collectNodesByPredicate(
+			element,
+			(node) =>
+				node?.props?.label === "Cancel" &&
+				node?.props?.variant === "secondary",
+		)[0];
+		expect(cancelButton).toBeTruthy();
+		cancelButton?.props.onPress();
+		expect(onDismiss).toHaveBeenCalledOnce();
+		expect(setActiveDialog).toHaveBeenCalledWith(null);
 	});
 
 	it("uses default cancel label and primary confirm variant", () => {
@@ -269,6 +301,8 @@ describe("AppDialogProvider", () => {
 				node?.props?.variant === "secondary",
 		)[0];
 		expect(cancelButton).toBeTruthy();
+		cancelButton?.props.onPress();
+		expect(setActiveDialog).toHaveBeenCalledWith(null);
 
 		const confirmButton = collectNodesByPredicate(
 			element,

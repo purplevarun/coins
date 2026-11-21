@@ -30,7 +30,7 @@ const CATEGORY_ALLOCATION_FROM = `
 		FROM transaction_items item
 		INNER JOIN transactions t ON t.id = item.transaction_id
 		INNER JOIN sources source ON source.id = t.source_id
-		WHERE t.classification = 'GENERAL' AND t.type = 'DEBIT'
+		WHERE t.classification = 'GENERAL' AND t.type IN ('DEBIT', 'CREDIT')
 			AND COALESCE(t.is_applicable, 1) = 1
 			AND t.transaction_at BETWEEN ? AND ?
 		UNION ALL
@@ -1135,7 +1135,7 @@ const getTransactionItemRows = async (
 		items.push(
 			...(await database.getAllAsync<TransactionItem>(
 				`SELECT item.id, item.transaction_id AS transactionId, item.category_id AS categoryId,
-			 category.name AS categoryName, item.amount, item.position,
+			 category.name AS categoryName, category.kind AS categoryKind, item.amount, item.position,
 			 item.created_at AS createdAt, item.updated_at AS updatedAt
 			 FROM transaction_items item JOIN categories category ON category.id = item.category_id
 			 WHERE item.transaction_id IN (${ids.map(() => "?").join(", ")})
@@ -1155,7 +1155,7 @@ const hydrateTransactionItems = async (
 		.filter(
 			(transaction) =>
 				transaction.classification === "GENERAL" &&
-				transaction.type === "DEBIT",
+				(transaction.type === "DEBIT" || transaction.type === "CREDIT"),
 		)
 		.map((transaction) => transaction.id);
 	const items = await getTransactionItemRows(database, expenseIds);

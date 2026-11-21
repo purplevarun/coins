@@ -760,9 +760,25 @@ describe("split expense persistence", () => {
 		await expect(
 			transactionService.saveTransaction(database, {
 				...expense,
-				type: "CREDIT",
+				type: "TRANSFER",
 			}),
 		).rejects.toMatchObject({ code: "TRANSACTION_ITEMS_UNSUPPORTED" });
+	});
+
+	it("saves a multi-item credit with a null parent category", async () => {
+		const { database } = await createFixture();
+		const id = await transactionService.saveTransaction(database, {
+			...expense,
+			type: "CREDIT",
+		});
+		const saved = await transactionService.getTransaction(database, id);
+		expect(saved?.type).toBe("CREDIT");
+		expect(saved?.categoryId ?? null).toBeNull();
+		expect(saved?.amount).toBe("200");
+		expect(saved?.items.map((item) => item.categoryId)).toEqual([
+			"food",
+			"grocery",
+		]);
 	});
 
 	it("preserves decimal precision, allows repeated categories, and uses shared reason defaults", async () => {

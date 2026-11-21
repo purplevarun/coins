@@ -1,5 +1,5 @@
 import type ListItemProps from "@/types/ListItemProps";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import {
 	useCallback,
 	useEffect,

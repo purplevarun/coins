@@ -39,8 +39,8 @@ vi.mock("react-native", () => ({
 	View: "View",
 }));
 
-vi.mock("@expo/vector-icons", () => ({
-	Ionicons: "Ionicons",
+vi.mock("@expo/vector-icons/Ionicons", () => ({
+	default: "Ionicons",
 }));
 
 vi.mock("expo-linear-gradient", () => ({

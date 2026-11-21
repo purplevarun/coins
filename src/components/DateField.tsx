@@ -1,6 +1,6 @@
 import CustomText from "@/components/CustomText";
 
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";

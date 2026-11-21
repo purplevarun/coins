@@ -1,7 +1,7 @@
 import CustomText from "@/components/CustomText";
 import type ButtonColors from "@/types/ButtonColors";
 import type ThemeColors from "@/types/ThemeColors";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { ActivityIndicator, Pressable, StyleSheet } from "react-native";
 
 import styleConstants from "@/constants/styleConstants";

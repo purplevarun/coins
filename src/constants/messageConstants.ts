@@ -22,6 +22,7 @@ const COMMON = {
 	SEARCH: "Search",
 	SELECT: "Select",
 	SEND: "Send",
+	SKIP: "Skip",
 	VALIDATE: "Validate",
 	VIEW: "View",
 	UNABLE_TO_ARCHIVE: "Unable to archive",
@@ -218,14 +219,24 @@ const SETTINGS = {
 	BACKUP_RESTORED: "Backup restored successfully.",
 	DEFAULT_SOURCE: "Default source",
 	DEFAULT_TRIP: "Default trip",
-	EXPORT: "Export .pc",
+	EXPORT: "Export .pczip",
 	FY_START_MONTH: "Financial year start month",
 	NO_DEFAULT_SOURCE: "No default source",
 	NO_DEFAULT_TRIP: "No default trip",
 	NONE: "None",
-	RESTORE: "Restore .pc",
+	RESTORE: "Restore .pc/.pczip",
 	RELATIONS: "Relations",
 	THEME: "Theme",
+} as const;
+
+const ALERTS = {
+	ADD_TITLE: "Add transaction?",
+	CREDIT_LABEL: "Credited",
+	DEBIT_LABEL: "Debited",
+	DISABLED:
+		"Notification access is off. Turn it on to get debit/credit prompts.",
+	ENABLE: "Enable alerts",
+	ENABLED: "On — new debit/credit alerts will ask to add a transaction.",
 } as const;
 
 const BUDGETS = {
@@ -389,6 +400,7 @@ const COMPONENTS = {
 } as const;
 
 const MESSAGES = {
+	ALERTS,
 	ANALYSIS,
 	ANALYSIS_DETAILS,
 	ARCHIVED,

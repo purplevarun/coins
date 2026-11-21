@@ -2,7 +2,7 @@ import appConstants from "@/constants/appConstants";
 
 import CustomText from "@/components/CustomText";
 import { useEffect, useState } from "react";
-import { StyleSheet, Switch, View } from "react-native";
+import { AppState, StyleSheet, Switch, View } from "react-native";
 import packageJson from "../../package.json";
 
 import AppButton from "@/components/AppButton";
@@ -20,6 +20,7 @@ import useThemedStyles from "@/hooks/useThemedStyles";
 import backupService from "@/services/backupService";
 import settingsService from "@/services/settingsService";
 import sourceService from "@/services/sourceService";
+import transactionAlertService from "@/services/transactionAlertService";
 import tripService from "@/services/tripService";
 import type NoticeScope from "@/types/NoticeScope";
 import type SelectOption from "@/types/SelectOption";
@@ -68,6 +69,20 @@ const SettingsScreen = ({
 	const [defaultSourceId, setDefaultSourceId] = useState("");
 	const [sources, setSources] = useState<readonly Source[]>([]);
 	const [noticeScope, setNoticeScope] = useState<NoticeScope>("top");
+	const [alertsEnabled, setAlertsEnabled] = useState(false);
+
+	useEffect(() => {
+		setAlertsEnabled(transactionAlertService.isAlertAccessGranted());
+		const subscription = AppState.addEventListener(
+			"change",
+			(state) =>
+				state === "active" &&
+				setAlertsEnabled(
+					transactionAlertService.isAlertAccessGranted(),
+				),
+		);
+		return () => subscription.remove();
+	}, []);
 
 	useEffect(() => {
 		const getSettings = async (): Promise<void> => {
@@ -315,8 +330,9 @@ const SettingsScreen = ({
 						Backup and restore
 					</CustomText>
 					<CustomText style={styles.description}>
-						Exports use .pc. Restore accepts raw .pc and
-						.purplecoins SQLite snapshots. Keep them private.
+						Exports use compressed .pczip. Restore accepts .pczip,
+						raw .pc and .purplecoins SQLite snapshots. Keep them
+						private.
 					</CustomText>
 					<AppButton
 						icon="share-outline"
@@ -331,6 +347,29 @@ const SettingsScreen = ({
 						onPress={() => void handleRestore()}
 						variant="secondary"
 					/>
+				</View>
+			</GlassCard>
+			<GlassCard>
+				<View style={styles.section}>
+					<CustomText style={styles.heading}>
+						Transaction alerts
+					</CustomText>
+					<CustomText style={styles.description}>
+						{alertsEnabled
+							? MESSAGES.ALERTS.ENABLED
+							: MESSAGES.ALERTS.DISABLED}
+					</CustomText>
+					{!alertsEnabled ? (
+						<AppButton
+							icon="notifications-outline"
+							isDisabled={isWorking}
+							label={MESSAGES.ALERTS.ENABLE}
+							onPress={() =>
+								transactionAlertService.openAlertAccessSettings()
+							}
+							variant="secondary"
+						/>
+					) : null}
 				</View>
 			</GlassCard>
 		</ScreenContainer>

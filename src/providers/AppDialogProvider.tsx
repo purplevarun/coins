@@ -1,6 +1,6 @@
 import CustomText from "@/components/CustomText";
 import type ThemeColors from "@/types/ThemeColors";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import {
 	useCallback,
 	useMemo,
@@ -59,6 +59,12 @@ const AppDialogProvider = ({ children }: PropsWithChildren): ReactNode => {
 		setActiveDialog(null);
 	}, []);
 
+	const handleDismiss = useCallback((): void => {
+		const current = activeDialog;
+		setActiveDialog(null);
+		if (current?.mode === "CONFIRM") current.options.onDismiss?.();
+	}, [activeDialog]);
+
 	const confirm = useCallback((options: AppDialogConfirmOptions): void => {
 		setActiveDialog({ mode: "CONFIRM", options });
 	}, []);
@@ -86,12 +92,12 @@ const AppDialogProvider = ({ children }: PropsWithChildren): ReactNode => {
 			{children}
 			<Modal
 				animationType="fade"
-				onRequestClose={handleClose}
+				onRequestClose={handleDismiss}
 				transparent
 				visible={Boolean(activeDialog)}
 			>
 				<View style={styles.overlay}>
-					<Pressable onPress={handleClose} style={styles.scrim} />
+					<Pressable onPress={handleDismiss} style={styles.scrim} />
 					<View style={styles.cardHost}>
 						<GlassCard accent={getDialogAccent(variant)}>
 							<View style={styles.content}>
@@ -137,7 +143,7 @@ const AppDialogProvider = ({ children }: PropsWithChildren): ReactNode => {
 														.cancelLabel ??
 													DEFAULT_CANCEL_LABEL
 												}
-												onPress={handleClose}
+												onPress={handleDismiss}
 												variant="secondary"
 											/>
 											<AppButton

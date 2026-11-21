@@ -98,6 +98,43 @@ describe("trends utils", () => {
 		]);
 	});
 
+	it("splits a multi-item credit into income and refund parts", () => {
+		const transaction = buildTransaction({
+			transactionAt: new Date(2026, 0, 15).getTime(),
+			type: "CREDIT",
+			categoryId: null,
+			categoryName: null,
+			amount: "150",
+			items: [
+				{
+					id: "item-income",
+					transactionId: "split-credit",
+					categoryId: "salary",
+					categoryName: "salary",
+					categoryKind: "INCOME",
+					amount: "100",
+					position: 0,
+					createdAt: 1,
+					updatedAt: 1,
+				},
+				{
+					id: "item-refund",
+					transactionId: "split-credit",
+					categoryId: "refund",
+					categoryName: "refund",
+					categoryKind: "REFUND",
+					amount: "50",
+					position: 1,
+					createdAt: 1,
+					updatedAt: 1,
+				},
+			],
+		});
+		expect(getTrendSeries([transaction])).toEqual([
+			{ year: "2026", income: "100", expenses: "-50", networth: "150" },
+		]);
+	});
+
 	it("subtracts refund credits from expenses without counting income", () => {
 		const transactionAt = new Date(2026, 0, 15).getTime();
 		expect(

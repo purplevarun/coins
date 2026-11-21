@@ -1,4 +1,5 @@
 import type RelationKind from "@/types/RelationKind";
+import type TransactionType from "@/types/TransactionType";
 import type VaultKind from "@/types/VaultKind";
 
 type RootStackParamList = {
@@ -11,6 +12,9 @@ type RootStackParamList = {
 				initialTransactionAt?: number;
 				initialSourceId?: string;
 				initialCategoryId?: string;
+				initialType?: TransactionType;
+				initialAmount?: string;
+				initialReason?: string;
 		  }
 		| undefined;
 	Sources: undefined;

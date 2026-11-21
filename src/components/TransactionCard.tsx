@@ -1,7 +1,7 @@
 import CustomText from "@/components/CustomText";
 import type ThemeColors from "@/types/ThemeColors";
 
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import GlassCard from "@/components/GlassCard";
@@ -53,16 +53,14 @@ const TransactionCard = ({
 	const { colors: COLORS } = useTheme();
 	const styles = useThemedStyles(themedStyles);
 	const color = getTransactionColor(COLORS, transaction);
-	const isExpense =
-		transaction.classification === "GENERAL" &&
-		transaction.type === "DEBIT";
-	const categories = isExpense
+	const hasItems = transaction.items.length > 0;
+	const categories = hasItems
 		? [...new Set(transaction.items.map((item) => item.categoryName))].join(
 				", ",
 			)
 		: (transaction.categoryName ?? "");
 	const matchedItems =
-		categoryId && isExpense
+		categoryId && hasItems
 			? transaction.items.filter((item) => item.categoryId === categoryId)
 			: [];
 	const matchedCategory = matchedItems[0]?.categoryName;
