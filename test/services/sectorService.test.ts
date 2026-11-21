@@ -5,6 +5,9 @@ const mocks = vi.hoisted(() => ({
 	createId: vi.fn(() => "sector-id"),
 	deleteSectorRow: vi.fn<TestAsyncFunction>().mockResolvedValue(undefined),
 	getSectorCategoryIdRows: vi.fn<TestAsyncFunction>().mockResolvedValue([]),
+	getSectorCategoryOwnerRows: vi
+		.fn<TestAsyncFunction>()
+		.mockResolvedValue([]),
 	getSectorRow: vi.fn<TestAsyncFunction>().mockResolvedValue(null),
 	getSectorRows: vi.fn<TestAsyncFunction>().mockResolvedValue([]),
 	replaceSectorCategoryRows: vi
@@ -18,6 +21,7 @@ vi.mock("@/repositories/financeRepository", () => ({
 	default: {
 		deleteSectorRow: mocks.deleteSectorRow,
 		getSectorCategoryIdRows: mocks.getSectorCategoryIdRows,
+		getSectorCategoryOwnerRows: mocks.getSectorCategoryOwnerRows,
 		getSectorRow: mocks.getSectorRow,
 		getSectorRows: mocks.getSectorRows,
 		replaceSectorCategoryRows: mocks.replaceSectorCategoryRows,
@@ -56,6 +60,19 @@ describe("sectorService", () => {
 			categoryIds: ["c1", "c2"],
 		});
 		expect(await sectorService.getSector(database, "missing")).toBeNull();
+	});
+
+	it("maps categories to owning sector names", async () => {
+		mocks.getSectorCategoryOwnerRows.mockResolvedValueOnce([
+			{ categoryId: "c1", sectorName: "Home" },
+			{ categoryId: "c2", sectorName: "Work" },
+		]);
+		expect(await sectorService.getSectorCategoryOwners(database)).toEqual(
+			new Map([
+				["c1", "Home"],
+				["c2", "Work"],
+			]),
+		);
 	});
 
 	it("requires a name", async () => {

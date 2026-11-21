@@ -38,7 +38,7 @@ import moneyUtils from "@/utils/money";
 const { DEFAULT_CURRENCY_CODE } = appConstants;
 const { deleteSector, getSectors } = sectorService;
 const { getSectorSpend } = analysisService;
-const { formatMoney, ZERO_AMOUNT } = moneyUtils;
+const { compareMoney, formatMoney, ZERO_AMOUNT } = moneyUtils;
 
 const SectorsScreen = ({
 	navigation,
@@ -131,12 +131,30 @@ const SectorsScreen = ({
 	);
 
 	const filteredSectors = useMemo(() => {
-		if (!searchDebounced.trim()) return sectors;
-		const query = searchDebounced.trim().toLowerCase();
-		return sectors.filter((sector) =>
-			sector.name.toLowerCase().includes(query),
+		const base = !searchDebounced.trim()
+			? sectors
+			: sectors.filter((sector) =>
+					sector.name
+						.toLowerCase()
+						.includes(searchDebounced.trim().toLowerCase()),
+				);
+		return [...base].sort((left, right) =>
+			compareMoney(
+				sectorSpend.get(left.id) ?? ZERO_AMOUNT,
+				sectorSpend.get(right.id) ?? ZERO_AMOUNT,
+			),
 		);
-	}, [sectors, searchDebounced]);
+	}, [sectors, sectorSpend, searchDebounced]);
+
+	const spendColor = useCallback(
+		(amount: string): string =>
+			compareMoney(amount, ZERO_AMOUNT) < 0
+				? COLORS.danger
+				: compareMoney(amount, ZERO_AMOUNT) > 0
+					? COLORS.success
+					: COLORS.warning,
+		[COLORS],
+	);
 
 	const renderSectorItem = useCallback(
 		({ item: sector }: ListItemProps<Sector>): React.JSX.Element => (
@@ -166,10 +184,24 @@ const SectorsScreen = ({
 									? "category"
 									: "categories"}{" "}
 								•{" "}
-								{formatMoney(
-									sectorSpend.get(sector.id) ?? ZERO_AMOUNT,
-									DEFAULT_CURRENCY_CODE,
-								)}
+								<CustomText
+									style={[
+										styles.meta,
+										styles.spendValue,
+										{
+											color: spendColor(
+												sectorSpend.get(sector.id) ??
+													ZERO_AMOUNT,
+											),
+										},
+									]}
+								>
+									{formatMoney(
+										sectorSpend.get(sector.id) ??
+											ZERO_AMOUNT,
+										DEFAULT_CURRENCY_CODE,
+									)}
+								</CustomText>
 							</CustomText>
 						</View>
 						<Pressable
@@ -192,7 +224,7 @@ const SectorsScreen = ({
 				</GlassCard>
 			</Pressable>
 		),
-		[handleDelete, navigation, styles, COLORS, sectorSpend],
+		[handleDelete, navigation, spendColor, styles, COLORS, sectorSpend],
 	);
 
 	const listHeader = useMemo(
@@ -289,6 +321,9 @@ const themedStyles = createThemedStyles((COLORS) =>
 		meta: {
 			color: COLORS.textMuted,
 			fontSize: FONT_SIZE.S12,
+		},
+		spendValue: {
+			fontWeight: FONT_WEIGHT.BOLD,
 		},
 		actionIcon: {
 			width: SIZES.S34,

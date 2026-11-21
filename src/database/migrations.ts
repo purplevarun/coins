@@ -15,6 +15,8 @@ const SCHEMA_MIGRATIONS: readonly string[] = [
 	);`,
 	"CREATE INDEX IF NOT EXISTS idx_sector_categories_sector ON sector_categories(sector_id);",
 	"CREATE INDEX IF NOT EXISTS idx_sector_categories_category ON sector_categories(category_id);",
+	`DELETE FROM sector_categories WHERE rowid NOT IN
+		(SELECT MIN(rowid) FROM sector_categories GROUP BY category_id);`,
 ];
 
 const migrateDatabase = async (database: SQLiteDatabase): Promise<void> => {

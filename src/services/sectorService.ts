@@ -8,6 +8,7 @@ import type { SQLiteDatabase } from "expo-sqlite";
 const {
 	deleteSectorRow,
 	getSectorCategoryIdRows,
+	getSectorCategoryOwnerRows,
 	getSectorRow,
 	getSectorRows,
 	replaceSectorCategoryRows,
@@ -18,6 +19,16 @@ const {
 const getSectors = async (
 	database: SQLiteDatabase,
 ): Promise<readonly Sector[]> => getSectorRows(database);
+
+const getSectorCategoryOwners = async (
+	database: SQLiteDatabase,
+): Promise<ReadonlyMap<string, string>> =>
+	new Map(
+		(await getSectorCategoryOwnerRows(database)).map((row) => [
+			row.categoryId,
+			row.sectorName,
+		]),
+	);
 
 const getSector = async (
 	database: SQLiteDatabase,
@@ -66,6 +77,7 @@ const deleteSector = async (
 const sectorService = {
 	deleteSector,
 	getSector,
+	getSectorCategoryOwners,
 	getSectors,
 	saveSector,
 };

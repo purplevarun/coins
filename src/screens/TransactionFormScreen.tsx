@@ -1,16 +1,16 @@
 import CustomText from "@/components/CustomText";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { StyleSheet, Switch, View } from "react-native";
+import { ScrollView, StyleSheet, Switch, View } from "react-native";
 
 import AppButton from "@/components/AppButton";
 import DateField from "@/components/DateField";
 import GlassCard from "@/components/GlassCard";
 import HeaderIconButton from "@/components/HeaderIconButton";
+import ModalTextField from "@/components/ModalTextField";
 import Notice from "@/components/Notice";
 import ScreenContainer from "@/components/ScreenContainer";
 import SelectField from "@/components/SelectField";
-import TextField from "@/components/TextField";
 import financeConstants from "@/constants/financeConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
@@ -101,9 +101,10 @@ const TransactionFormScreen = ({
 			initialCategoryId ?? "",
 		),
 	]);
-	const [focusedItemKey, setFocusedItemKey] = useState<string | null>(null);
 	const [isApplicable, setIsApplicable] = useState(true);
+	const [itemsWidth, setItemsWidth] = useState(0);
 	const saving = useRef(false);
+	const itemsScroller = useRef<ScrollView>(null);
 
 	useEffect(() => {
 		const getFormData = async (): Promise<void> => {
@@ -249,7 +250,17 @@ const TransactionFormScreen = ({
 							onPress={() => {
 								const item = createItemDraft();
 								setItems((current) => [...current, item]);
-								setFocusedItemKey(item.key);
+								setTimeout(() => {
+									const scroller = itemsScroller.current;
+									if (
+										typeof scroller?.scrollToEnd ===
+										"function"
+									) {
+										scroller.scrollToEnd({
+											animated: true,
+										});
+									}
+								}, 0);
 							}}
 						/>
 					) : null}
@@ -434,6 +445,7 @@ const TransactionFormScreen = ({
 
 	return (
 		<ScreenContainer
+			isScrollable={false}
 			header={
 				<View
 					style={styles.pinned}
@@ -518,27 +530,7 @@ const TransactionFormScreen = ({
 									}
 									value={investmentId}
 								/>
-							) : (
-								<SelectField
-									isCompact
-									label={
-										MESSAGES.TRANSACTION_FORM.CATEGORY_LABEL
-									}
-									placeholder={
-										MESSAGES.TRANSACTION_FORM
-											.SELECT_CATEGORY
-									}
-									value={items[0]?.categoryId ?? ""}
-									onChange={(value) => {
-										if (items[0])
-											updateItem(items[0].key, {
-												categoryId: value,
-											});
-										clearTripForAgnosticCategory(value);
-									}}
-									options={categoryOptions}
-								/>
-							)}
+							) : null}
 						</View>
 					</View>
 					<View style={styles.pinnedRow}>
@@ -609,127 +601,139 @@ const TransactionFormScreen = ({
 					pointerEvents={isSaving ? "none" : "auto"}
 				>
 					{!isItemized ? (
-						<TextField
-							autoFocus={
-								!transactionId && !cloneFromTransactionId
-							}
-							isEditable={!isSaving}
+						<ModalTextField
+							isDisabled={isSaving}
 							keyboardType="decimal-pad"
 							label={
 								isTransfer && selectedSource
 									? `From (${selectedSource.currencyCode})`
 									: `Amount${selectedSource ? ` (${selectedSource.currencyCode})` : ""}`
 							}
-							onChangeText={setAmount}
+							onChange={setAmount}
 							placeholder="0.00"
 							value={amount}
 						/>
 					) : null}
 					{isItemized ? (
-						<View style={styles.items}>
-							{items.map((item, position) => (
-								<View key={item.key} style={styles.item}>
-									{items.length > 1 ? (
-										<View style={styles.itemHeading}>
-											<CustomText
-												style={styles.itemTitle}
-											>{`Item ${position + 1}`}</CustomText>
-											<HeaderIconButton
-												icon="close-outline"
-												isDisabled={isSaving}
-												accessibilityLabel={`Remove item ${position + 1}`}
-												onPress={() =>
-													setItems((current) =>
-														current.filter(
-															(candidate) =>
-																candidate.key !==
-																item.key,
-														),
-													)
-												}
-											/>
-										</View>
-									) : null}
-									<View style={styles.itemFields}>
-										<View style={styles.fieldColumn}>
-											<TextField
-												autoFocus={
-													item.key ===
-														focusedItemKey ||
-													(!transactionId &&
-														!cloneFromTransactionId &&
-														position === 0)
-												}
-												isEditable={!isSaving}
-												keyboardType="decimal-pad"
-												label={`Amount${selectedSource ? ` (${selectedSource.currencyCode})` : ""}`}
-												placeholder="0.00"
-												value={item.amount}
-												onChangeText={(value) =>
-													updateItem(item.key, {
-														amount: value,
-													})
-												}
-											/>
-										</View>
-										<View style={styles.fieldColumn}>
-											<SelectField
-												label={
-													MESSAGES.TRANSACTION_FORM
-														.CATEGORY_LABEL
-												}
-												placeholder={
-													MESSAGES.TRANSACTION_FORM
-														.SELECT_CATEGORY
-												}
-												value={item.categoryId}
-												onChange={(value) => {
-													updateItem(item.key, {
-														categoryId: value,
-													});
-													clearTripForAgnosticCategory(
-														value,
-													);
-												}}
-												options={
-													item.categoryId &&
-													!categoryOptions.some(
-														(option) =>
-															option.value ===
-															item.categoryId,
-													)
-														? [
-																{
-																	value: item.categoryId,
-																	label:
-																		item.categoryName ??
-																		"Category",
-																},
-																...categoryOptions,
-															]
-														: categoryOptions
-												}
-											/>
+						<View
+							onLayout={(event) =>
+								setItemsWidth(event.nativeEvent.layout.width)
+							}
+						>
+							<ScrollView
+								decelerationRate="fast"
+								disableIntervalMomentum
+								horizontal
+								keyboardShouldPersistTaps="handled"
+								pagingEnabled
+								ref={itemsScroller}
+								showsHorizontalScrollIndicator={false}
+							>
+								{items.map((item, position) => (
+									<View
+										key={item.key}
+										style={[
+											styles.item,
+											{ width: itemsWidth },
+										]}
+									>
+										{items.length > 1 ? (
+											<View style={styles.itemHeading}>
+												<CustomText
+													style={styles.itemTitle}
+												>{`Item ${position + 1} of ${items.length}`}</CustomText>
+												<HeaderIconButton
+													icon="close-outline"
+													isDisabled={isSaving}
+													accessibilityLabel={`Remove item ${position + 1}`}
+													onPress={() =>
+														setItems((current) =>
+															current.filter(
+																(candidate) =>
+																	candidate.key !==
+																	item.key,
+															),
+														)
+													}
+												/>
+											</View>
+										) : null}
+										<View style={styles.itemFields}>
+											<View style={styles.fieldColumn}>
+												<ModalTextField
+													isDisabled={isSaving}
+													keyboardType="decimal-pad"
+													label={`Amount${selectedSource ? ` (${selectedSource.currencyCode})` : ""}`}
+													placeholder="0.00"
+													value={item.amount}
+													onChange={(value) =>
+														updateItem(item.key, {
+															amount: value,
+														})
+													}
+												/>
+											</View>
+											<View style={styles.fieldColumn}>
+												<SelectField
+													label={
+														MESSAGES
+															.TRANSACTION_FORM
+															.CATEGORY_LABEL
+													}
+													placeholder={
+														MESSAGES
+															.TRANSACTION_FORM
+															.SELECT_CATEGORY
+													}
+													value={item.categoryId}
+													onChange={(value) => {
+														updateItem(item.key, {
+															categoryId: value,
+														});
+														clearTripForAgnosticCategory(
+															value,
+														);
+													}}
+													options={
+														item.categoryId &&
+														!categoryOptions.some(
+															(option) =>
+																option.value ===
+																item.categoryId,
+														)
+															? [
+																	{
+																		value: item.categoryId,
+																		label:
+																			item.categoryName ??
+																			"Category",
+																	},
+																	...categoryOptions,
+																]
+															: categoryOptions
+													}
+												/>
+											</View>
 										</View>
 									</View>
-								</View>
-							))}
+								))}
+							</ScrollView>
 						</View>
 					) : null}
 					{isTransfer ? (
-						<TextField
-							isEditable={!isSameCurrencyTransfer}
+						<ModalTextField
+							isDisabled={isSameCurrencyTransfer}
 							keyboardType="decimal-pad"
 							label={`To amount${selectedDestination ? ` (${selectedDestination.currencyCode})` : ""}`}
-							onChangeText={setToAmount}
+							onChange={setToAmount}
 							placeholder="0.00"
 							value={effectiveToAmount}
 						/>
 					) : null}
-					<TextField
-						isEditable={!isSaving}
+					<ModalTextField
+						isDisabled={isSaving}
 						label={MESSAGES.TRANSACTION_FORM.REASON_LABEL}
-						onChangeText={setReason}
+						onChange={setReason}
 						placeholder={
 							isTransfer
 								? MESSAGES.TRANSACTION_FORM.DEFAULTS_TO_TRANSFER
@@ -789,7 +793,6 @@ const themedStyles = createThemedStyles((COLORS) =>
 		totalSummary: { flexGrow: 1, flexBasis: 140, minWidth: 0 },
 		totalLabel: { color: COLORS.textMuted, fontSize: FONT_SIZE.S12 },
 		footerAction: { flex: 1, minWidth: 160 },
-		items: { gap: SPACING.S16 },
 		item: { gap: SPACING.S12 },
 		itemHeading: {
 			flexDirection: FLEX.ROW,

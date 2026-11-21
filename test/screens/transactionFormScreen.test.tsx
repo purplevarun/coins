@@ -1,9 +1,9 @@
 import AppButton from "@/components/AppButton";
 import DateField from "@/components/DateField";
 import HeaderIconButton from "@/components/HeaderIconButton";
+import ModalTextField from "@/components/ModalTextField";
 import ScreenContainer from "@/components/ScreenContainer";
 import SelectField from "@/components/SelectField";
-import TextField from "@/components/TextField";
 import type AppDialogConfirmOptions from "@/types/AppDialogConfirmOptions";
 import type TransactionFormHarness from "@test/types/TransactionFormHarness";
 import { isValidElement, type ComponentProps, type ReactElement } from "react";
@@ -45,6 +45,7 @@ vi.mock("react", async (importOriginal) => {
 });
 
 vi.mock("react-native", () => ({
+	ScrollView: (props: any) => ({ type: "ScrollView", props }),
 	StyleSheet: { create: (styles: any) => styles },
 	Switch: "Switch",
 	View: (props: any) => ({ type: "View", props }),
@@ -79,8 +80,8 @@ vi.mock("@/components/ScreenContainer", () => ({
 vi.mock("@/components/SelectField", () => ({
 	default: (props: any) => ({ type: "SelectField", props }),
 }));
-vi.mock("@/components/TextField", () => ({
-	default: (props: any) => ({ type: "TextField", props }),
+vi.mock("@/components/ModalTextField", () => ({
+	default: (props: any) => ({ type: "ModalTextField", props }),
 }));
 
 vi.mock("@/hooks/useAppDialog", () => ({
@@ -263,7 +264,7 @@ describe("TransactionFormScreen", () => {
 							},
 						],
 					],
-					[20, isApplicable],
+					[19, isApplicable],
 				]),
 			);
 			let tree = harness.render();
@@ -429,8 +430,8 @@ describe("TransactionFormScreen", () => {
 	});
 
 	it.each([
-		["GENERAL", "DEBIT", "Category"],
-		["GENERAL", "CREDIT", "Category"],
+		["GENERAL", "DEBIT", "Trip"],
+		["GENERAL", "CREDIT", "Trip"],
 		["INVESTMENT", "DEBIT", "Investment"],
 		["INVESTMENT", "CREDIT", "Investment"],
 		["GENERAL", "TRANSFER", "Destination source"],
@@ -448,10 +449,9 @@ describe("TransactionFormScreen", () => {
 			>;
 			const textFields = findByPredicate(
 				tree.props.children,
-				(node) => node?.type === TextField,
+				(node) => node?.type === ModalTextField,
 			);
 			expect(textFields[0]?.props.keyboardType).toBe("decimal-pad");
-			expect(textFields[0]?.props.autoFocus).toBe(true);
 			const headerFields = formElements<
 				ComponentProps<typeof SelectField>
 			>(tree.props.header as ReactElement, SelectField);
@@ -541,7 +541,7 @@ describe("TransactionFormScreen", () => {
 					node?.props?.style?.borderWidth === undefined,
 			);
 			expect(modes).toHaveLength(2);
-			expect(defaults).toHaveLength(6);
+			expect(defaults).toHaveLength(5);
 			expect(
 				defaults.every(
 					(field) =>
@@ -574,14 +574,14 @@ describe("TransactionFormScreen", () => {
 		expect(
 			findByPredicate(
 				expanded,
-				(node) => node?.props?.children === "Item 1",
+				(node) => node?.props?.children === "Item 1 of 2",
 			),
 		).toHaveLength(1);
-		const amounts = formElements<ComponentProps<typeof TextField>>(
+		const amounts = formElements<ComponentProps<typeof ModalTextField>>(
 			expanded,
-			TextField,
+			ModalTextField,
 		).filter((field) => field.props.keyboardType === "decimal-pad");
-		expect(amounts[1]?.props.autoFocus).toBe(true);
+		expect(amounts).toHaveLength(2);
 		const addAction = harness.renderHeader();
 		expect(addAction?.type).toBe(HeaderIconButton);
 		expect(addAction?.props).toMatchObject({
@@ -599,6 +599,30 @@ describe("TransactionFormScreen", () => {
 		expect(harness.renderHeader()?.props.isDisabled).toBe(true);
 	});
 
+	it("measures the items carousel width on layout", () => {
+		const harness = createFormHarness();
+		const tree = harness.render();
+		findByPredicate(
+			tree,
+			(node) => node?.props?.onLayout,
+		)[0].props.onLayout({ nativeEvent: { layout: { width: 320 } } });
+		expect(harness.values.get(20)).toBe(320);
+	});
+
+	it("scrolls the carousel to the end after adding an item", async () => {
+		const scrollToEnd = vi.fn();
+		const harness = createFormHarness();
+		reactMocks.useRef
+			.mockReturnValueOnce({ current: false })
+			.mockReturnValueOnce({ current: { scrollToEnd } } as unknown as {
+				current: boolean;
+			});
+		harness.render();
+		harness.renderHeader()?.props.onPress();
+		await new Promise((resolve) => setTimeout(resolve, 10));
+		expect(scrollToEnd).toHaveBeenCalledWith({ animated: true });
+	});
+
 	it("starts with one item, adds independent fields, and never removes the last item", async () => {
 		const harness = createFormHarness();
 		let tree = harness.render();
@@ -608,22 +632,25 @@ describe("TransactionFormScreen", () => {
 				HeaderIconButton,
 			).filter((button) => button.props.icon === "close-outline"),
 		).toHaveLength(0);
-		formElements<ComponentProps<typeof TextField>>(tree, TextField)
+		formElements<ComponentProps<typeof ModalTextField>>(
+			tree,
+			ModalTextField,
+		)
 			.find((field) => field.props.keyboardType === "decimal-pad")
-			?.props.onChangeText("100");
+			?.props.onChange("100");
 		formElements<ComponentProps<typeof SelectField>>(tree, SelectField)
 			.find((field) => field.props.label === "Category")
 			?.props.onChange("food");
 		harness.renderHeader()?.props.onPress();
 		tree = harness.render();
-		const amounts = formElements<ComponentProps<typeof TextField>>(
+		const amounts = formElements<ComponentProps<typeof ModalTextField>>(
 			tree,
-			TextField,
+			ModalTextField,
 		).filter((field) => field.props.keyboardType === "decimal-pad");
 		expect(amounts.map((field) => field.props.value)).toEqual(["100", ""]);
-		amounts[1]?.props.onChangeText("100");
+		amounts[1]?.props.onChange("100");
 		formElements<ComponentProps<typeof SelectField>>(tree, SelectField)
-			.filter((field) => field.props.label === "Category")[2]
+			.filter((field) => field.props.label === "Category")[1]
 			?.props.onChange("grocery");
 		tree = harness.render();
 		formElements<ComponentProps<typeof AppButton>>(tree, AppButton)
@@ -659,9 +686,9 @@ describe("TransactionFormScreen", () => {
 			).filter((button) => button.props.icon === "close-outline"),
 		).toHaveLength(0);
 		expect(
-			formElements<ComponentProps<typeof TextField>>(
+			formElements<ComponentProps<typeof ModalTextField>>(
 				tree,
-				TextField,
+				ModalTextField,
 			).filter((field) => field.props.keyboardType === "decimal-pad"),
 		).toHaveLength(1);
 	});
@@ -789,12 +816,12 @@ describe("TransactionFormScreen", () => {
 				{ id: clone ? undefined : "two", amount: "100" },
 			]);
 			expect(harness.values.get(11)).toBe(clone ? 100 : 42);
-			expect(harness.values.get(20)).toBe(false);
+			expect(harness.values.get(19)).toBe(false);
 			const categories = formElements<ComponentProps<typeof SelectField>>(
 				tree,
 				SelectField,
 			).filter((field) => field.props.label === "Category");
-			expect(categories[2]?.props.options).toContainEqual({
+			expect(categories[1]?.props.options).toContainEqual({
 				label: "Old category",
 				value: "archived",
 			});

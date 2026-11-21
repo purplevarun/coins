@@ -42,6 +42,7 @@ const {
 	getTripTotalRows,
 	budgetExistsRow,
 	deleteSectorRow,
+	getSectorCategoryOwnerRows,
 	replaceSectorCategoryRows,
 	sectorNameExistsRow,
 	upsertSectorRow,
@@ -1003,6 +1004,20 @@ describe("financeRepository", () => {
 			9,
 			9,
 		);
+		expect(database.runAsync).toHaveBeenCalledWith(
+			expect.stringContaining("category_id IN"),
+			"sec1",
+			"c1",
+			"c2",
+		);
+		await replaceSectorCategoryRows(database, "sec1", [], 9);
+		const getAllAsync = vi
+			.fn()
+			.mockResolvedValue([{ categoryId: "c1", sectorName: "Home" }]);
+		const ownersDatabase = { getAllAsync } as unknown as SQLiteDatabase;
+		expect(await getSectorCategoryOwnerRows(ownersDatabase)).toEqual([
+			{ categoryId: "c1", sectorName: "Home" },
+		]);
 		expect(database.runAsync).toHaveBeenCalledWith(
 			expect.stringContaining("INSERT INTO sector_categories"),
 			"sec1",

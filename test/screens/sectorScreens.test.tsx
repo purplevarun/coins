@@ -14,6 +14,9 @@ const serviceMocks = vi.hoisted(() => ({
 	getSectors: vi.fn<TestAsyncFunction>(),
 	deleteSector: vi.fn<TestAsyncFunction>(),
 	getSector: vi.fn<TestAsyncFunction>(),
+	getSectorCategoryOwners: vi
+		.fn<TestAsyncFunction>()
+		.mockResolvedValue(new Map()),
 	saveSector: vi.fn<TestAsyncFunction>(),
 	getCategories: vi.fn<TestAsyncFunction>(),
 	getSectorSpend: vi.fn<TestAsyncFunction>().mockResolvedValue(new Map()),
@@ -109,6 +112,7 @@ vi.mock("@/services/sectorService", () => ({
 		getSectors: serviceMocks.getSectors,
 		deleteSector: serviceMocks.deleteSector,
 		getSector: serviceMocks.getSector,
+		getSectorCategoryOwners: serviceMocks.getSectorCategoryOwners,
 		saveSector: serviceMocks.saveSector,
 	},
 }));
@@ -313,6 +317,47 @@ describe("SectorsScreen", () => {
 		)[0];
 		addButton.props.onPress();
 		expect(navigation.navigate).toHaveBeenCalledWith("SectorForm");
+	});
+
+	it("sorts sectors most negative first and colors spend values", async () => {
+		const navigation = { navigate: vi.fn(), setOptions: vi.fn() };
+		const sectors = [
+			{ id: "pos", name: "Positive", categoryCount: 1 },
+			{ id: "neg", name: "Negative", categoryCount: 1 },
+			{ id: "zero", name: "Zero", categoryCount: 1 },
+		];
+		const spend = new Map([
+			["pos", "100"],
+			["neg", "-50"],
+			["zero", "0"],
+		]);
+		const { tree } = renderSectors(
+			navigation,
+			new Map<number, unknown>([
+				[1, sectors],
+				[6, spend],
+			]),
+		);
+		await flush();
+		const screenList = findByPredicate(
+			tree,
+			(node) => node?.type === ScreenList,
+		)[0];
+		expect(screenList.props.data.map((sector: any) => sector.id)).toEqual([
+			"neg",
+			"zero",
+			"pos",
+		]);
+		const colors = ["neg", "zero", "pos"].map((id) => {
+			const rendered = screenList.props.renderItem({
+				item: { id, name: id, categoryCount: 1 },
+			});
+			return findByPredicate(
+				rendered,
+				(node) => node?.props?.style?.[2]?.color !== undefined,
+			)[0].props.style[2].color;
+		});
+		expect(new Set(colors).size).toBe(3);
 	});
 
 	it("deletes a sector and surfaces delete failures", async () => {
@@ -597,6 +642,40 @@ describe("SectorFormScreen", () => {
 		serviceMocks.getCategories.mockRejectedValueOnce(new Error("cat fail"));
 		renderForm(navigation, { entityId: "sec1" });
 		await flush();
+	});
+
+	it("disables categories already owned by another sector", async () => {
+		const navigation = { goBack: vi.fn() };
+		serviceMocks.getSectorCategoryOwners.mockResolvedValueOnce(
+			new Map([["c2", "Work"]]),
+		);
+		const overrides = new Map<number, unknown>([
+			[
+				2,
+				[
+					{ id: "c1", name: "Rent", kind: "EXPENSE" },
+					{ id: "c2", name: "Salary", kind: "INCOME" },
+				],
+			],
+			[3, new Set(["c1"])],
+			[6, new Map([["c2", "Work"]])],
+		]);
+		const { tree } = renderForm(navigation, undefined, overrides);
+		await flush();
+		const rows = findByPredicate(
+			tree,
+			(node) => node?.props?.accessibilityRole === "button",
+		);
+		const taken = rows.find(
+			(row) => row.props.accessibilityState?.disabled === true,
+		);
+		expect(taken).toBeDefined();
+		expect(
+			findByPredicate(taken, (node) => node?.props?.children === "Work"),
+		).toHaveLength(1);
+		expect(
+			findByPredicate(taken, (node) => node?.props?.name === "checkbox"),
+		).toHaveLength(1);
 	});
 
 	it("renders the error notice and skips a missing sector", async () => {

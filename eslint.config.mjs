@@ -11,6 +11,7 @@ const eslintConfig = tseslint.config(
 			"android/**",
 			"node_modules/**",
 			"coverage/**",
+			"plugins/**",
 			"eslint.config.mjs",
 		],
 	},

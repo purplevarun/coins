@@ -24,7 +24,7 @@ import getErrorMessage from "@/utils/error";
 
 const { CATEGORY_KIND_LABELS } = financeConstants;
 const { getCategories } = categoryService;
-const { getSector, saveSector } = sectorService;
+const { getSector, getSectorCategoryOwners, saveSector } = sectorService;
 
 const SectorFormScreen = ({
 	navigation,
@@ -41,10 +41,14 @@ const SectorFormScreen = ({
 	);
 	const [isSaving, setIsSaving] = useState(false);
 	const [error, setError] = useState("");
+	const [owners, setOwners] = useState<ReadonlyMap<string, string>>(
+		new Map(),
+	);
 
 	useEffect(() => {
 		const getEntity = async (): Promise<void> => {
 			try {
+				setOwners(await getSectorCategoryOwners(database));
 				setCategories(
 					(await getCategories(database))
 						.slice()
@@ -125,10 +129,17 @@ const SectorFormScreen = ({
 									const selected = selectedIds.has(
 										category.id,
 									);
+									const ownerName = owners.get(category.id);
+									const taken = !!ownerName && !selected;
 									return (
 										<Pressable
 											key={category.id}
 											accessibilityRole="button"
+											accessibilityState={{
+												disabled: taken,
+												selected,
+											}}
+											disabled={taken}
 											onPress={() =>
 												toggleCategory(category.id)
 											}
@@ -136,26 +147,39 @@ const SectorFormScreen = ({
 												styles.categoryRow,
 												selected &&
 													styles.categoryRowSelected,
+												taken &&
+													styles.categoryRowTaken,
 											]}
 										>
 											<Ionicons
 												color={
-													selected
+													selected || taken
 														? COLORS.primary
 														: COLORS.textMuted
 												}
 												name={
-													selected
+													selected || taken
 														? "checkbox"
 														: "square-outline"
 												}
 												size={20}
 											/>
 											<CustomText
-												style={styles.categoryName}
+												style={[
+													styles.categoryName,
+													taken &&
+														styles.categoryNameTaken,
+												]}
 											>
 												{category.name}
 											</CustomText>
+											{taken ? (
+												<CustomText
+													style={styles.ownerLabel}
+												>
+													{ownerName}
+												</CustomText>
+											) : null}
 										</Pressable>
 									);
 								})}
@@ -181,6 +205,7 @@ const {
 	FONT_SIZE,
 	FONT_WEIGHT,
 	LETTER_SPACING,
+	OPACITY,
 	RADIUS,
 	SPACING,
 } = styleConstants;
@@ -225,6 +250,16 @@ const themedStyles = createThemedStyles((COLORS) =>
 		categoryRowSelected: {
 			borderColor: COLORS.primary,
 			backgroundColor: COLORS.surfaceRaised,
+		},
+		categoryRowTaken: {
+			opacity: OPACITY.MUTED,
+		},
+		categoryNameTaken: {
+			color: COLORS.textMuted,
+		},
+		ownerLabel: {
+			color: COLORS.textDim,
+			fontSize: FONT_SIZE.S12,
 		},
 		categoryName: {
 			color: COLORS.text,

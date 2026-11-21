@@ -11,6 +11,7 @@ import type InvestmentType from "@/types/InvestmentType";
 import type RelationKind from "@/types/RelationKind";
 import type Sector from "@/types/Sector";
 import type SectorAnalysisRow from "@/types/SectorAnalysisRow";
+import type SectorCategoryOwner from "@/types/SectorCategoryOwner";
 import type SimpleEntity from "@/types/SimpleEntity";
 import type Source from "@/types/Source";
 import type Transaction from "@/types/Transaction";
@@ -561,6 +562,17 @@ const getSectorCategoryIdRows = async (
 		)
 	).map((row) => row.id);
 
+const getSectorCategoryOwnerRows = async (
+	database: SQLiteDatabase,
+): Promise<readonly Pick<SectorCategoryOwner, "categoryId" | "sectorName">[]> =>
+	database.getAllAsync<
+		Pick<SectorCategoryOwner, "categoryId" | "sectorName">
+	>(
+		`SELECT mapping.category_id AS categoryId, sector.name AS sectorName
+		FROM sector_categories mapping
+		JOIN sectors sector ON sector.id = mapping.sector_id;`,
+	);
+
 const replaceSectorCategoryRows = async (
 	database: SQLiteDatabase,
 	sectorId: string,
@@ -571,6 +583,15 @@ const replaceSectorCategoryRows = async (
 		"DELETE FROM sector_categories WHERE sector_id = ?;",
 		sectorId,
 	);
+	if (categoryIds.length > 0) {
+		await database.runAsync(
+			`DELETE FROM sector_categories
+			WHERE sector_id != ? AND category_id IN
+				(${categoryIds.map(() => "?").join(",")});`,
+			sectorId,
+			...categoryIds,
+		);
+	}
 	for (const categoryId of categoryIds) {
 		await database.runAsync(
 			`INSERT INTO sector_categories (sector_id, category_id, created_at, updated_at)
@@ -1531,6 +1552,7 @@ const financeRepository = {
 	getLinkedTransactionIdRows,
 	getSectorAnalysisRows,
 	getSectorCategoryIdRows,
+	getSectorCategoryOwnerRows,
 	getSectorRow,
 	getSectorRows,
 	getSourceRow,
