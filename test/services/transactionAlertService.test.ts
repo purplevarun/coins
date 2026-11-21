@@ -11,7 +11,9 @@ vi.mock("expo-modules-core", () => ({
 	requireNativeModule: nativeMocks.requireNativeModule,
 }));
 
-const loadService = async () => {
+const loadService = async (): Promise<
+	(typeof import("@/services/transactionAlertService"))["default"]
+> => {
 	vi.resetModules();
 	const module = await import("@/services/transactionAlertService");
 	return module.default;

@@ -45,6 +45,12 @@ vi.mock("@/services/transactionAlertService", () => ({
 	},
 }));
 
+vi.mock("@/services/validationReminderService", () => ({
+	default: {
+		initialize: vi.fn(),
+	},
+}));
+
 import TransactionAlertsController from "@/components/TransactionAlertsController";
 
 const alert = {
@@ -71,20 +77,20 @@ describe("TransactionAlertsController", () => {
 		const effects = reactMocks.useEffect.mock.calls.map(
 			(call) => call[0] as () => () => void,
 		);
-		const cleanup = effects[0]!();
+		const cleanup = effects[0]?.();
 		expect(mocks.drainTransactionAlerts).toHaveBeenCalled();
 		expect(mocks.addEventListener).toHaveBeenCalledWith(
 			"change",
 			expect.any(Function),
 		);
-		const listener = mocks.addEventListener.mock.calls[0]![1] as (
+		const listener = mocks.addEventListener.mock.calls[0]?.[1] as (
 			state: string,
 		) => void;
 		listener("background");
 		expect(mocks.drainTransactionAlerts).toHaveBeenCalledTimes(1);
 		listener("active");
 		expect(mocks.drainTransactionAlerts).toHaveBeenCalledTimes(2);
-		cleanup();
+		cleanup?.();
 		expect(mocks.remove).toHaveBeenCalled();
 	});
 
@@ -92,9 +98,9 @@ describe("TransactionAlertsController", () => {
 		mocks.drainTransactionAlerts.mockReturnValue([alert]);
 		TransactionAlertsController();
 		const drainEffect = reactMocks.useEffect.mock
-			.calls[0]![0] as () => void;
+			.calls[0]?.[0] as () => void;
 		drainEffect();
-		const updater = mocks.setQueue.mock.calls[0]![0] as (
+		const updater = mocks.setQueue.mock.calls[0]?.[0] as (
 			current: readonly unknown[],
 		) => readonly unknown[];
 		expect(updater([])).toEqual([alert]);
@@ -104,14 +110,14 @@ describe("TransactionAlertsController", () => {
 		reactMocks.useState.mockImplementation(() => [[alert], mocks.setQueue]);
 		TransactionAlertsController();
 		const promptEffect = reactMocks.useEffect.mock
-			.calls[1]![0] as () => void;
+			.calls[1]?.[0] as () => void;
 		promptEffect();
 		expect(mocks.confirm).toHaveBeenCalledWith(
 			expect.objectContaining({
 				title: "Add transaction?",
 			}),
 		);
-		const options = mocks.confirm.mock.calls[0]![0] as {
+		const options = mocks.confirm.mock.calls[0]?.[0] as {
 			onConfirm: () => void;
 			onDismiss?: () => void;
 		};
@@ -122,7 +128,7 @@ describe("TransactionAlertsController", () => {
 			initialReason: "Cafe",
 			initialTransactionAt: alert.postedAt,
 		});
-		const dequeue = mocks.setQueue.mock.calls.at(-1)![0] as (
+		const dequeue = mocks.setQueue.mock.calls.at(-1)?.[0] as (
 			current: readonly unknown[],
 		) => readonly unknown[];
 		expect(dequeue([alert, alert])).toEqual([alert]);
@@ -135,7 +141,7 @@ describe("TransactionAlertsController", () => {
 			mocks.setQueue,
 		]);
 		TransactionAlertsController();
-		(reactMocks.useEffect.mock.calls[1]![0] as () => void)();
+		(reactMocks.useEffect.mock.calls[1]?.[0] as () => void)();
 		expect(mocks.confirm).toHaveBeenCalledWith(
 			expect.objectContaining({
 				message: expect.stringContaining("Credited"),
@@ -146,13 +152,13 @@ describe("TransactionAlertsController", () => {
 	it("advances the queue when the dialog is dismissed", () => {
 		reactMocks.useState.mockImplementation(() => [[alert], mocks.setQueue]);
 		TransactionAlertsController();
-		(reactMocks.useEffect.mock.calls[1]![0] as () => void)();
-		const options = mocks.confirm.mock.calls[0]![0] as {
+		(reactMocks.useEffect.mock.calls[1]?.[0] as () => void)();
+		const options = mocks.confirm.mock.calls[0]?.[0] as {
 			onDismiss?: () => void;
 		};
 		options.onDismiss?.();
 		expect(mocks.navigate).not.toHaveBeenCalled();
-		const dequeue = mocks.setQueue.mock.calls.at(-1)![0] as (
+		const dequeue = mocks.setQueue.mock.calls.at(-1)?.[0] as (
 			current: readonly unknown[],
 		) => readonly unknown[];
 		expect(dequeue([alert])).toEqual([]);
@@ -162,7 +168,7 @@ describe("TransactionAlertsController", () => {
 		reactMocks.useState.mockImplementation(() => [[alert], mocks.setQueue]);
 		reactMocks.useRef.mockReturnValue({ current: true });
 		TransactionAlertsController();
-		(reactMocks.useEffect.mock.calls[1]![0] as () => void)();
+		(reactMocks.useEffect.mock.calls[1]?.[0] as () => void)();
 		expect(mocks.confirm).not.toHaveBeenCalled();
 	});
 });

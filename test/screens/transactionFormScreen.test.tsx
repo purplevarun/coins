@@ -711,6 +711,20 @@ describe("TransactionFormScreen", () => {
 		]);
 	});
 
+	it("clears invalid item totals and missing categories when leaving itemized mode", () => {
+		const harness = createFormHarness(
+			new Map([[18, [{ key: "one", amount: "abc" }]]]),
+		);
+		const tree = harness.render();
+		formElements<ComponentProps<typeof SelectField>>(
+			tree,
+			SelectField,
+		)[1]?.props.onChange("TRANSFER");
+		expect(harness.values.get(2)).toBe("TRANSFER");
+		expect(harness.values.get(5)).toBe("");
+		expect(harness.values.get(7)).toBe("");
+	});
+
 	it("keeps split items when switching between debit and credit", () => {
 		const harness = createFormHarness(
 			new Map([
@@ -841,6 +855,26 @@ describe("TransactionFormScreen", () => {
 		expect(harness.values.get(18)).toMatchObject([
 			{ amount: "75", categoryId: "refund-cat" },
 		]);
+
+		harness = createFormHarness(new Map(), { transactionId: "payment" });
+		reactMocks.useEffect.mockImplementation((effect: () => void) =>
+			effect(),
+		);
+		serviceMocks.getTransaction.mockResolvedValue({
+			classification: "GENERAL",
+			type: "CREDIT",
+			sourceId: "s1",
+			amount: "20",
+			reason: "Other",
+			transactionAt: 42,
+			items: [],
+		});
+		harness.render();
+		await flush();
+		expect(harness.values.get(18)).toMatchObject([
+			{ amount: "20", categoryId: "" },
+		]);
+		reactMocks.useEffect.mockImplementation(() => undefined);
 	});
 
 	it("prevents duplicate saves until the payment commits", async () => {

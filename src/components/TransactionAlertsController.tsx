@@ -6,6 +6,7 @@ import { AppState } from "react-native";
 import MESSAGES from "@/constants/messageConstants";
 import useAppDialog from "@/hooks/useAppDialog";
 import transactionAlertService from "@/services/transactionAlertService";
+import validationReminderService from "@/services/validationReminderService";
 import type RootStackParamList from "@/types/RootStackParamList";
 import type TransactionAlert from "@/types/TransactionAlert";
 
@@ -27,6 +28,8 @@ const TransactionAlertsController = (): null => {
 	}, []);
 
 	useEffect(() => {
+		validationReminderService.initialize();
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- draining the persistent alert queue into state is the effect's purpose
 		drain();
 		const subscription = AppState.addEventListener(
 			"change",

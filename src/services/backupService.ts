@@ -33,7 +33,9 @@ const extractDatabase = (data: Uint8Array): Uint8Array => {
 	if (!isZipArchive(data)) return data;
 	try {
 		const entries = unzipSync(data);
-		return entries[DATABASE_NAME] ?? Object.values(entries)[0]!;
+		return (
+			entries[DATABASE_NAME] ?? (Object.values(entries)[0] as Uint8Array)
+		);
 	} catch {
 		throw new AppError(
 			"INVALID_BACKUP_DATABASE",

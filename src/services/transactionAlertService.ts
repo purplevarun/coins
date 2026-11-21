@@ -1,11 +1,6 @@
 import type TransactionAlert from "@/types/TransactionAlert";
+import type TransactionAlertsNativeModule from "@/types/TransactionAlertsNativeModule";
 import { requireNativeModule } from "expo-modules-core";
-
-type TransactionAlertsNativeModule = {
-	isAccessGranted: () => boolean;
-	openAccessSettings: () => boolean;
-	drainAlerts: () => TransactionAlert[];
-};
 
 const nativeModule = ((): TransactionAlertsNativeModule | null => {
 	try {

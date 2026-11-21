@@ -776,7 +776,7 @@ describe("SettingsScreen", () => {
 	it("wires transaction alert access controls", async () => {
 		const cleanups: (() => void)[] = [];
 		reactMocks.useEffect.mockImplementation(
-			(effect: () => (() => void) | void) => {
+			(effect: () => (() => void) | undefined) => {
 				const result = effect();
 				if (typeof result === "function") cleanups.push(result);
 			},

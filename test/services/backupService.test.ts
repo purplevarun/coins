@@ -219,6 +219,17 @@ describe("backupService", () => {
 		},
 	);
 
+	it("restores a zip whose database entry has a different name", async () => {
+		const plaintext = new Uint8Array([5, 4, 3]);
+		mocks.fileBytes.mockResolvedValueOnce(
+			zipSync({ "other-name.db": plaintext }),
+		);
+		selectBackup("renamed.pczip");
+		mocks.openDatabaseAsync.mockResolvedValueOnce(validTempDatabase());
+		expect(await backupService.restoreBackup(database)).toBe(true);
+		expect(mocks.fileWrite).toHaveBeenCalledWith(plaintext);
+	});
+
 	it("rejects a corrupt backup archive", async () => {
 		mocks.fileBytes.mockResolvedValueOnce(
 			new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0, 0, 0, 0]),

@@ -72,6 +72,7 @@ const SettingsScreen = ({
 	const [alertsEnabled, setAlertsEnabled] = useState(false);
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- reading the OS-level access grant into state on mount
 		setAlertsEnabled(transactionAlertService.isAlertAccessGranted());
 		const subscription = AppState.addEventListener(
 			"change",
