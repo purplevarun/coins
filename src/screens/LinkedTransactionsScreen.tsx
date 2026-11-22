@@ -37,7 +37,7 @@ import getRelationLabels from "@/utils/relation";
 import runAfterRender from "@/utils/runAfterRender";
 const { deleteCategory } = categoryService;
 const { deleteInvestment } = investmentService;
-const { deleteSource, getSources } = sourceService;
+const { deleteSource, getSources, validateSource } = sourceService;
 const { getLinkedTransactions } = transactionService;
 const { deleteTrip } = tripService;
 const { compareMoney, formatMoney, ZERO_AMOUNT } = moneyUtils;
@@ -205,6 +205,15 @@ const LinkedTransactionsScreen = ({
 		navigation.navigate("InvestmentForm", { entityId });
 	}, [entityId, kind, navigation]);
 
+	const handleValidate = useCallback(async (): Promise<void> => {
+		try {
+			await validateSource(database, entityId);
+			refreshData();
+		} catch (caughtError: unknown) {
+			setError(getErrorMessage(caughtError));
+		}
+	}, [database, entityId, refreshData]);
+
 	const listHeader = useMemo(
 		() => (
 			<ListHeader>
@@ -255,6 +264,16 @@ const LinkedTransactionsScreen = ({
 							style={styles.action}
 							variant="secondary"
 						/>
+						{kind === "SOURCE" ? (
+							<AppButton
+								icon="checkmark-done"
+								isCompact
+								label={MESSAGES.COMMON.VALIDATE}
+								onPress={() => void handleValidate()}
+								style={styles.action}
+								variant="secondary"
+							/>
+						) : null}
 						{isConvertible ? (
 							<AppButton
 								icon="swap-horizontal-outline"
@@ -284,6 +303,7 @@ const LinkedTransactionsScreen = ({
 			error,
 			handleDelete,
 			handleEdit,
+			handleValidate,
 			isConvertible,
 			kind,
 			sourceBalance,

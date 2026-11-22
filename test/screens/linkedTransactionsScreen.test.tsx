@@ -16,6 +16,7 @@ const serviceMocks = vi.hoisted(() => ({
 	getLinkedTransactions: vi.fn(),
 	getSources: vi.fn(),
 	deleteSource: vi.fn(),
+	validateSource: vi.fn(),
 	deleteCategory: vi.fn(),
 	deleteTrip: vi.fn(),
 	deleteInvestment: vi.fn(),
@@ -102,6 +103,7 @@ vi.mock("@/services/sourceService", () => ({
 	default: {
 		deleteSource: serviceMocks.deleteSource,
 		getSources: serviceMocks.getSources,
+		validateSource: serviceMocks.validateSource,
 	},
 }));
 vi.mock("@/services/categoryService", () => ({
@@ -171,6 +173,7 @@ describe("LinkedTransactionsScreen", () => {
 		]);
 		serviceMocks.getSources.mockResolvedValue([]);
 		serviceMocks.deleteSource.mockResolvedValue(undefined);
+		serviceMocks.validateSource.mockResolvedValue(undefined);
 		serviceMocks.deleteCategory.mockResolvedValue(undefined);
 		serviceMocks.deleteTrip.mockResolvedValue(undefined);
 		serviceMocks.deleteInvestment.mockResolvedValue(undefined);
@@ -462,6 +465,59 @@ describe("LinkedTransactionsScreen", () => {
 		);
 		expect(hookMocks.refreshData).not.toHaveBeenCalled();
 		expect(navigation.goBack).not.toHaveBeenCalled();
+	});
+
+	it("validates a source from the summary actions and reports failures", async () => {
+		const navigation = { navigate: vi.fn(), goBack: vi.fn() };
+		const setError = vi.fn();
+		serviceMocks.validateSource.mockRejectedValueOnce(
+			new Error("validate failed"),
+		);
+
+		let call = 0;
+		reactMocks.useState.mockImplementation((initial: any) => {
+			call += 1;
+			if (call === 2) return ["", setError];
+			return [
+				typeof initial === "function" ? initial() : initial,
+				vi.fn(),
+			];
+		});
+
+		const tree = LinkedTransactionsScreen({
+			navigation,
+			route: {
+				key: "k3",
+				name: "LinkedTransactions",
+				params: {
+					entityId: "e1",
+					entityName: "Bank",
+					kind: "SOURCE",
+				},
+			},
+		} as any);
+		await flush();
+
+		const validateButton = findByPredicate(
+			tree,
+			(node) =>
+				node?.props?.label === "Validate" &&
+				typeof node?.props?.onPress === "function",
+		)[0];
+		expect(validateButton).toBeDefined();
+		validateButton.props.onPress();
+		await flush();
+		expect(serviceMocks.validateSource).toHaveBeenCalledWith(
+			{ id: "db" },
+			"e1",
+		);
+		expect(setError).toHaveBeenCalledWith("validate failed");
+		expect(hookMocks.refreshData).not.toHaveBeenCalled();
+
+		serviceMocks.validateSource.mockResolvedValueOnce(undefined);
+		validateButton.props.onPress();
+		await flush();
+		expect(hookMocks.refreshData).toHaveBeenCalledOnce();
 	});
 
 	it("filters linked transactions by provided date range", async () => {
