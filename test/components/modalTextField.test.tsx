@@ -29,6 +29,9 @@ vi.mock("@/components/CustomText", () => ({ default: "CustomText" }));
 vi.mock("@/components/CustomTextInput", () => ({
 	default: "CustomTextInput",
 }));
+vi.mock("@/components/HeaderIconButton", () => ({
+	default: "HeaderIconButton",
+}));
 
 import { Platform } from "react-native";
 
@@ -127,6 +130,26 @@ describe("ModalTextField", () => {
 		onChange.mockClear();
 		findAllByType(tree, "Modal")[0].props.onRequestClose();
 		expect(onChange).toHaveBeenCalledWith("5");
+	});
+
+	it("clears the draft and commits via the sheet header actions", () => {
+		const setOpen = vi.fn();
+		const setDraft = vi.fn();
+		const onChange = vi.fn();
+		mockStates([true, setOpen], ["abc", setDraft]);
+		const tree = ModalTextField({
+			label: "Reason",
+			value: "abc",
+			onChange,
+		});
+		const buttons = findAllByType(tree, "HeaderIconButton");
+		expect(buttons).toHaveLength(2);
+		buttons[0].props.onPress();
+		expect(setDraft).toHaveBeenCalledWith("");
+		expect(onChange).not.toHaveBeenCalled();
+		buttons[1].props.onPress();
+		expect(onChange).toHaveBeenCalledWith("abc");
+		expect(setOpen).toHaveBeenCalledWith(false);
 	});
 
 	it("pads the sheet above the keyboard on iOS", () => {

@@ -1,5 +1,7 @@
 import CustomText from "@/components/CustomText";
 import CustomTextInput from "@/components/CustomTextInput";
+import HeaderIconButton from "@/components/HeaderIconButton";
+import MESSAGES from "@/constants/messageConstants";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState } from "react";
 import {
@@ -83,9 +85,27 @@ const ModalTextField = ({
 				>
 					<Pressable onPress={handleCommit} style={styles.overlay}>
 						<Pressable style={styles.sheet}>
-							<CustomText style={styles.sheetTitle}>
-								{label}
-							</CustomText>
+							<View style={styles.sheetHeader}>
+								<CustomText style={styles.sheetTitle}>
+									{label}
+								</CustomText>
+								<View style={styles.sheetActions}>
+									<HeaderIconButton
+										icon="trash-outline"
+										accessibilityLabel={
+											MESSAGES.COMMON.CLEAR
+										}
+										onPress={() => setDraft("")}
+									/>
+									<HeaderIconButton
+										icon="checkmark"
+										accessibilityLabel={
+											MESSAGES.COMMON.DONE
+										}
+										onPress={handleCommit}
+									/>
+								</View>
+							</View>
 							<CustomTextInput
 								autoFocus
 								keyboardType={keyboardType}
@@ -190,11 +210,22 @@ const themedStyles = createThemedStyles((COLORS) =>
 			borderColor: COLORS.borderStrong,
 			padding: SPACING.S16,
 		},
+		sheetHeader: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			justifyContent: ALIGN.SPACE_BETWEEN,
+			gap: SPACING.S8,
+			marginBottom: SPACING.S12,
+		},
+		sheetActions: {
+			flexDirection: FLEX.ROW,
+			gap: SPACING.S8,
+		},
 		sheetTitle: {
 			color: COLORS.text,
 			fontSize: FONT_SIZE.S20,
 			fontWeight: FONT_WEIGHT.HEAVY,
-			marginBottom: SPACING.S12,
+			flex: FLEX.FILL,
 		},
 		input: {
 			backgroundColor: COLORS.surfaceHigh,

@@ -11,6 +11,7 @@ import ModalTextField from "@/components/ModalTextField";
 import Notice from "@/components/Notice";
 import ScreenContainer from "@/components/ScreenContainer";
 import SelectField from "@/components/SelectField";
+import TransactionItemRow from "@/components/TransactionItemRow";
 import financeConstants from "@/constants/financeConstants";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
@@ -60,8 +61,6 @@ const createItemDraft = (
 	amount = "",
 	categoryId = "",
 ): TransactionItemDraft => ({ key: createId(), amount, categoryId });
-
-const ITEM_PEEK = 36;
 
 const TransactionFormScreen = ({
 	navigation,
@@ -220,7 +219,20 @@ const TransactionFormScreen = ({
 	const isItemized =
 		classification === "GENERAL" && (type === "DEBIT" || type === "CREDIT");
 	const isInvestment = classification === "INVESTMENT";
-	const itemPageWidth = Math.max(itemsWidth - ITEM_PEEK, 1);
+	const itemCardWidth = Math.max(itemsWidth * 0.8, 1);
+	const itemArrowWidth = itemsWidth * 0.1;
+	const shownItemIndex = Math.min(
+		activeItemIndex,
+		Math.max(items.length - 1, 0),
+	);
+	const scrollToItem = (index: number): void => {
+		const target = Math.max(0, Math.min(index, items.length - 1));
+		itemsScroller.current?.scrollTo({
+			x: target * itemCardWidth,
+			animated: true,
+		});
+		setActiveItemIndex(target);
+	};
 	const isSameCurrencyTransfer =
 		isTransfer &&
 		selectedSource?.currencyCode === selectedDestination?.currencyCode;
@@ -534,20 +546,26 @@ const TransactionFormScreen = ({
 									}
 									value={investmentId}
 								/>
-							) : null}
+							) : (
+								<DateField
+									isCompact
+									label={MESSAGES.TRANSACTION_FORM.DATE_LABEL}
+									onChange={setTransactionAt}
+									value={transactionAt}
+								/>
+							)}
 						</View>
 					</View>
 					<View style={styles.pinnedRow}>
 						<View style={styles.pinnedCell}>
-							<DateField
-								isCompact
-								label={MESSAGES.TRANSACTION_FORM.DATE_LABEL}
-								onChange={setTransactionAt}
-								value={transactionAt}
-							/>
-						</View>
-						<View style={styles.pinnedCell}>
-							{classification === "GENERAL" && !isTransfer ? (
+							{isTransfer || isInvestment ? (
+								<DateField
+									isCompact
+									label={MESSAGES.TRANSACTION_FORM.DATE_LABEL}
+									onChange={setTransactionAt}
+									value={transactionAt}
+								/>
+							) : (
 								<SelectField
 									isCompact
 									isOptional
@@ -557,7 +575,29 @@ const TransactionFormScreen = ({
 									placeholder={MESSAGES.COMPONENTS.NO_TRIP}
 									value={tripId}
 								/>
-							) : null}
+							)}
+						</View>
+						<View style={styles.pinnedCell}>
+							<ModalTextField
+								isCompact
+								isDisabled={isSaving}
+								label={MESSAGES.TRANSACTION_FORM.REASON_LABEL}
+								onChange={setReason}
+								placeholder={
+									isTransfer
+										? MESSAGES.TRANSACTION_FORM
+												.DEFAULTS_TO_TRANSFER
+										: isInvestment
+											? MESSAGES.TRANSACTION_FORM
+													.DEFAULTS_TO_INVESTMENT
+											: isItemized && items.length > 1
+												? MESSAGES.TRANSACTION_FORM
+														.DEFAULTS_TO_ITEMS
+												: MESSAGES.TRANSACTION_FORM
+														.DEFAULTS_TO_CATEGORY
+								}
+								value={reason}
+							/>
 						</View>
 					</View>
 				</View>
@@ -624,120 +664,116 @@ const TransactionFormScreen = ({
 								setItemsWidth(event.nativeEvent.layout.width)
 							}
 						>
-							<ScrollView
-								decelerationRate="fast"
-								disableIntervalMomentum
-								horizontal
-								keyboardShouldPersistTaps="handled"
-								onMomentumScrollEnd={(event) =>
-									setActiveItemIndex(
-										Math.max(
-											0,
-											Math.min(
-												Math.round(
-													event.nativeEvent
-														.contentOffset.x /
-														itemPageWidth,
+							<View style={styles.itemCarousel}>
+								<View
+									style={[
+										styles.itemArrow,
+										{ width: itemArrowWidth },
+									]}
+								>
+									<HeaderIconButton
+										icon="chevron-back"
+										isDisabled={
+											isSaving || shownItemIndex === 0
+										}
+										accessibilityLabel={
+											MESSAGES.TRANSACTION_FORM
+												.PREVIOUS_ITEM
+										}
+										onPress={() =>
+											scrollToItem(shownItemIndex - 1)
+										}
+									/>
+								</View>
+								<ScrollView
+									decelerationRate="fast"
+									disableIntervalMomentum
+									horizontal
+									keyboardShouldPersistTaps="handled"
+									onMomentumScrollEnd={(event) =>
+										setActiveItemIndex(
+											Math.max(
+												0,
+												Math.min(
+													Math.round(
+														event.nativeEvent
+															.contentOffset.x /
+															itemCardWidth,
+													),
+													items.length - 1,
 												),
-												items.length - 1,
 											),
-										),
-									)
-								}
-								ref={itemsScroller}
-								showsHorizontalScrollIndicator={false}
-								snapToAlignment="start"
-								snapToInterval={itemPageWidth}
-							>
-								{items.map((item, position) => (
-									<View
-										key={item.key}
-										style={[
-											styles.item,
-											{ width: itemPageWidth },
-										]}
-									>
-										{items.length > 1 ? (
-											<View style={styles.itemHeading}>
-												<CustomText
-													style={styles.itemTitle}
-												>{`Item ${position + 1} of ${items.length}`}</CustomText>
-												<HeaderIconButton
-													icon="close-outline"
-													isDisabled={isSaving}
-													accessibilityLabel={`Remove item ${position + 1}`}
-													onPress={() =>
-														setItems((current) =>
-															current.filter(
-																(candidate) =>
-																	candidate.key !==
-																	item.key,
-															),
-														)
-													}
-												/>
-											</View>
-										) : null}
-										<View style={styles.itemFields}>
-											<View style={styles.fieldColumn}>
-												<ModalTextField
-													isDisabled={isSaving}
-													keyboardType="decimal-pad"
-													label={`Amount${selectedSource ? ` (${selectedSource.currencyCode})` : ""}`}
-													placeholder="0.00"
-													value={item.amount}
-													onChange={(value) =>
-														updateItem(item.key, {
-															amount: value,
-														})
-													}
-												/>
-											</View>
-											<View style={styles.fieldColumn}>
-												<SelectField
-													label={
-														MESSAGES
-															.TRANSACTION_FORM
-															.CATEGORY_LABEL
-													}
-													placeholder={
-														MESSAGES
-															.TRANSACTION_FORM
-															.SELECT_CATEGORY
-													}
-													value={item.categoryId}
-													onChange={(value) => {
-														updateItem(item.key, {
-															categoryId: value,
-														});
-														clearTripForAgnosticCategory(
-															value,
-														);
-													}}
-													options={
-														item.categoryId &&
-														!categoryOptions.some(
-															(option) =>
-																option.value ===
-																item.categoryId,
-														)
-															? [
-																	{
-																		value: item.categoryId,
-																		label:
-																			item.categoryName ??
-																			"Category",
-																	},
-																	...categoryOptions,
-																]
-															: categoryOptions
-													}
-												/>
-											</View>
+										)
+									}
+									ref={itemsScroller}
+									showsHorizontalScrollIndicator={false}
+									snapToAlignment="start"
+									snapToInterval={itemCardWidth}
+									style={{ width: itemCardWidth }}
+								>
+									{items.map((item, position) => (
+										<View
+											key={item.key}
+											style={{ width: itemCardWidth }}
+										>
+											<TransactionItemRow
+												categoryOptions={
+													categoryOptions
+												}
+												count={items.length}
+												currencyCode={
+													selectedSource?.currencyCode
+												}
+												isDisabled={isSaving}
+												item={item}
+												position={position}
+												onAmountChange={(value) =>
+													updateItem(item.key, {
+														amount: value,
+													})
+												}
+												onCategoryChange={(value) => {
+													updateItem(item.key, {
+														categoryId: value,
+													});
+													clearTripForAgnosticCategory(
+														value,
+													);
+												}}
+												onRemove={() =>
+													setItems((current) =>
+														current.filter(
+															(candidate) =>
+																candidate.key !==
+																item.key,
+														),
+													)
+												}
+											/>
 										</View>
-									</View>
-								))}
-							</ScrollView>
+									))}
+								</ScrollView>
+								<View
+									style={[
+										styles.itemArrow,
+										{ width: itemArrowWidth },
+									]}
+								>
+									<HeaderIconButton
+										icon="chevron-forward"
+										isDisabled={
+											isSaving ||
+											shownItemIndex >= items.length - 1
+										}
+										accessibilityLabel={
+											MESSAGES.TRANSACTION_FORM.NEXT_ITEM
+										}
+										onPress={() =>
+											scrollToItem(shownItemIndex + 1)
+										}
+									/>
+								</View>
+							</View>
 							{items.length > 1 ? (
 								<View style={styles.itemDots}>
 									{items.map((item, position) => (
@@ -745,11 +781,7 @@ const TransactionFormScreen = ({
 											key={item.key}
 											style={[
 												styles.itemDot,
-												position ===
-												Math.min(
-													activeItemIndex,
-													items.length - 1,
-												)
+												position === shownItemIndex
 													? styles.itemDotActive
 													: null,
 											]}
@@ -769,25 +801,6 @@ const TransactionFormScreen = ({
 							value={effectiveToAmount}
 						/>
 					) : null}
-					<ModalTextField
-						isDisabled={isSaving}
-						label={MESSAGES.TRANSACTION_FORM.REASON_LABEL}
-						onChange={setReason}
-						placeholder={
-							isTransfer
-								? MESSAGES.TRANSACTION_FORM.DEFAULTS_TO_TRANSFER
-								: isInvestment
-									? MESSAGES.TRANSACTION_FORM
-											.DEFAULTS_TO_INVESTMENT
-									: isItemized && items.length > 1
-										? MESSAGES.TRANSACTION_FORM
-												.DEFAULTS_TO_ITEMS
-										: MESSAGES.TRANSACTION_FORM
-												.DEFAULTS_TO_CATEGORY
-						}
-						value={reason}
-					/>
-
 					{transactionId ? (
 						<AppButton
 							label={MESSAGES.TRANSACTION_FORM.DELETE_ACTION}
@@ -822,17 +835,12 @@ const themedStyles = createThemedStyles((COLORS) =>
 		},
 		pinnedRow: { flexDirection: FLEX.ROW, gap: SPACING.S8 },
 		pinnedCell: { flex: FLEX.FILL, minWidth: 0 },
-		itemFields: {
-			flexDirection: FLEX.ROW,
-			flexWrap: FLEX.WRAP,
-			gap: SPACING.S12,
-		},
-		fieldColumn: { flexGrow: 1, flexBasis: SIZES.S120, minWidth: 0 },
 		footer: { gap: SPACING.S8 },
 		totalSummary: { flexGrow: 1, flexBasis: 140, minWidth: 0 },
 		totalLabel: { color: COLORS.textMuted, fontSize: FONT_SIZE.S12 },
 		footerAction: { flex: 1, minWidth: 160 },
-		item: { gap: SPACING.S12 },
+		itemArrow: { alignItems: ALIGN.CENTER },
+		itemCarousel: { flexDirection: FLEX.ROW, alignItems: ALIGN.CENTER },
 		itemDot: {
 			width: SIZES.S8,
 			height: SIZES.S8,
@@ -845,17 +853,6 @@ const themedStyles = createThemedStyles((COLORS) =>
 			justifyContent: ALIGN.CENTER,
 			gap: SPACING.S8,
 			marginTop: SPACING.S8,
-		},
-		itemHeading: {
-			flexDirection: FLEX.ROW,
-			alignItems: ALIGN.CENTER,
-			justifyContent: ALIGN.SPACE_BETWEEN,
-			minHeight: SIZES.S44,
-		},
-		itemTitle: {
-			color: COLORS.text,
-			fontSize: FONT_SIZE.S15,
-			fontWeight: FONT_WEIGHT.BOLD,
 		},
 		totalRow: {
 			flexDirection: FLEX.ROW,
