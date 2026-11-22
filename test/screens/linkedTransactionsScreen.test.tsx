@@ -69,6 +69,9 @@ vi.mock("@/components/FloatingAddButton", () => ({
 vi.mock("@/components/GlassCard", () => ({
 	default: (props: any) => ({ type: "GlassCard", props }),
 }));
+vi.mock("@/components/HeaderIconButton", () => ({
+	default: (props: any) => ({ type: "HeaderIconButton", props }),
+}));
 vi.mock("@/components/ListHeader", () => ({
 	default: (props: any) => ({ type: "ListHeader", props }),
 }));
@@ -251,14 +254,10 @@ describe("LinkedTransactionsScreen", () => {
 			const editAction = findByPredicate(
 				tree,
 				(node) =>
-					node?.props?.label === "Edit" &&
+					node?.props?.accessibilityLabel === "Edit" &&
 					typeof node?.props?.onPress === "function",
 			)[0];
-			expect(editAction.props.style).toMatchObject({
-				flexGrow: 1,
-				flexBasis: 120,
-				minWidth: 120,
-			});
+			expect(editAction.props.icon).toBe("create-outline");
 			expect(
 				findByPredicate(
 					tree,
@@ -360,8 +359,13 @@ describe("LinkedTransactionsScreen", () => {
 				tree,
 				(node) => typeof node?.props?.label === "string",
 			).map((node) => node.props.label);
-			expect(labels).toEqual(
-				expect.arrayContaining(["Edit", "Convert", "Delete"]),
+			expect(labels).toEqual(expect.arrayContaining(["Convert"]));
+			const iconLabels = findByPredicate(
+				tree,
+				(node) => typeof node?.props?.accessibilityLabel === "string",
+			).map((node) => node.props.accessibilityLabel);
+			expect(iconLabels).toEqual(
+				expect.arrayContaining(["Edit", "Delete"]),
 			);
 			findByPredicate(
 				tree,
@@ -447,7 +451,7 @@ describe("LinkedTransactionsScreen", () => {
 		findByPredicate(
 			tree,
 			(node) =>
-				node?.props?.label === "Delete" &&
+				node?.props?.accessibilityLabel === "Delete" &&
 				typeof node?.props?.onPress === "function",
 		)[0]?.props?.onPress();
 		await flush();
@@ -501,7 +505,7 @@ describe("LinkedTransactionsScreen", () => {
 		const validateButton = findByPredicate(
 			tree,
 			(node) =>
-				node?.props?.label === "Validate" &&
+				node?.props?.accessibilityLabel === "Validate" &&
 				typeof node?.props?.onPress === "function",
 		)[0];
 		expect(validateButton).toBeDefined();
@@ -624,7 +628,7 @@ describe("LinkedTransactionsScreen", () => {
 			findByPredicate(
 				tree,
 				(node) =>
-					node?.props?.label === "Delete" &&
+					node?.props?.accessibilityLabel === "Delete" &&
 					typeof node?.props?.onPress === "function",
 			)[0]?.props?.onPress();
 			await flush();

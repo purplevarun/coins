@@ -12,6 +12,7 @@ import CustomText from "@/components/CustomText";
 import EmptyState from "@/components/EmptyState";
 import FloatingAddButton from "@/components/FloatingAddButton";
 import GlassCard from "@/components/GlassCard";
+import HeaderIconButton from "@/components/HeaderIconButton";
 import InvestmentConversionModal from "@/components/InvestmentConversionModal";
 import ListHeader from "@/components/ListHeader";
 import Notice from "@/components/Notice";
@@ -256,22 +257,16 @@ const LinkedTransactionsScreen = ({
 						</View>
 					</View>
 					<View style={styles.actions}>
-						<AppButton
+						<HeaderIconButton
 							icon="create-outline"
-							isCompact
-							label={MESSAGES.COMMON.EDIT}
+							accessibilityLabel={MESSAGES.COMMON.EDIT}
 							onPress={handleEdit}
-							style={styles.action}
-							variant="secondary"
 						/>
 						{kind === "SOURCE" ? (
-							<AppButton
+							<HeaderIconButton
 								icon="checkmark-done"
-								isCompact
-								label={MESSAGES.COMMON.VALIDATE}
+								accessibilityLabel={MESSAGES.COMMON.VALIDATE}
 								onPress={() => void handleValidate()}
-								style={styles.action}
-								variant="secondary"
 							/>
 						) : null}
 						{isConvertible ? (
@@ -284,13 +279,10 @@ const LinkedTransactionsScreen = ({
 								variant="secondary"
 							/>
 						) : null}
-						<AppButton
+						<HeaderIconButton
 							icon="trash-outline"
-							isCompact
-							label={MESSAGES.COMMON.DELETE}
+							accessibilityLabel={MESSAGES.COMMON.DELETE}
 							onPress={handleDelete}
-							style={styles.action}
-							variant="danger"
 						/>
 					</View>
 				</GlassCard>

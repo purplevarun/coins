@@ -2736,7 +2736,7 @@ describe("list screens", () => {
 			findByPredicate(
 				tree,
 				(node) =>
-					node?.props?.label === "Delete" &&
+					node?.props?.accessibilityLabel === "Delete" &&
 					typeof node?.props?.onPress === "function",
 			)[0]?.props?.onPress();
 			await flush();
@@ -2786,7 +2786,7 @@ describe("list screens", () => {
 		findByPredicate(
 			tree,
 			(node) =>
-				node?.props?.label === "Edit" &&
+				node?.props?.accessibilityLabel === "Edit" &&
 				typeof node?.props?.onPress === "function",
 		)[0]?.props?.onPress();
 
@@ -2844,7 +2844,7 @@ describe("list screens", () => {
 		findByPredicate(
 			tree,
 			(node) =>
-				node?.props?.label === "Delete" &&
+				node?.props?.accessibilityLabel === "Delete" &&
 				typeof node?.props?.onPress === "function",
 		)[0]?.props?.onPress();
 		await flush();
