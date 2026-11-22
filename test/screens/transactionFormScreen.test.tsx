@@ -609,6 +609,18 @@ describe("TransactionFormScreen", () => {
 		expect(harness.values.get(20)).toBe(320);
 	});
 
+	it("tracks the active carousel page on momentum scroll end", () => {
+		const harness = createFormHarness();
+		const tree = harness.render();
+		findByPredicate(
+			tree,
+			(node) => node?.props?.onMomentumScrollEnd,
+		)[0].props.onMomentumScrollEnd({
+			nativeEvent: { contentOffset: { x: 640 } },
+		});
+		expect(harness.values.get(21)).toBe(0);
+	});
+
 	it("scrolls the carousel to the end after adding an item", async () => {
 		const scrollToEnd = vi.fn();
 		const harness = createFormHarness();

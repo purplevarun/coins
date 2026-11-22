@@ -61,6 +61,8 @@ const createItemDraft = (
 	categoryId = "",
 ): TransactionItemDraft => ({ key: createId(), amount, categoryId });
 
+const ITEM_PEEK = 36;
+
 const TransactionFormScreen = ({
 	navigation,
 	route,
@@ -103,6 +105,7 @@ const TransactionFormScreen = ({
 	]);
 	const [isApplicable, setIsApplicable] = useState(true);
 	const [itemsWidth, setItemsWidth] = useState(0);
+	const [activeItemIndex, setActiveItemIndex] = useState(0);
 	const saving = useRef(false);
 	const itemsScroller = useRef<ScrollView>(null);
 
@@ -217,6 +220,7 @@ const TransactionFormScreen = ({
 	const isItemized =
 		classification === "GENERAL" && (type === "DEBIT" || type === "CREDIT");
 	const isInvestment = classification === "INVESTMENT";
+	const itemPageWidth = Math.max(itemsWidth - ITEM_PEEK, 1);
 	const isSameCurrencyTransfer =
 		isTransfer &&
 		selectedSource?.currencyCode === selectedDestination?.currencyCode;
@@ -625,16 +629,32 @@ const TransactionFormScreen = ({
 								disableIntervalMomentum
 								horizontal
 								keyboardShouldPersistTaps="handled"
-								pagingEnabled
+								onMomentumScrollEnd={(event) =>
+									setActiveItemIndex(
+										Math.max(
+											0,
+											Math.min(
+												Math.round(
+													event.nativeEvent
+														.contentOffset.x /
+														itemPageWidth,
+												),
+												items.length - 1,
+											),
+										),
+									)
+								}
 								ref={itemsScroller}
 								showsHorizontalScrollIndicator={false}
+								snapToAlignment="start"
+								snapToInterval={itemPageWidth}
 							>
 								{items.map((item, position) => (
 									<View
 										key={item.key}
 										style={[
 											styles.item,
-											{ width: itemsWidth },
+											{ width: itemPageWidth },
 										]}
 									>
 										{items.length > 1 ? (
@@ -718,6 +738,25 @@ const TransactionFormScreen = ({
 									</View>
 								))}
 							</ScrollView>
+							{items.length > 1 ? (
+								<View style={styles.itemDots}>
+									{items.map((item, position) => (
+										<View
+											key={item.key}
+											style={[
+												styles.itemDot,
+												position ===
+												Math.min(
+													activeItemIndex,
+													items.length - 1,
+												)
+													? styles.itemDotActive
+													: null,
+											]}
+										/>
+									))}
+								</View>
+							) : null}
 						</View>
 					) : null}
 					{isTransfer ? (
@@ -762,7 +801,7 @@ const TransactionFormScreen = ({
 	);
 };
 
-const { ALIGN, BORDER, FLEX, FONT_SIZE, FONT_WEIGHT, SIZES, SPACING } =
+const { ALIGN, BORDER, FLEX, FONT_SIZE, FONT_WEIGHT, RADIUS, SIZES, SPACING } =
 	styleConstants;
 
 const themedStyles = createThemedStyles((COLORS) =>
@@ -794,6 +833,19 @@ const themedStyles = createThemedStyles((COLORS) =>
 		totalLabel: { color: COLORS.textMuted, fontSize: FONT_SIZE.S12 },
 		footerAction: { flex: 1, minWidth: 160 },
 		item: { gap: SPACING.S12 },
+		itemDot: {
+			width: SIZES.S8,
+			height: SIZES.S8,
+			borderRadius: RADIUS.PILL,
+			backgroundColor: COLORS.textMuted,
+		},
+		itemDotActive: { backgroundColor: COLORS.primary },
+		itemDots: {
+			flexDirection: FLEX.ROW,
+			justifyContent: ALIGN.CENTER,
+			gap: SPACING.S8,
+			marginTop: SPACING.S8,
+		},
 		itemHeading: {
 			flexDirection: FLEX.ROW,
 			alignItems: ALIGN.CENTER,
