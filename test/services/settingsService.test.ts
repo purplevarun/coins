@@ -17,7 +17,7 @@ vi.mock("@/repositories/settingsRepository", () => ({
 
 import settingsService from "@/services/settingsService";
 
-const database = {} as SQLiteDatabase;
+const database = {} as unknown as SQLiteDatabase;
 const sourceId = "2e78d253-f5f0-4c4b-adfa-891a39a3f91a";
 
 describe("settingsService", () => {

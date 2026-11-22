@@ -63,7 +63,7 @@ import transactionService from "@/services/transactionService";
 
 const database = {
 	withTransactionAsync: async (callback: () => Promise<void>) => callback(),
-} as SQLiteDatabase;
+} as unknown as SQLiteDatabase;
 
 describe("transactionService", () => {
 	beforeEach(() => {

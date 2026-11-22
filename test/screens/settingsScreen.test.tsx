@@ -31,10 +31,6 @@ const serviceMocks = vi.hoisted(() => ({
 	updateThemeId: vi.fn(),
 	getSources: vi.fn(),
 	getTrips: vi.fn(),
-	isAlertAccessGranted: vi.fn(() => false),
-	openAlertAccessSettings: vi.fn(),
-	openAppSettings: vi.fn(),
-	appStateAddEventListener: vi.fn(),
 }));
 
 const hookMocks = vi.hoisted(() => ({
@@ -51,9 +47,6 @@ vi.mock("react", async (importOriginal) => {
 });
 
 vi.mock("react-native", () => ({
-	AppState: {
-		addEventListener: serviceMocks.appStateAddEventListener,
-	},
 	StyleSheet: { create: (styles: any) => styles },
 	Switch: (props: any) => ({ type: "Switch", props }),
 	View: (props: any) => ({ type: "View", props }),
@@ -106,13 +99,6 @@ vi.mock("@/services/settingsService", () => ({
 }));
 vi.mock("@/services/sourceService", () => ({
 	default: { getSources: serviceMocks.getSources },
-}));
-vi.mock("@/services/transactionAlertService", () => ({
-	default: {
-		isAlertAccessGranted: serviceMocks.isAlertAccessGranted,
-		openAlertAccessSettings: serviceMocks.openAlertAccessSettings,
-		openAppSettings: serviceMocks.openAppSettings,
-	},
 }));
 vi.mock("@/services/tripService", () => ({
 	default: {
@@ -186,9 +172,6 @@ describe("SettingsScreen", () => {
 		);
 		serviceMocks.exportBackup.mockResolvedValue(undefined);
 		serviceMocks.restoreBackup.mockResolvedValue(true);
-		serviceMocks.appStateAddEventListener.mockReturnValue({
-			remove: vi.fn(),
-		});
 	});
 
 	it.each(themeConstants.THEME_OPTIONS)(
@@ -457,8 +440,6 @@ describe("SettingsScreen", () => {
 			"Archived relations",
 			"Export .pczip",
 			"Restore .pc/.pczip",
-			"Enable alerts",
-			"Open app settings",
 		]);
 
 		findByPredicate(
@@ -749,70 +730,5 @@ describe("SettingsScreen", () => {
 				(n) => isValidElement(n) && n.type === Notice,
 			),
 		).toHaveLength(1);
-	});
-
-	it("shows alert access as enabled when granted", async () => {
-		serviceMocks.isAlertAccessGranted.mockReturnValue(true);
-		let call = 0;
-		reactMocks.useState.mockImplementation((initial: unknown) => {
-			call += 1;
-			if (call === 11) return [true, vi.fn()];
-			return [
-				typeof initial === "function" ? initial() : initial,
-				vi.fn(),
-			];
-		});
-		const tree = SettingsScreen({
-			navigation: { navigate: vi.fn() },
-		} as any);
-		await flush();
-		expect(
-			findByPredicate(
-				tree,
-				(node) =>
-					node?.props?.label === "Enable alerts" ||
-					node?.props?.children === "Enable alerts",
-			),
-		).toHaveLength(0);
-	});
-
-	it("wires transaction alert access controls", async () => {
-		const cleanups: (() => void)[] = [];
-		reactMocks.useEffect.mockImplementation(
-			(effect: () => (() => void) | undefined) => {
-				const result = effect();
-				if (typeof result === "function") cleanups.push(result);
-			},
-		);
-		const tree = SettingsScreen({
-			navigation: { navigate: vi.fn() },
-		} as any);
-		await flush();
-
-		expect(serviceMocks.isAlertAccessGranted).toHaveBeenCalled();
-		expect(serviceMocks.appStateAddEventListener).toHaveBeenCalledWith(
-			"change",
-			expect.any(Function),
-		);
-		const listener = serviceMocks.appStateAddEventListener.mock
-			.calls[0]?.[1] as (state: string) => void;
-		listener("background");
-		listener("active");
-		expect(
-			serviceMocks.isAlertAccessGranted.mock.calls.length,
-		).toBeGreaterThan(1);
-		cleanups.forEach((cleanup) => cleanup());
-
-		const enableButton = findByPredicate(
-			tree,
-			(node) => node?.props?.label === "Enable alerts",
-		)[0];
-		enableButton?.props?.onPress();
-		expect(serviceMocks.openAlertAccessSettings).toHaveBeenCalled();
-		findByPredicate(
-			tree,
-			(node) => node?.props?.label === "Open app settings",
-		)[0]?.props?.onPress();
-		expect(serviceMocks.openAppSettings).toHaveBeenCalled();
 	});
 });

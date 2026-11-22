@@ -16,15 +16,14 @@ Everything learned building + verifying the Nov 2025 feature set. Read alongside
 
 ## Feature map (what was built)
 
-| Feature                                                                                                           | Where                                                                                                                                                                                                                                                              |
-| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `.pczip` export/import (plain zip of the db, ~72% smaller)                                                        | `src/services/backupService.ts` (`fflate`, `isZipArchive`/`extractDatabase`), restore accepts `.pczip`/`.pc`/`.purplecoins`                                                                                                                                        |
-| App-side backup encryption REMOVED (plain SQLite in/out); legacy PCENC1 decrypt kept only in `tools/pc-backup.ts` | `tools/pc-backup.ts`, spec in `ENCRYPTION.md`                                                                                                                                                                                                                      |
-| APK size 19.68→17.58MB                                                                                            | Direct `import Ionicons from "@expo/vector-icons/Ionicons"` in 28 files — the named import eagerly bundles all 19 icon TTFs                                                                                                                                        |
-| CREDIT multi-item                                                                                                 | `src/screens/TransactionFormScreen.tsx` (`isItemized` = GENERAL DEBIT                                                                                                                                                                                              | CREDIT), `src/services/analysisService.ts`, `src/utils/trends.ts` (itemized CREDIT counted via per-item refund logic) |
-| Bank alert automation                                                                                             | `modules/transaction-alerts/` — Kotlin `TransactionAlertListener` (NotificationListenerService) → `AlertParser` → `AlertQueue` (SharedPrefs) → JS `transactionAlertService` → `TransactionAlertsController` drains on foreground → confirm dialog → prefilled form |
-| 48h source-validation reminders                                                                                   | `ValidationReminder.kt` — WorkManager hourly worker reads the SQLite file directly, notifies per stale source, 12h re-notify throttle in `source_validation_reminders` prefs; check also runs on app foreground via `runValidationCheck`                           |
-| Release signing                                                                                                   | `plugins/withReleaseSigning.js` + gitignored `release.keystore`/`keystore.properties` at root                                                                                                                                                                      |
+| Feature                                                                                                           | Where                                                                                                                                                                                                            |
+| ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.pczip` export/import (plain zip of the db, ~72% smaller)                                                        | `src/services/backupService.ts` (`fflate`, `isZipArchive`/`extractDatabase`), restore accepts `.pczip`/`.pc`/`.purplecoins`                                                                                      |
+| App-side backup encryption REMOVED (plain SQLite in/out); legacy PCENC1 decrypt kept only in `tools/pc-backup.ts` | `tools/pc-backup.ts`, spec in `ENCRYPTION.md`                                                                                                                                                                    |
+| APK size 19.68→17.58MB                                                                                            | Direct `import Ionicons from "@expo/vector-icons/Ionicons"` in 28 files — the named import eagerly bundles all 19 icon TTFs                                                                                      |
+| CREDIT multi-item                                                                                                 | `src/screens/TransactionFormScreen.tsx` (`isItemized` = GENERAL DEBIT                                                                                                                                            | CREDIT), `src/services/analysisService.ts`, `src/utils/trends.ts` (itemized CREDIT counted via per-item refund logic) |
+| Notification alerts — REMOVED 2026.11.23.00                                                                       | Whole feature deleted: `ValidationReminder` opened `purplecoins.db` directly (hourly WorkManager + sync on app start) → "database is locked" crash; the listener also lacked a manifest entry so it never worked |
+| Release signing                                                                                                   | `plugins/withReleaseSigning.js` + gitignored `release.keystore`/`keystore.properties` at root                                                                                                                    |
 
 ## Hard-won pitfalls (each cost real debugging time)
 
@@ -33,19 +32,9 @@ Everything learned building + verifying the Nov 2025 feature set. Read alongside
 - `sources.archived` is **NULL**, not 0, in real data — always `COALESCE(archived, 0)`.
 - `transactions.id` and `transaction_items.id` have **no unique indexes** — `INSERT OR
 REPLACE` silently duplicates rows when re-running transforms.
-- `adb emu sms send` returns OK but never reaches the SMS provider on this image —
-  test notification paths via `cmd notification post` (posts as `com.android.shell`)
-  or fixtures instead.
-- WorkManager `PeriodicWorkRequest` has **no immediate first run** — first execution
-  waits the full period unless `setInitialDelay` is set. `KEEP` policy keeps a
-  previously-enqueued schedule; `UPDATE` resets the cycle on every app start. Force-run:
-  `adb shell "cmd jobscheduler run -f -n androidx.work.systemjobscheduler com.purple.coins 0"`
-  (note the namespace flag — WorkManager jobs sit in that namespace).
-- `am force-stop` clears the app's notifications on this emulator — verify
-  notifications immediately, not after a restart.
-- `POST_NOTIFICATIONS` prompt is a runtime permission (API 33+) and separate from
-  notification-listener access. App requests it once (`permission_requested` pref).
-  Grant for tests: `adb shell pm grant com.purple.coins android.permission.POST_NOTIFICATIONS`.
+- Native code must NEVER open `filesDir/SQLite/purplecoins.db` directly — a second
+  connection races expo-sqlite (esp. the foreground `VACUUM`) and throws
+  "database is locked". Removed alert feature did exactly this.
 - The restore flow rejects backups that lack all 4 core tables
   (`transactions`, `sources`, `categories`, `transaction_items`) AND requires the
   merged tables' column sets to match — minimal fixtures fail with
@@ -61,7 +50,6 @@ REPLACE` silently duplicates rows when re-running transforms.
   populated checks (fails only if fixture lacks trips — over-asserts).
 - `./run avd-ui` — accessibility dump for UI driving; taps via `adb shell input tap`.
 - File picker: files pushed to `/sdcard/Download/` appear in DocumentsUI.
-- WorkManager force-run: see jobscheduler command above.
 - `./run test` = typecheck + vitest coverage (100% global thresholds) + eslint
   (`--max-warnings=0`). `non-null assertion` and `as` casts differ in lint — `!`
   is banned in src, `as T` is not.

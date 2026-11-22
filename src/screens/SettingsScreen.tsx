@@ -2,7 +2,7 @@ import appConstants from "@/constants/appConstants";
 
 import CustomText from "@/components/CustomText";
 import { useEffect, useState } from "react";
-import { AppState, StyleSheet, Switch, View } from "react-native";
+import { StyleSheet, Switch, View } from "react-native";
 import packageJson from "../../package.json";
 
 import AppButton from "@/components/AppButton";
@@ -20,7 +20,6 @@ import useThemedStyles from "@/hooks/useThemedStyles";
 import backupService from "@/services/backupService";
 import settingsService from "@/services/settingsService";
 import sourceService from "@/services/sourceService";
-import transactionAlertService from "@/services/transactionAlertService";
 import tripService from "@/services/tripService";
 import type NoticeScope from "@/types/NoticeScope";
 import type SelectOption from "@/types/SelectOption";
@@ -69,21 +68,6 @@ const SettingsScreen = ({
 	const [defaultSourceId, setDefaultSourceId] = useState("");
 	const [sources, setSources] = useState<readonly Source[]>([]);
 	const [noticeScope, setNoticeScope] = useState<NoticeScope>("top");
-	const [alertsEnabled, setAlertsEnabled] = useState(false);
-
-	useEffect(() => {
-		// eslint-disable-next-line react-hooks/set-state-in-effect -- reading the OS-level access grant into state on mount
-		setAlertsEnabled(transactionAlertService.isAlertAccessGranted());
-		const subscription = AppState.addEventListener(
-			"change",
-			(state) =>
-				state === "active" &&
-				setAlertsEnabled(
-					transactionAlertService.isAlertAccessGranted(),
-				),
-		);
-		return () => subscription.remove();
-	}, []);
 
 	useEffect(() => {
 		const getSettings = async (): Promise<void> => {
@@ -348,43 +332,6 @@ const SettingsScreen = ({
 						onPress={() => void handleRestore()}
 						variant="secondary"
 					/>
-				</View>
-			</GlassCard>
-			<GlassCard>
-				<View style={styles.section}>
-					<CustomText style={styles.heading}>
-						Transaction alerts
-					</CustomText>
-					<CustomText style={styles.description}>
-						{alertsEnabled
-							? MESSAGES.ALERTS.ENABLED
-							: MESSAGES.ALERTS.DISABLED}
-					</CustomText>
-					{!alertsEnabled ? (
-						<>
-							<AppButton
-								icon="notifications-outline"
-								isDisabled={isWorking}
-								label={MESSAGES.ALERTS.ENABLE}
-								onPress={() =>
-									transactionAlertService.openAlertAccessSettings()
-								}
-								variant="secondary"
-							/>
-							<CustomText style={styles.description}>
-								{MESSAGES.ALERTS.APP_SETTINGS_HINT}
-							</CustomText>
-							<AppButton
-								icon="settings-outline"
-								isDisabled={isWorking}
-								label={MESSAGES.ALERTS.OPEN_APP_SETTINGS}
-								onPress={() =>
-									transactionAlertService.openAppSettings()
-								}
-								variant="secondary"
-							/>
-						</>
-					) : null}
 				</View>
 			</GlassCard>
 		</ScreenContainer>

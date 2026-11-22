@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("react-native", () => ({ View: "View" }));
-vi.mock("@/components/TransactionAlertsController", () => ({
-	default: "TransactionAlertsController",
-}));
 vi.mock("@/components/HeaderIconButton", () => ({
 	default: "HeaderIconButton",
 }));

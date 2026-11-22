@@ -56,6 +56,7 @@ const ScreenContainer = ({
 			style={styles.gradient}
 		>
 			<SafeAreaView
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-class-instance-assignment -- SafeAreaView forwards the ref to the underlying native View
 				ref={viewport}
 				edges={["bottom"]}
 				onLayout={

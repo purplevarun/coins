@@ -716,40 +716,44 @@ const TransactionFormScreen = ({
 											key={item.key}
 											style={{ width: itemCardWidth }}
 										>
-											<TransactionItemRow
-												categoryOptions={
-													categoryOptions
-												}
-												count={items.length}
-												currencyCode={
-													selectedSource?.currencyCode
-												}
-												isDisabled={isSaving}
-												item={item}
-												position={position}
-												onAmountChange={(value) =>
-													updateItem(item.key, {
-														amount: value,
-													})
-												}
-												onCategoryChange={(value) => {
-													updateItem(item.key, {
-														categoryId: value,
-													});
-													clearTripForAgnosticCategory(
+											<View style={styles.itemCard}>
+												<TransactionItemRow
+													categoryOptions={
+														categoryOptions
+													}
+													count={items.length}
+													currencyCode={
+														selectedSource?.currencyCode
+													}
+													isDisabled={isSaving}
+													item={item}
+													position={position}
+													onAmountChange={(value) =>
+														updateItem(item.key, {
+															amount: value,
+														})
+													}
+													onCategoryChange={(
 														value,
-													);
-												}}
-												onRemove={() =>
-													setItems((current) =>
-														current.filter(
-															(candidate) =>
-																candidate.key !==
-																item.key,
-														),
-													)
-												}
-											/>
+													) => {
+														updateItem(item.key, {
+															categoryId: value,
+														});
+														clearTripForAgnosticCategory(
+															value,
+														);
+													}}
+													onRemove={() =>
+														setItems((current) =>
+															current.filter(
+																(candidate) =>
+																	candidate.key !==
+																	item.key,
+															),
+														)
+													}
+												/>
+											</View>
 										</View>
 									))}
 								</ScrollView>
@@ -840,6 +844,14 @@ const themedStyles = createThemedStyles((COLORS) =>
 		totalLabel: { color: COLORS.textMuted, fontSize: FONT_SIZE.S12 },
 		footerAction: { flex: 1, minWidth: 160 },
 		itemArrow: { alignItems: ALIGN.CENTER },
+		itemCard: {
+			backgroundColor: COLORS.surfaceFaint,
+			borderColor: COLORS.borderStrong,
+			borderRadius: RADIUS.S16,
+			borderWidth: BORDER.THIN,
+			marginHorizontal: SPACING.S4,
+			padding: SPACING.S12,
+		},
 		itemCarousel: { flexDirection: FLEX.ROW, alignItems: ALIGN.CENTER },
 		itemDot: {
 			width: SIZES.S8,
