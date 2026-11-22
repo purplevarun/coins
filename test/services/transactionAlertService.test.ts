@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const nativeMocks = vi.hoisted(() => ({
 	isAccessGranted: vi.fn(() => true),
 	openAccessSettings: vi.fn(() => true),
+	openAppSettings: vi.fn(() => true),
 	drainAlerts: vi.fn((): unknown[] => []),
 	requireNativeModule: vi.fn(),
 }));
@@ -43,6 +44,8 @@ describe("transactionAlertService", () => {
 		expect(service.isAlertAccessGranted()).toBe(true);
 		service.openAlertAccessSettings();
 		expect(nativeMocks.openAccessSettings).toHaveBeenCalled();
+		service.openAppSettings();
+		expect(nativeMocks.openAppSettings).toHaveBeenCalled();
 		expect(service.drainTransactionAlerts()).toEqual(alerts);
 	});
 
@@ -54,5 +57,6 @@ describe("transactionAlertService", () => {
 		expect(service.isAlertAccessGranted()).toBe(false);
 		expect(service.drainTransactionAlerts()).toEqual([]);
 		expect(() => service.openAlertAccessSettings()).not.toThrow();
+		expect(() => service.openAppSettings()).not.toThrow();
 	});
 });

@@ -361,15 +361,29 @@ const SettingsScreen = ({
 							: MESSAGES.ALERTS.DISABLED}
 					</CustomText>
 					{!alertsEnabled ? (
-						<AppButton
-							icon="notifications-outline"
-							isDisabled={isWorking}
-							label={MESSAGES.ALERTS.ENABLE}
-							onPress={() =>
-								transactionAlertService.openAlertAccessSettings()
-							}
-							variant="secondary"
-						/>
+						<>
+							<AppButton
+								icon="notifications-outline"
+								isDisabled={isWorking}
+								label={MESSAGES.ALERTS.ENABLE}
+								onPress={() =>
+									transactionAlertService.openAlertAccessSettings()
+								}
+								variant="secondary"
+							/>
+							<CustomText style={styles.description}>
+								{MESSAGES.ALERTS.APP_SETTINGS_HINT}
+							</CustomText>
+							<AppButton
+								icon="settings-outline"
+								isDisabled={isWorking}
+								label={MESSAGES.ALERTS.OPEN_APP_SETTINGS}
+								onPress={() =>
+									transactionAlertService.openAppSettings()
+								}
+								variant="secondary"
+							/>
+						</>
 					) : null}
 				</View>
 			</GlassCard>

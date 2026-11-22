@@ -19,6 +19,10 @@ const openAlertAccessSettings = (): void => {
 	nativeModule?.openAccessSettings();
 };
 
+const openAppSettings = (): void => {
+	nativeModule?.openAppSettings();
+};
+
 const drainTransactionAlerts = (): readonly TransactionAlert[] =>
 	nativeModule?.drainAlerts() ?? [];
 
@@ -26,6 +30,7 @@ const transactionAlertService = {
 	drainTransactionAlerts,
 	isAlertAccessGranted,
 	openAlertAccessSettings,
+	openAppSettings,
 };
 
 export default transactionAlertService;

@@ -237,6 +237,9 @@ const ALERTS = {
 		"Notification access is off. Turn it on to get debit/credit prompts.",
 	ENABLE: "Enable alerts",
 	ENABLED: "On — new debit/credit alerts will ask to add a transaction.",
+	APP_SETTINGS_HINT:
+		"Greyed out or missing? Open app settings, tap ⋮ and allow restricted settings first.",
+	OPEN_APP_SETTINGS: "Open app settings",
 } as const;
 
 const BUDGETS = {

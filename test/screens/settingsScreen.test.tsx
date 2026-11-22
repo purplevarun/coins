@@ -33,6 +33,7 @@ const serviceMocks = vi.hoisted(() => ({
 	getTrips: vi.fn(),
 	isAlertAccessGranted: vi.fn(() => false),
 	openAlertAccessSettings: vi.fn(),
+	openAppSettings: vi.fn(),
 	appStateAddEventListener: vi.fn(),
 }));
 
@@ -110,6 +111,7 @@ vi.mock("@/services/transactionAlertService", () => ({
 	default: {
 		isAlertAccessGranted: serviceMocks.isAlertAccessGranted,
 		openAlertAccessSettings: serviceMocks.openAlertAccessSettings,
+		openAppSettings: serviceMocks.openAppSettings,
 	},
 }));
 vi.mock("@/services/tripService", () => ({
@@ -456,6 +458,7 @@ describe("SettingsScreen", () => {
 			"Export .pczip",
 			"Restore .pc/.pczip",
 			"Enable alerts",
+			"Open app settings",
 		]);
 
 		findByPredicate(
@@ -806,5 +809,10 @@ describe("SettingsScreen", () => {
 		)[0];
 		enableButton?.props?.onPress();
 		expect(serviceMocks.openAlertAccessSettings).toHaveBeenCalled();
+		findByPredicate(
+			tree,
+			(node) => node?.props?.label === "Open app settings",
+		)[0]?.props?.onPress();
+		expect(serviceMocks.openAppSettings).toHaveBeenCalled();
 	});
 });

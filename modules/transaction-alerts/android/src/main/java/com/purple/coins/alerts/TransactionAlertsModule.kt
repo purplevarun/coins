@@ -31,6 +31,17 @@ class TransactionAlertsModule : Module() {
 			true
 		}
 
+		Function("openAppSettings") {
+			val context = appContext.reactContext ?: return@Function false
+			context.startActivity(
+				Intent(
+					Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+					android.net.Uri.parse("package:${context.packageName}"),
+				).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+			)
+			true
+		}
+
 		Function("drainAlerts") {
 			val context = appContext.reactContext ?: return@Function emptyList<Map<String, Any>>()
 			AlertQueue.drain(context)
