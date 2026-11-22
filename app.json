@@ -1,7 +1,7 @@
 {
 	"expo": {
 		"name": "Purplecoins",
-		"version": "2026.11.22.02",
+		"version": "2026.11.22.03",
 		"orientation": "portrait",
 		"icon": "./assets/icon.png",
 		"userInterfaceStyle": "dark",
@@ -13,7 +13,7 @@
 			},
 			"predictiveBackGestureEnabled": false,
 			"package": "com.purple.coins",
-			"versionCode": 2026112202
+			"versionCode": 2026112203
 		},
 		"plugins": [
 			"expo-sqlite",
@@ -25,7 +25,9 @@
 				"expo-build-properties",
 				{
 					"android": {
-						"buildArchs": ["arm64-v8a"],
+						"buildArchs": [
+							"arm64-v8a"
+						],
 						"enableMinifyInReleaseBuilds": true,
 						"enableShrinkResourcesInReleaseBuilds": true
 					}
