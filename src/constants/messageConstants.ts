@@ -142,6 +142,7 @@ const TRANSACTION_FORM = {
 	DATE_LABEL: "Date",
 	DEFAULTS_TO_CATEGORY: "Defaults to the selected category",
 	DEFAULTS_TO_INVESTMENT: "Defaults to the selected investment",
+	DEFAULTS_TO_INVESTMENT_ITEMS: "Defaults to the item investments",
 	DEFAULTS_TO_ITEMS: "Defaults to the item categories",
 	DEFAULTS_TO_TRANSFER: "Defaults to Source A to Source B",
 	DELETE_ACTION: "Delete transaction",

@@ -2,7 +2,6 @@ import CustomText from "@/components/CustomText";
 import HeaderIconButton from "@/components/HeaderIconButton";
 import ModalTextField from "@/components/ModalTextField";
 import SelectField from "@/components/SelectField";
-import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
 import useThemedStyles from "@/hooks/useThemedStyles";
 import type TransactionItemRowProps from "@/types/TransactionItemRowProps";
@@ -15,9 +14,13 @@ const TransactionItemRow = ({
 	count,
 	isDisabled = false,
 	currencyCode,
-	categoryOptions,
+	entityLabel,
+	entityOptions,
+	entityPlaceholder,
+	entityValue,
+	entityName,
 	onAmountChange,
-	onCategoryChange,
+	onEntityChange,
 	onRemove,
 }: TransactionItemRowProps): React.JSX.Element => {
 	const styles = useThemedStyles(themedStyles);
@@ -49,24 +52,23 @@ const TransactionItemRow = ({
 				</View>
 				<View style={styles.fieldColumn}>
 					<SelectField
-						label={MESSAGES.TRANSACTION_FORM.CATEGORY_LABEL}
-						placeholder={MESSAGES.TRANSACTION_FORM.SELECT_CATEGORY}
-						value={item.categoryId}
-						onChange={onCategoryChange}
+						label={entityLabel}
+						placeholder={entityPlaceholder}
+						value={entityValue ?? ""}
+						onChange={onEntityChange}
 						options={
-							item.categoryId &&
-							!categoryOptions.some(
-								(option) => option.value === item.categoryId,
+							entityValue &&
+							!entityOptions.some(
+								(option) => option.value === entityValue,
 							)
 								? [
 										{
-											value: item.categoryId,
-											label:
-												item.categoryName ?? "Category",
+											value: entityValue,
+											label: entityName ?? entityLabel,
 										},
-										...categoryOptions,
+										...entityOptions,
 									]
-								: categoryOptions
+								: entityOptions
 						}
 					/>
 				</View>

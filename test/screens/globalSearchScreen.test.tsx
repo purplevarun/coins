@@ -220,7 +220,11 @@ describe("GlobalSearchScreen", () => {
 				sourceCurrencyCode: "INR",
 				transactionAt: 10,
 				categoryName: "Food",
-				items: [{ amount: "40", categoryName: "Snacks" }],
+				items: [
+					{ amount: "40", categoryName: "Snacks" },
+					{ amount: "60", investmentName: "Nifty" },
+					{ amount: "20" },
+				],
 				tripName: "Goa",
 				investmentName: "MF",
 				destinationSourceName: "Card",

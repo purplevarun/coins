@@ -300,6 +300,40 @@ describe("transactionService", () => {
 		).toEqual(["b"]);
 	});
 
+	it("links transactions through investment items", async () => {
+		mocks.getTransactionRows.mockResolvedValue([
+			{
+				id: "a",
+				sourceId: "s1",
+				destinationSourceId: null,
+				categoryId: null,
+				tripId: null,
+				investmentId: null,
+				items: [
+					{
+						investmentId: "i1",
+						amount: "10",
+					},
+				],
+			},
+		]);
+
+		expect(
+			(
+				await transactionService.getLinkedTransactions(database, {
+					kind: "INVESTMENT",
+					entityId: "i1",
+				})
+			).map((transaction) => transaction.id),
+		).toEqual(["a"]);
+		expect(
+			await transactionService.getLinkedTransactions(database, {
+				kind: "INVESTMENT",
+				entityId: "i2",
+			}),
+		).toEqual([]);
+	});
+
 	it("requires sourceId in saveTransaction", async () => {
 		await expect(
 			transactionService.saveTransaction(database, {
@@ -577,6 +611,82 @@ describe("transactionService", () => {
 			expect.any(String),
 			expect.any(Number),
 		);
+	});
+
+	it("saves investment transactions with per-item investments", async () => {
+		mocks.getInvestmentRow.mockResolvedValue({
+			id: "inv1",
+			name: " Fund ",
+		});
+		const id = await transactionService.saveTransaction(database, {
+			transactionAt: 1,
+			classification: "INVESTMENT",
+			type: "DEBIT",
+			sourceId: "s1",
+			amount: "0",
+			reason: "  ",
+			items: [
+				{ investmentId: "inv1", amount: "6" },
+				{ investmentId: "inv1", amount: "4" },
+			],
+		});
+		expect(id).toBe("new-transaction-id");
+		expect(mocks.createTransactionRow).toHaveBeenCalledWith(
+			database,
+			expect.objectContaining({
+				classification: "INVESTMENT",
+				amount: "10",
+				reason: "Fund",
+				categoryId: undefined,
+				investmentId: undefined,
+				tripId: undefined,
+			}),
+			"new-transaction-id",
+			expect.any(Number),
+		);
+		expect(mocks.createTransactionItemRow).toHaveBeenCalledTimes(2);
+		expect(mocks.createTransactionItemRow).toHaveBeenCalledWith(
+			database,
+			expect.objectContaining({
+				transactionId: "new-transaction-id",
+				investmentId: "inv1",
+				categoryId: null,
+				position: 1,
+			}),
+		);
+	});
+
+	it("validates investment item inputs", async () => {
+		await expect(
+			transactionService.saveTransaction(database, {
+				transactionAt: 1,
+				classification: "INVESTMENT",
+				type: "DEBIT",
+				sourceId: "s1",
+				amount: "10",
+				reason: "ok",
+				items: [{ investmentId: "", amount: "10" }],
+			}),
+		).rejects.toMatchObject({
+			code: "INVESTMENT_REQUIRED",
+			message: "Item 1: Select an investment.",
+		});
+
+		mocks.getInvestmentRow.mockResolvedValueOnce(null);
+		await expect(
+			transactionService.saveTransaction(database, {
+				transactionAt: 1,
+				classification: "INVESTMENT",
+				type: "DEBIT",
+				sourceId: "s1",
+				amount: "10",
+				reason: "ok",
+				items: [{ investmentId: "gone", amount: "10" }],
+			}),
+		).rejects.toMatchObject({
+			code: "INVESTMENT_NOT_FOUND",
+			message: "Item 1: The selected investment no longer exists.",
+		});
 	});
 
 	it("validates transfer destination rules", async () => {

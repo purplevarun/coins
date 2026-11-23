@@ -199,7 +199,6 @@ const VaultFormScreen = ({
 								value={cardType}
 							/>
 							<TextField
-								keyboardType="number-pad"
 								label={MESSAGES.VAULT.CARD_NUMBER}
 								onChangeText={setCardNumber}
 								placeholder={

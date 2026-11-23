@@ -807,7 +807,10 @@ const investmentInUseRow = async (
 	id: string,
 ): Promise<boolean> => {
 	const row = await database.getFirstAsync<Pick<SimpleEntity, "id">>(
-		`SELECT id FROM transactions WHERE investment_id = ? LIMIT 1;`,
+		`SELECT id FROM transactions WHERE investment_id = ?
+			UNION SELECT transaction_id AS id FROM transaction_items WHERE investment_id = ?
+			LIMIT 1;`,
+		id,
 		id,
 	);
 	return row !== null;
@@ -1079,17 +1082,33 @@ const getInvestmentAnalysisRows = async (
 		SELECT
 			investment.id AS investmentId,
 			investment.name AS investmentName,
-			source.currency_code AS currencyCode,
-			CASE WHEN t.type = 'DEBIT' THEN t.amount ELSE '0' END AS totalInvested,
-			CASE WHEN t.type = 'CREDIT' THEN t.amount ELSE '0' END AS totalRedeemed
-		FROM transactions t
-		INNER JOIN investments investment ON investment.id = t.investment_id
-		INNER JOIN sources source ON source.id = t.source_id
-		WHERE t.classification = 'INVESTMENT'
-			AND COALESCE(t.is_applicable, 1) = 1
-			AND t.transaction_at BETWEEN ? AND ?
-		ORDER BY investment.id, source.currency_code;
+			allocation.currencyCode AS currencyCode,
+			CASE WHEN allocation.type = 'DEBIT' THEN allocation.amount ELSE '0' END AS totalInvested,
+			CASE WHEN allocation.type = 'CREDIT' THEN allocation.amount ELSE '0' END AS totalRedeemed
+		FROM (
+			SELECT item.investment_id AS investmentId, item.amount AS amount,
+				t.type AS type, source.currency_code AS currencyCode
+			FROM transaction_items item
+			INNER JOIN transactions t ON t.id = item.transaction_id
+			INNER JOIN sources source ON source.id = t.source_id
+			WHERE t.classification = 'INVESTMENT'
+				AND item.investment_id IS NOT NULL
+				AND COALESCE(t.is_applicable, 1) = 1
+				AND t.transaction_at BETWEEN ? AND ?
+			UNION ALL
+			SELECT t.investment_id, t.amount, t.type, source.currency_code
+			FROM transactions t
+			INNER JOIN sources source ON source.id = t.source_id
+			WHERE t.classification = 'INVESTMENT'
+				AND t.investment_id IS NOT NULL
+				AND COALESCE(t.is_applicable, 1) = 1
+				AND t.transaction_at BETWEEN ? AND ?
+		) allocation
+		INNER JOIN investments investment ON investment.id = allocation.investmentId
+		ORDER BY investment.id, allocation.currencyCode;
 	`,
+		start,
+		end,
 		start,
 		end,
 	);
@@ -1156,9 +1175,13 @@ const getTransactionItemRows = async (
 		items.push(
 			...(await database.getAllAsync<TransactionItem>(
 				`SELECT item.id, item.transaction_id AS transactionId, item.category_id AS categoryId,
-			 category.name AS categoryName, category.kind AS categoryKind, item.amount, item.position,
+			 category.name AS categoryName, category.kind AS categoryKind,
+			 item.investment_id AS investmentId, investment.name AS investmentName,
+			 item.amount, item.position,
 			 item.created_at AS createdAt, item.updated_at AS updatedAt
-			 FROM transaction_items item JOIN categories category ON category.id = item.category_id
+			 FROM transaction_items item
+			 LEFT JOIN categories category ON category.id = item.category_id
+			 LEFT JOIN investments investment ON investment.id = item.investment_id
 			 WHERE item.transaction_id IN (${ids.map(() => "?").join(", ")})
 			 ORDER BY item.transaction_id, item.position;`,
 				...ids,
@@ -1173,11 +1196,7 @@ const hydrateTransactionItems = async (
 	transactions: readonly Omit<Transaction, "items">[],
 ): Promise<readonly Transaction[]> => {
 	const expenseIds = transactions
-		.filter(
-			(transaction) =>
-				transaction.classification === "GENERAL" &&
-				(transaction.type === "DEBIT" || transaction.type === "CREDIT"),
-		)
+		.filter((transaction) => transaction.type !== "TRANSFER")
 		.map((transaction) => transaction.id);
 	const items = await getTransactionItemRows(database, expenseIds);
 	const itemsByTransaction = new Map<string, TransactionItem[]>();
@@ -1198,11 +1217,12 @@ const createTransactionItemRow = async (
 	item: Omit<TransactionItem, "categoryName">,
 ): Promise<void> => {
 	await database.runAsync(
-		`INSERT INTO transaction_items (id, transaction_id, category_id, amount, position, created_at, updated_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?);`,
+		`INSERT INTO transaction_items (id, transaction_id, category_id, investment_id, amount, position, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
 		item.id,
 		item.transactionId,
-		item.categoryId,
+		item.categoryId ?? null,
+		item.investmentId ?? null,
 		item.amount,
 		item.position,
 		item.createdAt,
@@ -1226,8 +1246,9 @@ const getLinkedTransactionIdRows = async (
 		kind === "CATEGORY"
 			? `SELECT id FROM transactions WHERE category_id = ?
 				UNION SELECT transaction_id AS id FROM transaction_items WHERE category_id = ?;`
-			: "SELECT id FROM transactions WHERE investment_id = ?;",
-		...(kind === "CATEGORY" ? [id, id] : [id]),
+			: `SELECT id FROM transactions WHERE investment_id = ?
+				UNION SELECT transaction_id AS id FROM transaction_items WHERE investment_id = ?;`,
+		...[id, id],
 	);
 	return rows.map((row) => row.id);
 };

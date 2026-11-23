@@ -1,15 +1,138 @@
 import CustomText from "@/components/CustomText";
 import CustomTextInput from "@/components/CustomTextInput";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+	BackHandler,
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	View,
+} from "react-native";
 
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
+import useModalSheet from "@/hooks/useModalSheet";
 import useTheme from "@/hooks/useTheme";
 import useThemedStyles from "@/hooks/useThemedStyles";
 import type SelectFieldProps from "@/types/SelectFieldProps";
+import type SelectSheetProps from "@/types/SelectSheetProps";
 import createThemedStyles from "@/utils/createThemedStyles";
+
+const renderSwatches = (
+	styles: (typeof themedStyles)[keyof typeof themedStyles],
+	swatches?: readonly string[],
+): React.JSX.Element | null =>
+	swatches ? (
+		<View style={styles.swatches}>
+			{swatches.map((color) => (
+				<View
+					key={color}
+					style={[styles.swatch, { backgroundColor: color }]}
+				/>
+			))}
+		</View>
+	) : null;
+
+const SelectSheet = ({
+	label,
+	options,
+	onSelect,
+	onClose,
+	value,
+	isOptional = false,
+	isSearchable = true,
+}: SelectSheetProps): React.JSX.Element => {
+	const { colors: COLORS } = useTheme();
+	const styles = useThemedStyles(themedStyles);
+	const [search, setSearch] = useState("");
+
+	const filteredOptions = useMemo(() => {
+		const q = search.trim().toLowerCase();
+		if (!q) return options;
+		return options.filter(
+			(o) =>
+				o.label.toLowerCase().includes(q) ||
+				(o.description ?? "").toLowerCase().includes(q),
+		);
+	}, [options, search]);
+
+	useEffect(() => {
+		const subscription = BackHandler.addEventListener(
+			"hardwareBackPress",
+			() => {
+				onClose();
+				return true;
+			},
+		);
+		return () => subscription.remove();
+	}, [onClose]);
+
+	return (
+		<Pressable onPress={onClose} style={styles.overlay}>
+			<Pressable style={styles.sheet}>
+				<CustomText style={styles.sheetTitle}>{label}</CustomText>
+				{isSearchable ? (
+					<CustomTextInput
+						autoFocus
+						onChangeText={setSearch}
+						placeholder={MESSAGES.COMPONENTS.SEARCH_PLACEHOLDER}
+						style={styles.searchInput}
+						value={search}
+					/>
+				) : null}
+				<ScrollView keyboardShouldPersistTaps="handled">
+					{isOptional ? (
+						<Pressable
+							onPress={() => onSelect("")}
+							style={styles.option}
+						>
+							<CustomText style={styles.optionText}>
+								None
+							</CustomText>
+						</Pressable>
+					) : null}
+					{filteredOptions.length === 0 ? (
+						<CustomText style={styles.noResults}>
+							{search.trim()
+								? `No results for "${search}"`
+								: MESSAGES.COMPONENTS.NO_OPTIONS}
+						</CustomText>
+					) : null}
+					{filteredOptions.map((option) => (
+						<Pressable
+							key={option.value}
+							onPress={() => onSelect(option.value)}
+							style={[
+								styles.option,
+								option.value === value && styles.selectedOption,
+							]}
+						>
+							{renderSwatches(styles, option.swatches)}
+							<View style={styles.optionContent}>
+								<CustomText style={styles.optionText}>
+									{option.label}
+								</CustomText>
+								{option.description ? (
+									<CustomText style={styles.description}>
+										{option.description}
+									</CustomText>
+								) : null}
+							</View>
+							{option.value === value ? (
+								<Ionicons
+									color={COLORS.primaryBright}
+									name="checkmark-circle"
+									size={20}
+								/>
+							) : null}
+						</Pressable>
+					))}
+				</ScrollView>
+			</Pressable>
+		</Pressable>
+	);
+};
 
 const SelectField = ({
 	label,
@@ -24,44 +147,36 @@ const SelectField = ({
 }: SelectFieldProps): React.JSX.Element => {
 	const { colors: COLORS } = useTheme();
 	const styles = useThemedStyles(themedStyles);
-	const [isOpen, setIsOpen] = useState(false);
-	const [search, setSearch] = useState("");
+	const sheetHost = useModalSheet();
+	const sheetIdRef = useRef(0);
 	const selectedOption = options.find((option) => option.value === value);
 
-	const filteredOptions = useMemo(() => {
-		const q = search.trim().toLowerCase();
-		if (!q) return options;
-		return options.filter(
-			(o) =>
-				o.label.toLowerCase().includes(q) ||
-				(o.description ?? "").toLowerCase().includes(q),
-		);
-	}, [options, search]);
+	useEffect(
+		() => () => {
+			sheetHost.hide(sheetIdRef.current);
+		},
+		[sheetHost],
+	);
 
 	const handleOpen = (): void => {
-		setSearch("");
-		setIsOpen(true);
+		let sheetId = 0;
+		const closeSheet = (): void => sheetHost.hide(sheetId);
+		sheetId = sheetHost.show(
+			<SelectSheet
+				label={label}
+				options={options}
+				value={value}
+				isOptional={isOptional}
+				isSearchable={isSearchable}
+				onSelect={(selectedValue) => {
+					onChange(selectedValue);
+					closeSheet();
+				}}
+				onClose={closeSheet}
+			/>,
+		);
+		sheetIdRef.current = sheetId;
 	};
-
-	const handleSelect = (selectedValue: string): void => {
-		onChange(selectedValue);
-		setIsOpen(false);
-		setSearch("");
-	};
-
-	const renderSwatches = (
-		swatches?: readonly string[],
-	): React.JSX.Element | null =>
-		swatches ? (
-			<View style={styles.swatches}>
-				{swatches.map((color) => (
-					<View
-						key={color}
-						style={[styles.swatch, { backgroundColor: color }]}
-					/>
-				))}
-			</View>
-		) : null;
 
 	return (
 		<View style={[styles.container, isCompact && styles.compactContainer]}>
@@ -80,7 +195,7 @@ const SelectField = ({
 					isDisabled && styles.disabled,
 				]}
 			>
-				{renderSwatches(selectedOption?.swatches)}
+				{renderSwatches(styles, selectedOption?.swatches)}
 				<CustomText
 					style={[
 						styles.triggerText,
@@ -96,85 +211,6 @@ const SelectField = ({
 					size={18}
 				/>
 			</Pressable>
-			<Modal
-				animationType="fade"
-				onRequestClose={() => setIsOpen(false)}
-				transparent
-				visible={isOpen}
-			>
-				<Pressable
-					onPress={() => setIsOpen(false)}
-					style={styles.overlay}
-				>
-					<Pressable style={styles.sheet}>
-						<CustomText style={styles.sheetTitle}>
-							{label}
-						</CustomText>
-						{isSearchable ? (
-							<CustomTextInput
-								autoFocus
-								onChangeText={setSearch}
-								placeholder={
-									MESSAGES.COMPONENTS.SEARCH_PLACEHOLDER
-								}
-								style={styles.searchInput}
-								value={search}
-							/>
-						) : null}
-						<ScrollView keyboardShouldPersistTaps="handled">
-							{isOptional ? (
-								<Pressable
-									onPress={() => handleSelect("")}
-									style={styles.option}
-								>
-									<CustomText style={styles.optionText}>
-										None
-									</CustomText>
-								</Pressable>
-							) : null}
-							{filteredOptions.length === 0 ? (
-								<CustomText style={styles.noResults}>
-									{search.trim()
-										? `No results for "${search}"`
-										: MESSAGES.COMPONENTS.NO_OPTIONS}
-								</CustomText>
-							) : null}
-							{filteredOptions.map((option) => (
-								<Pressable
-									key={option.value}
-									onPress={() => handleSelect(option.value)}
-									style={[
-										styles.option,
-										option.value === value &&
-											styles.selectedOption,
-									]}
-								>
-									{renderSwatches(option.swatches)}
-									<View style={styles.optionContent}>
-										<CustomText style={styles.optionText}>
-											{option.label}
-										</CustomText>
-										{option.description ? (
-											<CustomText
-												style={styles.description}
-											>
-												{option.description}
-											</CustomText>
-										) : null}
-									</View>
-									{option.value === value ? (
-										<Ionicons
-											color={COLORS.primaryBright}
-											name="checkmark-circle"
-											size={20}
-										/>
-									) : null}
-								</Pressable>
-							))}
-						</ScrollView>
-					</Pressable>
-				</Pressable>
-			</Modal>
 		</View>
 	);
 };

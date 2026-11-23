@@ -13,19 +13,26 @@
 
 # Transaction Data Rules
 
-1. NEVER create a transaction without `category_id` when `classification = 'GENERAL'` (DEBIT/CREDIT).
-2. NEVER create a transaction without `investment_id` when `classification = 'INVESTMENT'`.
+1. NEVER create a transaction without `category_id` when `classification = 'GENERAL'` (DEBIT/CREDIT)
+   — the category lives on the `transaction_items` rows (parent `category_id` stays NULL).
+2. NEVER create an INVESTMENT transaction without `investment_id` — it lives on the
+   `transaction_items` rows (parent `investment_id` stays NULL when itemized; legacy
+   single-investment rows may still carry it on the parent).
 3. INVESTMENT rows must NOT carry a `category_id` — categories belong to GENERAL rows only.
-4. Buys/sells/dividends/investment returns/related wallet movements = `INVESTMENT` + linked `investment_id`.
+   Likewise, GENERAL rows' items must NOT carry `investment_id`.
+4. Buys/sells/dividends/investment returns/related wallet movements = `INVESTMENT` + one or more
+   `transaction_items` rows each linked to an `investment_id` (splits one payment across investments).
 5. Fees, commissions and charges = `GENERAL` DEBIT + an expense category (e.g. `Investment Charges`, `Bank Charges`).
-6. Transfers between own sources = `TRANSFER` (no category needed); set `INVESTMENT` + `investment_id` when the transfer funds an investment.
-7. DEBIT expense txns store the category in BOTH `transactions.category_id` AND a `transaction_items`
-   row (position 0, same category + amount) — the form and splits read the item. CREDIT/TRANSFER/
-   INVESTMENT txns have NO items. When creating or recategorizing a DEBIT, keep parent and item in sync.
+6. Transfers between own sources = `TRANSFER` (no category, no items); an `INVESTMENT` DEBIT funds
+   an investment instead — do not use TRANSFER for that.
+7. Every non-TRANSFER transaction stores its split in `transaction_items` rows (position-ordered;
+   GENERAL items carry `category_id`, INVESTMENT items carry `investment_id`, never both) — the form,
+   splits and analysis read the items. When recategorizing a DEBIT/CREDIT, keep the item rows in sync.
 8. After inserting/editing transactions, ALWAYS run a sweep for violations:
-   GENERAL DEBIT/CREDIT rows with NULL `category_id` and no categorized `transaction_items`,
-   DEBIT rows whose position-0 item category differs from the parent, DEBIT rows with a parent
-   category but no items, and INVESTMENT rows with NULL `investment_id`. Fix before delivering.
+   GENERAL DEBIT/CREDIT rows with no categorized `transaction_items`,
+   INVESTMENT rows with NULL parent `investment_id` AND no `transaction_items` carrying
+   `investment_id`, items carrying both `category_id` and `investment_id`, and TRANSFER rows
+   with items. Fix before delivering.
 
 # Backup (.pc) Data Editing — hard-won rules
 
@@ -113,6 +120,10 @@ Do not perform speculative fixes.
   `expo-build-properties` (e.g. `buildArchs`, `enableMinifyInReleaseBuilds`), not in android/.
 - Version format is `YYYY.MM.DD.XX` where XX is a per-day build counter starting at 00.
   versionCode = YYYY*1e6 + MM*1e4 + DD*100 + XX.
+- ALWAYS bump `.version` (and sync `app.json` version/versionCode + `package.json`
+  version) BEFORE making any other changes in a work session — new version = today's
+  date + counter starting at 00 (increment the counter if a version for today already
+  exists).
 - Release builds are signed with `release.keystore` at the repo root via
   `plugins/withReleaseSigning.js` (reads `keystore.properties`). BOTH files are
   gitignored — losing the keystore means users must uninstall before updating.

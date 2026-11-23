@@ -75,7 +75,10 @@ const isLinkedTransaction = (
 	if (filter.kind === "TRIP") {
 		return transaction.tripId === filter.entityId;
 	}
-	return transaction.investmentId === filter.entityId;
+	return (
+		transaction.investmentId === filter.entityId ||
+		transaction.items.some((item) => item.investmentId === filter.entityId)
+	);
 };
 
 const getLinkedTransactions = async (
@@ -133,26 +136,56 @@ const prepareItemizedInput = async (
 			"Add at least one item.",
 		);
 	}
+	const isInvestmentItems = input.classification === "INVESTMENT";
 	const items: TransactionItemInput[] = [];
-	const categoryNames = new Set<string>();
+	const entityNames = new Set<string>();
 	for (const [position, item] of input.items.entries()) {
 		try {
-			if (!item.categoryId)
-				throw new AppError("CATEGORY_REQUIRED", "Select a category.");
 			const amount = normalizeMoney(item.amount);
-			const category = await getCategoryRow(database, item.categoryId);
-			if (!category)
-				throw new AppError(
-					"CATEGORY_NOT_FOUND",
-					"The selected category no longer exists.",
+			if (isInvestmentItems) {
+				if (!item.investmentId)
+					throw new AppError(
+						"INVESTMENT_REQUIRED",
+						"Select an investment.",
+					);
+				const investment = await getInvestmentRow(
+					database,
+					item.investmentId,
 				);
-			if (input.tripId && category.tripAgnostic)
-				throw new AppError(
-					"TRIP_AGNOSTIC_CATEGORY",
-					`"${category.name.trim()}" is trip agnostic. Remove the trip or pick another category.`,
+				if (!investment)
+					throw new AppError(
+						"INVESTMENT_NOT_FOUND",
+						"The selected investment no longer exists.",
+					);
+				items.push({
+					id: item.id,
+					investmentId: item.investmentId,
+					amount,
+				});
+				entityNames.add(investment.name.trim());
+			} else {
+				if (!item.categoryId)
+					throw new AppError(
+						"CATEGORY_REQUIRED",
+						"Select a category.",
+					);
+				const category = await getCategoryRow(
+					database,
+					item.categoryId,
 				);
-			items.push({ ...item, amount });
-			categoryNames.add(category.name.trim());
+				if (!category)
+					throw new AppError(
+						"CATEGORY_NOT_FOUND",
+						"The selected category no longer exists.",
+					);
+				if (input.tripId && category.tripAgnostic)
+					throw new AppError(
+						"TRIP_AGNOSTIC_CATEGORY",
+						`"${category.name.trim()}" is trip agnostic. Remove the trip or pick another category.`,
+					);
+				items.push({ ...item, amount });
+				entityNames.add(category.name.trim());
+			}
 		} catch (error) {
 			if (error instanceof AppError)
 				throw new AppError(
@@ -166,9 +199,10 @@ const prepareItemizedInput = async (
 		...input,
 		items,
 		amount: sumMoney(items.map((item) => item.amount)),
-		reason: input.reason.trim() || [...categoryNames].join(", "),
+		reason: input.reason.trim() || [...entityNames].join(", "),
 		categoryId: undefined,
 		investmentId: undefined,
+		tripId: isInvestmentItems ? undefined : input.tripId,
 		destinationSourceId: undefined,
 		toAmount: undefined,
 	};
@@ -179,9 +213,9 @@ const prepareTransactionInput = async (
 	input: TransactionInput,
 ): Promise<TransactionInput> => {
 	if (
-		input.classification === "GENERAL" &&
-		(input.type === "DEBIT" ||
-			(input.type === "CREDIT" && input.items !== undefined))
+		(input.classification === "GENERAL" && input.type === "DEBIT") ||
+		(input.items !== undefined &&
+			(input.type === "CREDIT" || input.classification === "INVESTMENT"))
 	) {
 		return prepareItemizedInput(database, input);
 	}
@@ -346,7 +380,8 @@ const saveTransaction = async (
 			await createTransactionItemRow(transaction, {
 				id: item.id ?? createId(),
 				transactionId: id,
-				categoryId: item.categoryId,
+				categoryId: item.categoryId ?? null,
+				investmentId: item.investmentId ?? null,
 				amount: item.amount,
 				position,
 				createdAt: previousItems.get(item.id ?? "")?.createdAt ?? now,

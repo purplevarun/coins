@@ -23,9 +23,10 @@ const migrateDatabase = async (database: SQLiteDatabase): Promise<void> => {
 	for (const migration of SCHEMA_MIGRATIONS) {
 		await database.execAsync(migration);
 	}
-	for (const [table, column] of [
-		["transactions", "is_applicable"],
-		["categories", "trip_agnostic"],
+	for (const [table, column, columnType] of [
+		["transactions", "is_applicable", "INTEGER"],
+		["categories", "trip_agnostic", "INTEGER"],
+		["transaction_items", "investment_id", "TEXT"],
 	] as const) {
 		const statement = await database.prepareAsync(
 			`SELECT * FROM ${table} LIMIT 0;`,
@@ -34,13 +35,16 @@ const migrateDatabase = async (database: SQLiteDatabase): Promise<void> => {
 			const columns = await statement.getColumnNamesAsync();
 			if (!columns.includes(column)) {
 				await database.execAsync(
-					`ALTER TABLE ${table} ADD COLUMN ${column} INTEGER;`,
+					`ALTER TABLE ${table} ADD COLUMN ${column} ${columnType};`,
 				);
 			}
 		} finally {
 			await statement.finalizeAsync();
 		}
 	}
+	await database.execAsync(
+		"CREATE INDEX IF NOT EXISTS idx_transaction_items_investment ON transaction_items(investment_id);",
+	);
 	await database.execAsync(
 		"UPDATE transactions SET is_applicable = 1 WHERE is_applicable IS NULL;",
 	);

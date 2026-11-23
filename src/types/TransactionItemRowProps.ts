@@ -7,9 +7,13 @@ type TransactionItemRowProps = {
 	count: number;
 	isDisabled?: boolean;
 	currencyCode?: string;
-	categoryOptions: readonly SelectOption[];
+	entityLabel: string;
+	entityOptions: readonly SelectOption[];
+	entityPlaceholder: string;
+	entityValue?: string | null;
+	entityName?: string;
 	onAmountChange: (value: string) => void;
-	onCategoryChange: (value: string) => void;
+	onEntityChange: (value: string) => void;
 	onRemove: () => void;
 };
 

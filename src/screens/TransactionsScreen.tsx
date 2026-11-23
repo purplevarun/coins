@@ -228,7 +228,9 @@ const TransactionsScreen = ({
 						.includes(q) ||
 					t.items.some(
 						(item) =>
-							item.categoryName.toLowerCase().includes(q) ||
+							(item.categoryName ?? item.investmentName ?? "")
+								.toLowerCase()
+								.includes(q) ||
 							item.amount.includes(q) ||
 							formatMoney(item.amount, t.sourceCurrencyCode)
 								.replace(/,/g, "")

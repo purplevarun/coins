@@ -60,7 +60,13 @@ const {
 const createItemDraft = (
 	amount = "",
 	categoryId = "",
-): TransactionItemDraft => ({ key: createId(), amount, categoryId });
+	investmentId = "",
+): TransactionItemDraft => ({
+	key: createId(),
+	amount,
+	categoryId,
+	investmentId,
+});
 
 const TransactionFormScreen = ({
 	navigation,
@@ -85,7 +91,6 @@ const TransactionFormScreen = ({
 	const [toAmount, setToAmount] = useState("");
 	const [categoryId, setCategoryId] = useState("");
 	const [tripId, setTripId] = useState("");
-	const [investmentId, setInvestmentId] = useState("");
 	const [reason, setReason] = useState(route.params?.initialReason ?? "");
 	const [transactionAt, setTransactionAt] = useState(
 		() => route.params?.initialTransactionAt ?? Date.now(),
@@ -168,13 +173,9 @@ const TransactionFormScreen = ({
 				setToAmount(existingTransaction.toAmount ?? "");
 				setCategoryId(existingTransaction.categoryId ?? "");
 				setTripId(existingTransaction.tripId ?? "");
-				setInvestmentId(existingTransaction.investmentId ?? "");
 				setReason(existingTransaction.reason);
 				setIsApplicable(existingTransaction.isApplicable ?? true);
-				if (
-					existingTransaction.classification === "GENERAL" &&
-					existingTransaction.type !== "TRANSFER"
-				) {
+				if (existingTransaction.type !== "TRANSFER") {
 					setItems(
 						existingTransaction.items.length > 0
 							? existingTransaction.items.map((item) => ({
@@ -183,13 +184,16 @@ const TransactionFormScreen = ({
 										? undefined
 										: item.id,
 									amount: item.amount,
-									categoryId: item.categoryId,
+									categoryId: item.categoryId ?? "",
 									categoryName: item.categoryName,
+									investmentId: item.investmentId ?? "",
+									investmentName: item.investmentName,
 								}))
 							: [
 									createItemDraft(
 										existingTransaction.amount,
 										existingTransaction.categoryId ?? "",
+										existingTransaction.investmentId ?? "",
 									),
 								],
 					);
@@ -216,8 +220,7 @@ const TransactionFormScreen = ({
 		(source) => source.id === destinationSourceId,
 	);
 	const isTransfer = classification === "GENERAL" && type === "TRANSFER";
-	const isItemized =
-		classification === "GENERAL" && (type === "DEBIT" || type === "CREDIT");
+	const isItemized = !isTransfer;
 	const isInvestment = classification === "INVESTMENT";
 	const itemCardWidth = Math.max(itemsWidth * 0.8, 1);
 	const itemArrowWidth = itemsWidth * 0.1;
@@ -344,9 +347,9 @@ const TransactionFormScreen = ({
 		nextClassification: TransactionClassification,
 		nextType: TransactionType,
 	): void => {
-		const nextIsItemized =
-			nextClassification === "GENERAL" &&
-			(nextType === "DEBIT" || nextType === "CREDIT");
+		const nextIsItemized = !(
+			nextClassification === "GENERAL" && nextType === "TRANSFER"
+		);
 		const applyChange = (): void => {
 			if (isItemized && !nextIsItemized) {
 				setAmount(itemTotal ?? "");
@@ -354,6 +357,16 @@ const TransactionFormScreen = ({
 				setItems([createItemDraft()]);
 			} else if (!isItemized && nextIsItemized) {
 				setItems([createItemDraft(amount, categoryId)]);
+			} else if (classification !== nextClassification) {
+				setItems((current) =>
+					current.map((item) => ({
+						key: item.key,
+						id: item.id,
+						amount: item.amount,
+						categoryId: "",
+						investmentId: "",
+					})),
+				);
 			}
 			setClassification(nextClassification);
 			setType(nextType);
@@ -410,6 +423,7 @@ const TransactionFormScreen = ({
 							id: item.id,
 							amount: item.amount,
 							categoryId: item.categoryId,
+							investmentId: item.investmentId,
 						}))
 					: undefined,
 				toAmount:
@@ -423,8 +437,7 @@ const TransactionFormScreen = ({
 					tripId
 						? tripId
 						: undefined,
-				investmentId:
-					isInvestment && investmentId ? investmentId : undefined,
+				investmentId: undefined,
 				reason,
 				transactionAt,
 			});
@@ -534,18 +547,6 @@ const TransactionFormScreen = ({
 									}
 									value={destinationSourceId}
 								/>
-							) : isInvestment ? (
-								<SelectField
-									isCompact
-									label={MESSAGES.TRANSACTION_FORM.INVESTMENT}
-									onChange={setInvestmentId}
-									options={investmentOptions}
-									placeholder={
-										MESSAGES.TRANSACTION_FORM
-											.SELECT_INVESTMENT
-									}
-									value={investmentId}
-								/>
 							) : (
 								<DateField
 									isCompact
@@ -558,14 +559,14 @@ const TransactionFormScreen = ({
 					</View>
 					<View style={styles.pinnedRow}>
 						<View style={styles.pinnedCell}>
-							{isTransfer || isInvestment ? (
+							{isTransfer ? (
 								<DateField
 									isCompact
 									label={MESSAGES.TRANSACTION_FORM.DATE_LABEL}
 									onChange={setTransactionAt}
 									value={transactionAt}
 								/>
-							) : (
+							) : isInvestment ? null : (
 								<SelectField
 									isCompact
 									isOptional
@@ -588,8 +589,11 @@ const TransactionFormScreen = ({
 										? MESSAGES.TRANSACTION_FORM
 												.DEFAULTS_TO_TRANSFER
 										: isInvestment
-											? MESSAGES.TRANSACTION_FORM
-													.DEFAULTS_TO_INVESTMENT
+											? items.length > 1
+												? MESSAGES.TRANSACTION_FORM
+														.DEFAULTS_TO_INVESTMENT_ITEMS
+												: MESSAGES.TRANSACTION_FORM
+														.DEFAULTS_TO_INVESTMENT
 											: isItemized && items.length > 1
 												? MESSAGES.TRANSACTION_FORM
 														.DEFAULTS_TO_ITEMS
@@ -649,9 +653,9 @@ const TransactionFormScreen = ({
 							isDisabled={isSaving}
 							keyboardType="decimal-pad"
 							label={
-								isTransfer && selectedSource
+								selectedSource
 									? `From (${selectedSource.currencyCode})`
-									: `Amount${selectedSource ? ` (${selectedSource.currencyCode})` : ""}`
+									: "Amount"
 							}
 							onChange={setAmount}
 							placeholder="0.00"
@@ -718,12 +722,42 @@ const TransactionFormScreen = ({
 										>
 											<View style={styles.itemCard}>
 												<TransactionItemRow
-													categoryOptions={
-														categoryOptions
-													}
 													count={items.length}
 													currencyCode={
 														selectedSource?.currencyCode
+													}
+													entityLabel={
+														isInvestment
+															? MESSAGES
+																	.TRANSACTION_FORM
+																	.INVESTMENT
+															: MESSAGES
+																	.TRANSACTION_FORM
+																	.CATEGORY_LABEL
+													}
+													entityName={
+														isInvestment
+															? item.investmentName
+															: item.categoryName
+													}
+													entityOptions={
+														isInvestment
+															? investmentOptions
+															: categoryOptions
+													}
+													entityPlaceholder={
+														isInvestment
+															? MESSAGES
+																	.TRANSACTION_FORM
+																	.SELECT_INVESTMENT
+															: MESSAGES
+																	.TRANSACTION_FORM
+																	.SELECT_CATEGORY
+													}
+													entityValue={
+														isInvestment
+															? item.investmentId
+															: item.categoryId
 													}
 													isDisabled={isSaving}
 													item={item}
@@ -733,15 +767,27 @@ const TransactionFormScreen = ({
 															amount: value,
 														})
 													}
-													onCategoryChange={(
-														value,
-													) => {
-														updateItem(item.key, {
-															categoryId: value,
-														});
-														clearTripForAgnosticCategory(
-															value,
-														);
+													onEntityChange={(value) => {
+														if (isInvestment) {
+															updateItem(
+																item.key,
+																{
+																	investmentId:
+																		value,
+																},
+															);
+														} else {
+															updateItem(
+																item.key,
+																{
+																	categoryId:
+																		value,
+																},
+															);
+															clearTripForAgnosticCategory(
+																value,
+															);
+														}
 													}}
 													onRemove={() =>
 														setItems((current) =>

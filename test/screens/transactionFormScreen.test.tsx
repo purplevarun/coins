@@ -171,10 +171,10 @@ const createFormHarness = (
 ): TransactionFormHarness => {
 	const values = new Map<number, unknown>([
 		[3, "s1"],
-		[11, 100],
-		[12, [{ id: "s1", name: "Bank", currencyCode: "INR", balance: "0" }]],
+		[10, 100],
+		[11, [{ id: "s1", name: "Bank", currencyCode: "INR", balance: "0" }]],
 		[
-			13,
+			12,
 			[
 				{ id: "food", name: "Food", kind: "EXPENSE", isIncome: false },
 				{
@@ -259,7 +259,7 @@ describe("TransactionFormScreen", () => {
 			const harness = createFormHarness(
 				new Map<number, unknown>([
 					[
-						18,
+						17,
 						[
 							{
 								key: "pending",
@@ -268,7 +268,7 @@ describe("TransactionFormScreen", () => {
 							},
 						],
 					],
-					[19, isApplicable],
+					[18, isApplicable],
 				]),
 			);
 			let tree = harness.render();
@@ -288,7 +288,7 @@ describe("TransactionFormScreen", () => {
 					amount: "12.5",
 				}),
 			);
-			harness.values.set(16, true);
+			harness.values.set(15, true);
 			harness.render();
 			expect(harness.renderHeaderSwitch()?.props.disabled).toBe(true);
 		},
@@ -337,7 +337,7 @@ describe("TransactionFormScreen", () => {
 			const harness = createFormHarness(
 				new Map<number, unknown>([
 					[2, "CREDIT"],
-					[18, [{ key: "one", amount: "100", categoryId }]],
+					[17, [{ key: "one", amount: "100", categoryId }]],
 				]),
 			);
 			const tree = harness.render();
@@ -362,7 +362,7 @@ describe("TransactionFormScreen", () => {
 				[2, "CREDIT"],
 				[8, "tr1"],
 				[
-					13,
+					12,
 					[
 						{
 							id: "c1",
@@ -386,10 +386,10 @@ describe("TransactionFormScreen", () => {
 			tree,
 			TransactionItemRow,
 		)[0];
-		itemRow?.props.onCategoryChange("c1");
+		itemRow?.props.onEntityChange("c1");
 		expect(harness.values.get(8)).toBe("");
 		harness.values.set(8, "tr1");
-		itemRow?.props.onCategoryChange("c2");
+		itemRow?.props.onEntityChange("c2");
 		expect(harness.values.get(8)).toBe("tr1");
 	});
 
@@ -398,7 +398,7 @@ describe("TransactionFormScreen", () => {
 			new Map<number, unknown>([
 				[8, "tr1"],
 				[
-					13,
+					12,
 					[
 						{
 							id: "c1",
@@ -409,19 +409,76 @@ describe("TransactionFormScreen", () => {
 						},
 					],
 				],
-				[18, [{ key: "one", amount: "10", categoryId: "" }]],
+				[17, [{ key: "one", amount: "10", categoryId: "" }]],
 			]),
 		);
 		const tree = harness.render();
 		formElements<ComponentProps<typeof TransactionItemRow>>(
 			tree,
 			TransactionItemRow,
-		)[0]?.props.onCategoryChange("c1");
+		)[0]?.props.onEntityChange("c1");
 		expect(harness.values.get(8)).toBe("");
 	});
 
+	it("assigns the picked investment on an investment item", () => {
+		const harness = createFormHarness(
+			new Map<number, unknown>([
+				[1, "INVESTMENT"],
+				[2, "DEBIT"],
+				[14, [{ id: "i1", name: "MF" }]],
+				[17, [{ key: "one", amount: "10", investmentId: "" }]],
+			]),
+		);
+		const tree = harness.render();
+		formElements<ComponentProps<typeof TransactionItemRow>>(
+			tree,
+			TransactionItemRow,
+		)[0]?.props.onEntityChange("i1");
+		expect(harness.values.get(17)).toEqual([
+			{ key: "one", amount: "10", investmentId: "i1" },
+		]);
+	});
+
+	it("clears item entities when switching between itemized classifications", () => {
+		const harness = createFormHarness(
+			new Map<number, unknown>([
+				[1, "GENERAL"],
+				[2, "DEBIT"],
+				[
+					17,
+					[
+						{
+							key: "one",
+							id: "stored",
+							amount: "10",
+							categoryId: "food",
+						},
+					],
+				],
+			]),
+		);
+		const tree = harness.render();
+		findByPredicate(
+			tree,
+			(node) =>
+				node?.props?.isSearchable === false &&
+				typeof node?.props?.onChange === "function" &&
+				Array.isArray(node?.props?.options),
+		)[0]?.props?.onChange("INVESTMENT");
+		expect(harness.values.get(17)).toEqual([
+			{
+				key: "one",
+				id: "stored",
+				amount: "10",
+				categoryId: "",
+				investmentId: "",
+			},
+		]);
+		expect(harness.values.get(1)).toBe("INVESTMENT");
+	});
+
 	it("ignores the pinned category change when no items exist", () => {
-		const harness = createFormHarness(new Map<number, unknown>([[18, []]]));
+		const harness = createFormHarness(new Map<number, unknown>([[17, []]]));
 		const tree = harness.render() as ReactElement<
 			ComponentProps<typeof ScreenContainer>
 		>;
@@ -431,7 +488,7 @@ describe("TransactionFormScreen", () => {
 		)
 			.find((field) => field.props.label === "Category")
 			?.props.onChange("c1");
-		expect(harness.values.get(18)).toEqual([]);
+		expect(harness.values.get(17)).toEqual([]);
 	});
 
 	it.each([
@@ -470,9 +527,20 @@ describe("TransactionFormScreen", () => {
 			const headerFields = formElements<
 				ComponentProps<typeof SelectField>
 			>(tree.props.header as ReactElement, SelectField);
-			expect(
-				headerFields.some((field) => field.props.label === detailLabel),
-			).toBe(true);
+			if (classification === "INVESTMENT") {
+				expect(itemRows[0]?.props.entityLabel).toBe("Investment");
+				expect(
+					headerFields.every(
+						(field) => field.props.label !== "Investment",
+					),
+				).toBe(true);
+			} else {
+				expect(
+					headerFields.some(
+						(field) => field.props.label === detailLabel,
+					),
+				).toBe(true);
+			}
 			expect(
 				formElements(
 					tree.props.children as ReactElement,
@@ -499,15 +567,12 @@ describe("TransactionFormScreen", () => {
 						field.props.isSearchable === false,
 				),
 			).toHaveLength(2);
-			if (
-				classification === "GENERAL" &&
-				(type === "DEBIT" || type === "CREDIT")
-			) {
+			if (type === "TRANSFER") {
+				expect(harness.renderHeader()).toBeNull();
+			} else {
 				expect(harness.renderHeader()?.props.accessibilityLabel).toBe(
 					"Add item",
 				);
-			} else {
-				expect(harness.renderHeader()).toBeNull();
 			}
 		},
 	);
@@ -604,7 +669,7 @@ describe("TransactionFormScreen", () => {
 				HeaderIconButton,
 			).some((button) => button.props.accessibilityLabel === "Add item"),
 		).toBe(false);
-		harness.values.set(16, true);
+		harness.values.set(15, true);
 		harness.render();
 		expect(harness.renderHeader()?.props.isDisabled).toBe(true);
 	});
@@ -616,7 +681,7 @@ describe("TransactionFormScreen", () => {
 			tree,
 			(node) => node?.props?.onLayout,
 		)[0].props.onLayout({ nativeEvent: { layout: { width: 320 } } });
-		expect(harness.values.get(20)).toBe(320);
+		expect(harness.values.get(19)).toBe(320);
 	});
 
 	it("tracks the active carousel page on momentum scroll end", () => {
@@ -628,7 +693,7 @@ describe("TransactionFormScreen", () => {
 		)[0].props.onMomentumScrollEnd({
 			nativeEvent: { contentOffset: { x: 640 } },
 		});
-		expect(harness.values.get(21)).toBe(0);
+		expect(harness.values.get(20)).toBe(0);
 	});
 
 	it("pages the carousel with the arrow buttons", () => {
@@ -636,7 +701,7 @@ describe("TransactionFormScreen", () => {
 		const harness = createFormHarness(
 			new Map<number, unknown>([
 				[
-					18,
+					17,
 					[
 						{ key: "one", amount: "1", categoryId: "a" },
 						{ key: "two", amount: "2", categoryId: "b" },
@@ -666,7 +731,7 @@ describe("TransactionFormScreen", () => {
 		expect(next?.props.isDisabled).toBe(false);
 		next?.props.onPress();
 		expect(scrollTo).toHaveBeenCalledWith({ x: 1, animated: true });
-		expect(harness.values.get(21)).toBe(1);
+		expect(harness.values.get(20)).toBe(1);
 		const paged = harness.render();
 		const pagedArrows = formElements<
 			ComponentProps<typeof HeaderIconButton>
@@ -682,7 +747,7 @@ describe("TransactionFormScreen", () => {
 			)
 			?.props.onPress();
 		expect(scrollTo).toHaveBeenCalledWith({ x: 0, animated: true });
-		expect(harness.values.get(21)).toBe(0);
+		expect(harness.values.get(20)).toBe(0);
 	});
 
 	it("scrolls the carousel to the end after adding an item", async () => {
@@ -715,7 +780,7 @@ describe("TransactionFormScreen", () => {
 		formElements<ComponentProps<typeof TransactionItemRow>>(
 			tree,
 			TransactionItemRow,
-		)[0]?.props.onCategoryChange("food");
+		)[0]?.props.onEntityChange("food");
 		harness.renderHeader()?.props.onPress();
 		tree = harness.render();
 		const itemRows = formElements<
@@ -726,7 +791,7 @@ describe("TransactionFormScreen", () => {
 			"",
 		]);
 		itemRows[1]?.props.onAmountChange("100");
-		itemRows[1]?.props.onCategoryChange("grocery");
+		itemRows[1]?.props.onEntityChange("grocery");
 		tree = harness.render();
 		formElements<ComponentProps<typeof AppButton>>(tree, AppButton)
 			.find((button) => button.props.label === "Save transaction")
@@ -740,8 +805,18 @@ describe("TransactionFormScreen", () => {
 				sourceId: "s1",
 				transactionAt: 100,
 				items: [
-					{ id: undefined, amount: "100", categoryId: "food" },
-					{ id: undefined, amount: "100", categoryId: "grocery" },
+					{
+						id: undefined,
+						amount: "100",
+						categoryId: "food",
+						investmentId: "",
+					},
+					{
+						id: undefined,
+						amount: "100",
+						categoryId: "grocery",
+						investmentId: "",
+					},
 				],
 			}),
 		);
@@ -762,7 +837,7 @@ describe("TransactionFormScreen", () => {
 		const harness = createFormHarness(
 			new Map([
 				[
-					18,
+					17,
 					[
 						{ key: "one", amount: "0.1", categoryId: "food" },
 						{ key: "two", amount: "0.2", categoryId: "grocery" },
@@ -778,7 +853,7 @@ describe("TransactionFormScreen", () => {
 		)[1]?.props.onChange("TRANSFER");
 		expect(hookMocks.confirm).toHaveBeenCalledOnce();
 		expect(harness.values.get(2)).toBe("DEBIT");
-		expect(harness.values.get(18)).toHaveLength(2);
+		expect(harness.values.get(17)).toHaveLength(2);
 		const confirmation = hookMocks.confirm.mock.calls[0]?.[0] as Pick<
 			AppDialogConfirmOptions,
 			"onConfirm"
@@ -798,14 +873,14 @@ describe("TransactionFormScreen", () => {
 			incomeTree,
 			SelectField,
 		)[1]?.props.onChange("DEBIT");
-		expect(harness.values.get(18)).toMatchObject([
+		expect(harness.values.get(17)).toMatchObject([
 			{ amount: "0.3", categoryId: "food" },
 		]);
 	});
 
 	it("clears invalid item totals and missing categories when leaving itemized mode", () => {
 		const harness = createFormHarness(
-			new Map([[18, [{ key: "one", amount: "abc" }]]]),
+			new Map([[17, [{ key: "one", amount: "abc" }]]]),
 		);
 		const tree = harness.render();
 		formElements<ComponentProps<typeof SelectField>>(
@@ -821,7 +896,7 @@ describe("TransactionFormScreen", () => {
 		const harness = createFormHarness(
 			new Map([
 				[
-					18,
+					17,
 					[
 						{ key: "one", amount: "0.1", categoryId: "food" },
 						{ key: "two", amount: "0.2", categoryId: "grocery" },
@@ -836,7 +911,7 @@ describe("TransactionFormScreen", () => {
 		)[1]?.props.onChange("CREDIT");
 		expect(hookMocks.confirm).not.toHaveBeenCalled();
 		expect(harness.values.get(2)).toBe("CREDIT");
-		expect(harness.values.get(18)).toHaveLength(2);
+		expect(harness.values.get(17)).toHaveLength(2);
 	});
 
 	it.each([false, true])(
@@ -876,12 +951,12 @@ describe("TransactionFormScreen", () => {
 			await flush();
 			reactMocks.useEffect.mockImplementation(() => undefined);
 			const tree = harness.render();
-			expect(harness.values.get(18)).toMatchObject([
+			expect(harness.values.get(17)).toMatchObject([
 				{ id: clone ? undefined : "one", amount: "100" },
 				{ id: clone ? undefined : "two", amount: "100" },
 			]);
-			expect(harness.values.get(11)).toBe(clone ? 100 : 42);
-			expect(harness.values.get(19)).toBe(false);
+			expect(harness.values.get(10)).toBe(clone ? 100 : 42);
+			expect(harness.values.get(18)).toBe(false);
 			const itemRows = formElements<
 				ComponentProps<typeof TransactionItemRow>
 			>(tree, TransactionItemRow);
@@ -903,6 +978,86 @@ describe("TransactionFormScreen", () => {
 			);
 		},
 	);
+
+	it("loads an investment edit hydrating item investments", async () => {
+		const harness = createFormHarness(new Map(), {
+			transactionId: "buy",
+		});
+		serviceMocks.getTransaction.mockResolvedValue({
+			classification: "INVESTMENT",
+			type: "DEBIT",
+			sourceId: "s1",
+			amount: "150",
+			reason: "Buy",
+			transactionAt: 42,
+			items: [
+				{
+					id: "one",
+					categoryId: null,
+					investmentId: "i1",
+					investmentName: "MF",
+					amount: "100",
+				},
+				{
+					id: "two",
+					categoryId: null,
+					investmentId: "i2",
+					investmentName: "Gold",
+					amount: "50",
+				},
+			],
+		});
+		reactMocks.useEffect.mockImplementation((effect: () => void) =>
+			effect(),
+		);
+		harness.render();
+		await flush();
+		reactMocks.useEffect.mockImplementation(() => undefined);
+		const tree = harness.render();
+		expect(harness.values.get(17)).toMatchObject([
+			{
+				id: "one",
+				categoryId: "",
+				investmentId: "i1",
+				investmentName: "MF",
+				amount: "100",
+			},
+			{
+				id: "two",
+				categoryId: "",
+				investmentId: "i2",
+				investmentName: "Gold",
+				amount: "50",
+			},
+		]);
+		const itemRows = formElements<
+			ComponentProps<typeof TransactionItemRow>
+		>(tree, TransactionItemRow);
+		expect(itemRows[0]?.props.entityName).toBe("MF");
+		expect(
+			findByPredicate(
+				tree,
+				(node) => node?.props?.label === "Reason (optional)",
+			)[0]?.props?.placeholder,
+		).toBe("Defaults to the item investments");
+	});
+
+	it("labels the transfer amount without a currency when no source is picked", () => {
+		const harness = createFormHarness(
+			new Map<number, unknown>([
+				[1, "GENERAL"],
+				[2, "TRANSFER"],
+				[3, ""],
+			]),
+		);
+		const tree = harness.render();
+		expect(
+			findByPredicate(
+				tree,
+				(node) => node?.props?.keyboardType === "decimal-pad",
+			)[0]?.props?.label,
+		).toBe("Amount");
+	});
 
 	it("loads non-debit edits: transfer skips items, empty-item credit seeds a draft", async () => {
 		let harness = createFormHarness(new Map(), {
@@ -943,7 +1098,7 @@ describe("TransactionFormScreen", () => {
 		await flush();
 		reactMocks.useEffect.mockImplementation(() => undefined);
 		harness.render();
-		expect(harness.values.get(18)).toMatchObject([
+		expect(harness.values.get(17)).toMatchObject([
 			{ amount: "75", categoryId: "refund-cat" },
 		]);
 
@@ -962,7 +1117,7 @@ describe("TransactionFormScreen", () => {
 		});
 		harness.render();
 		await flush();
-		expect(harness.values.get(18)).toMatchObject([
+		expect(harness.values.get(17)).toMatchObject([
 			{ amount: "20", categoryId: "" },
 		]);
 		reactMocks.useEffect.mockImplementation(() => undefined);
@@ -998,14 +1153,14 @@ describe("TransactionFormScreen", () => {
 		completeSave("payment");
 		await flush();
 		expect(harness.navigation.goBack).toHaveBeenCalledOnce();
-		expect(harness.values.get(16)).toBe(false);
+		expect(harness.values.get(15)).toBe(false);
 	});
 
 	it("keeps incomplete item totals unavailable and can change mode without inventing an amount", () => {
 		const harness = createFormHarness(
 			new Map([
 				[
-					18,
+					17,
 					[
 						{ key: "one", amount: "", categoryId: "" },
 						{ key: "two", amount: "1", categoryId: "food" },
@@ -1021,7 +1176,7 @@ describe("TransactionFormScreen", () => {
 		expect(harness.values.get(5)).toBe("");
 		harness.values.set(1, "GENERAL");
 		harness.values.set(2, "DEBIT");
-		harness.values.set(18, []);
+		harness.values.set(17, []);
 		formElements<ComponentProps<typeof SelectField>>(
 			harness.render(),
 			SelectField,
@@ -1034,7 +1189,7 @@ describe("TransactionFormScreen", () => {
 			new Map<number, unknown>([
 				[3, ""],
 				[
-					18,
+					17,
 					[
 						{ key: "one", amount: "0.1", categoryId: "food" },
 						{ key: "two", amount: "0.2", categoryId: "grocery" },
@@ -1134,7 +1289,7 @@ describe("TransactionFormScreen", () => {
 	it("saves the prefilled source, linked category, and default trip", async () => {
 		serviceMocks.getDefaultSourceId.mockResolvedValue("s1");
 		const stateValues = new Map<number, unknown>([
-			[18, [{ key: "first", amount: "15", categoryId: "c1" }]],
+			[17, [{ key: "first", amount: "15", categoryId: "c1" }]],
 		]);
 		let stateCall = 0;
 		reactMocks.useState.mockImplementation((initial: unknown) => {
@@ -1214,12 +1369,12 @@ describe("TransactionFormScreen", () => {
 				if (stateCall === 3) return ["s1", vi.fn()];
 				if (stateCall === 5) return ["15", vi.fn()];
 				if (stateCall === 7) return ["c1", vi.fn()];
-				if (stateCall === 10) return ["Lunch", vi.fn()];
+				if (stateCall === 9) return ["Lunch", vi.fn()];
 				return [
 					typeof initial === "function"
 						? (initial as () => unknown)()
 						: initial,
-					stateCall === 11 ? setTransactionAt : vi.fn(),
+					stateCall === 10 ? setTransactionAt : vi.fn(),
 				];
 			});
 			const renderScreen = TransactionFormScreen as (
@@ -1275,10 +1430,9 @@ describe("TransactionFormScreen", () => {
 			if (stateCall === 6) return ["", vi.fn()];
 			if (stateCall === 7) return ["", vi.fn()];
 			if (stateCall === 8) return ["", vi.fn()];
-			if (stateCall === 9) return ["", vi.fn()];
-			if (stateCall === 10) return ["Move", vi.fn()];
-			if (stateCall === 11) return [123, vi.fn()];
-			if (stateCall === 12)
+			if (stateCall === 9) return ["Move", vi.fn()];
+			if (stateCall === 10) return [123, vi.fn()];
+			if (stateCall === 11)
 				return [
 					[
 						{
@@ -1296,7 +1450,7 @@ describe("TransactionFormScreen", () => {
 					],
 					vi.fn(),
 				];
-			if (stateCall === 13)
+			if (stateCall === 12)
 				return [
 					[
 						{
@@ -1308,9 +1462,9 @@ describe("TransactionFormScreen", () => {
 					],
 					vi.fn(),
 				];
-			if (stateCall === 14)
+			if (stateCall === 13)
 				return [[{ id: "tr1", name: "Goa" }], vi.fn()];
-			if (stateCall === 15) return [[{ id: "i1", name: "MF" }], vi.fn()];
+			if (stateCall === 14) return [[{ id: "i1", name: "MF" }], vi.fn()];
 			return [
 				typeof initial === "function" ? initial() : initial,
 				vi.fn(),
@@ -1384,10 +1538,9 @@ describe("TransactionFormScreen", () => {
 			if (stateCall === 6) return ["", vi.fn()];
 			if (stateCall === 7) return ["", vi.fn()];
 			if (stateCall === 8) return ["", vi.fn()];
-			if (stateCall === 9) return ["i1", vi.fn()];
-			if (stateCall === 10) return ["Invest", vi.fn()];
-			if (stateCall === 11) return [456, vi.fn()];
-			if (stateCall === 12)
+			if (stateCall === 9) return ["Invest", vi.fn()];
+			if (stateCall === 10) return [456, vi.fn()];
+			if (stateCall === 11)
 				return [
 					[
 						{
@@ -1399,7 +1552,7 @@ describe("TransactionFormScreen", () => {
 					],
 					vi.fn(),
 				];
-			if (stateCall === 13)
+			if (stateCall === 12)
 				return [
 					[
 						{
@@ -1411,9 +1564,14 @@ describe("TransactionFormScreen", () => {
 					],
 					vi.fn(),
 				];
-			if (stateCall === 14)
+			if (stateCall === 13)
 				return [[{ id: "tr1", name: "Goa" }], vi.fn()];
-			if (stateCall === 15) return [[{ id: "i1", name: "MF" }], vi.fn()];
+			if (stateCall === 14) return [[{ id: "i1", name: "MF" }], vi.fn()];
+			if (stateCall === 17)
+				return [
+					[{ key: "k", amount: "250", investmentId: "i1" }],
+					vi.fn(),
+				];
 			return [
 				typeof initial === "function" ? initial() : initial,
 				vi.fn(),
@@ -1447,10 +1605,17 @@ describe("TransactionFormScreen", () => {
 				toAmount: undefined,
 				categoryId: undefined,
 				tripId: undefined,
-				investmentId: "i1",
+				investmentId: undefined,
 				reason: "Invest",
 				transactionAt: 456,
-				items: undefined,
+				items: [
+					{
+						id: undefined,
+						amount: "250",
+						categoryId: undefined,
+						investmentId: "i1",
+					},
+				],
 			},
 		);
 		expect(navigation.goBack).toHaveBeenCalled();
@@ -1556,7 +1721,7 @@ describe("TransactionFormScreen", () => {
 			stateCall += 1;
 			if (stateCall === 3) return ["", setSourceId];
 			if (stateCall === 7) return ["", setCategoryId];
-			if (stateCall === 11) return [111, setTransactionAt];
+			if (stateCall === 10) return [111, setTransactionAt];
 			return [
 				typeof initial === "function" ? initial() : initial,
 				vi.fn(),
@@ -1618,7 +1783,7 @@ describe("TransactionFormScreen", () => {
 			stateCall += 1;
 			if (stateCall === 3) return ["", setSourceId];
 			if (stateCall === 7) return ["", setCategoryId];
-			if (stateCall === 11) return [111, setTransactionAt];
+			if (stateCall === 10) return [111, setTransactionAt];
 			return [
 				typeof initial === "function" ? initial() : initial,
 				vi.fn(),
@@ -1696,7 +1861,7 @@ describe("TransactionFormScreen", () => {
 		let stateCall = 0;
 		reactMocks.useState.mockImplementation((initial: any) => {
 			stateCall += 1;
-			if (stateCall === 17) return ["", setError];
+			if (stateCall === 16) return ["", setError];
 			return [
 				typeof initial === "function" ? initial() : initial,
 				vi.fn(),
@@ -1728,15 +1893,14 @@ describe("TransactionFormScreen", () => {
 			if (stateCall === 6) return ["", vi.fn()];
 			if (stateCall === 7) return ["c1", vi.fn()];
 			if (stateCall === 8) return ["tr1", vi.fn()];
-			if (stateCall === 9) return ["", vi.fn()];
-			if (stateCall === 10) return ["Groceries", vi.fn()];
-			if (stateCall === 11) return [789, vi.fn()];
-			if (stateCall === 18)
+			if (stateCall === 9) return ["Groceries", vi.fn()];
+			if (stateCall === 10) return [789, vi.fn()];
+			if (stateCall === 17)
 				return [
 					[{ key: "first", amount: "300", categoryId: "c1" }],
 					vi.fn(),
 				];
-			if (stateCall === 12)
+			if (stateCall === 11)
 				return [
 					[
 						{
@@ -1748,7 +1912,7 @@ describe("TransactionFormScreen", () => {
 					],
 					vi.fn(),
 				];
-			if (stateCall === 13)
+			if (stateCall === 12)
 				return [
 					[
 						{
@@ -1760,9 +1924,9 @@ describe("TransactionFormScreen", () => {
 					],
 					vi.fn(),
 				];
-			if (stateCall === 14)
+			if (stateCall === 13)
 				return [[{ id: "tr1", name: "Goa" }], vi.fn()];
-			if (stateCall === 15) return [[{ id: "i1", name: "MF" }], vi.fn()];
+			if (stateCall === 14) return [[{ id: "i1", name: "MF" }], vi.fn()];
 			return [
 				typeof initial === "function" ? initial() : initial,
 				vi.fn(),
@@ -1809,7 +1973,7 @@ describe("TransactionFormScreen", () => {
 		let stateCall = 0;
 		reactMocks.useState.mockImplementation((initial: any) => {
 			stateCall += 1;
-			if (stateCall === 13) {
+			if (stateCall === 12) {
 				return [
 					[
 						{
@@ -1849,7 +2013,7 @@ describe("TransactionFormScreen", () => {
 			tree,
 			(node) => node?.type === TransactionItemRow,
 		)[0];
-		expect(itemRow?.props?.categoryOptions).toEqual([
+		expect(itemRow?.props?.entityOptions).toEqual([
 			{ label: "Salary", value: "c1", description: "Income" },
 			{ label: "Food", value: "c2", description: "Expense" },
 			{ label: "Lent", value: "c3", description: "Refund" },
@@ -1888,7 +2052,7 @@ describe("TransactionFormScreen", () => {
 			stateCall += 1;
 			if (stateCall === 7) return ["", setCategoryId];
 			if (stateCall === 8) return ["", setTripId];
-			if (stateCall === 17) return ["boom", vi.fn()];
+			if (stateCall === 16) return ["boom", vi.fn()];
 			return [
 				typeof initial === "function" ? initial() : initial,
 				vi.fn(),

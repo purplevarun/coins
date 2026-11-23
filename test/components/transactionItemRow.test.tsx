@@ -39,9 +39,12 @@ const render = (overrides: Record<string, unknown> = {}): any =>
 		item: { key: "k1", amount: "10", categoryId: "c1" },
 		position: 0,
 		count: 2,
-		categoryOptions: OPTIONS,
+		entityLabel: "Category",
+		entityOptions: OPTIONS,
+		entityPlaceholder: "Select",
+		entityValue: "c1",
 		onAmountChange: vi.fn(),
-		onCategoryChange: vi.fn(),
+		onEntityChange: vi.fn(),
 		onRemove: vi.fn(),
 		...overrides,
 	});
@@ -69,15 +72,15 @@ describe("TransactionItemRow", () => {
 		expect(findAllByType(tree, "HeaderIconButton")).toHaveLength(0);
 	});
 
-	it("wires amount and category changes to the callbacks", () => {
+	it("wires amount and entity changes to the callbacks", () => {
 		const onAmountChange = vi.fn();
-		const onCategoryChange = vi.fn();
+		const onEntityChange = vi.fn();
 		const onRemove = vi.fn();
 		const tree = render({
 			currencyCode: "INR",
 			isDisabled: true,
 			onAmountChange,
-			onCategoryChange,
+			onEntityChange,
 			onRemove,
 		});
 		const amount = findAllByType(tree, "ModalTextField")[0];
@@ -85,35 +88,38 @@ describe("TransactionItemRow", () => {
 		expect(amount.props.isDisabled).toBe(true);
 		amount.props.onChange("42");
 		expect(onAmountChange).toHaveBeenCalledWith("42");
-		const category = findAllByType(tree, "SelectField")[0];
-		expect(category.props.value).toBe("c1");
-		expect(category.props.options).toEqual(OPTIONS);
-		category.props.onChange("c2");
-		expect(onCategoryChange).toHaveBeenCalledWith("c2");
+		const entity = findAllByType(tree, "SelectField")[0];
+		expect(entity.props.value).toBe("c1");
+		expect(entity.props.options).toEqual(OPTIONS);
+		entity.props.onChange("c2");
+		expect(onEntityChange).toHaveBeenCalledWith("c2");
 		findAllByType(tree, "HeaderIconButton")[0].props.onPress();
 		expect(onRemove).toHaveBeenCalledOnce();
 	});
 
-	it("keeps an unlisted item category selectable with its name", () => {
+	it("renders an empty entity selection for a missing value", () => {
+		const tree = render({ entityValue: null });
+		const entity = findAllByType(tree, "SelectField")[0];
+		expect(entity.props.value).toBe("");
+		expect(entity.props.options).toEqual(OPTIONS);
+	});
+
+	it("keeps an unlisted item entity selectable with its label", () => {
 		const tree = render({
-			item: { key: "k1", amount: "10", categoryId: "archived" },
+			entityValue: "archived",
 		});
-		const category = findAllByType(tree, "SelectField")[0];
-		expect(category.props.options[0]).toEqual({
+		const entity = findAllByType(tree, "SelectField")[0];
+		expect(entity.props.options[0]).toEqual({
 			value: "archived",
 			label: "Category",
 		});
-		expect(category.props.options).toHaveLength(OPTIONS.length + 1);
+		expect(entity.props.options).toHaveLength(OPTIONS.length + 1);
 	});
 
-	it("uses the stored category name for an unlisted item category", () => {
+	it("uses the stored entity name for an unlisted item entity", () => {
 		const tree = render({
-			item: {
-				key: "k1",
-				amount: "10",
-				categoryId: "archived",
-				categoryName: "Old category",
-			},
+			entityValue: "archived",
+			entityName: "Old category",
 		});
 		expect(findAllByType(tree, "SelectField")[0].props.options[0]).toEqual({
 			value: "archived",

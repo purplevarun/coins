@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS transaction_items (
 	id TEXT,
 	transaction_id TEXT,
 	category_id TEXT,
+	investment_id TEXT,
 	amount TEXT,
 	position INTEGER,
 	created_at INTEGER,

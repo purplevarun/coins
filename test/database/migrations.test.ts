@@ -63,6 +63,27 @@ describe("migration baseline", () => {
 		).toEqual({ trip_agnostic: 1 });
 	});
 
+	it("adds investment_id to legacy items and creates its index after the column", async () => {
+		const { database, sqlite } = createTestDatabase();
+		await database.execAsync(SCHEMA_SQL);
+		sqlite.exec("DROP INDEX IF EXISTS idx_transaction_items_investment;");
+		sqlite.exec("ALTER TABLE transaction_items DROP COLUMN investment_id;");
+		await migrateDatabase(database);
+		expect(
+			sqlite
+				.prepare("SELECT * FROM transaction_items LIMIT 0")
+				.columns()
+				.map((column) => column.name),
+		).toContain("investment_id");
+		expect(
+			sqlite
+				.prepare(
+					"SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_transaction_items_investment'",
+				)
+				.get(),
+		).toEqual({ name: "idx_transaction_items_investment" });
+	});
+
 	it("removes the obsolete daily vacuum marker", async () => {
 		const { database, sqlite } = createTestDatabase();
 		await database.execAsync(SCHEMA_SQL);

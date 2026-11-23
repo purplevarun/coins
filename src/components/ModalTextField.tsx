@@ -3,10 +3,10 @@ import CustomTextInput from "@/components/CustomTextInput";
 import HeaderIconButton from "@/components/HeaderIconButton";
 import MESSAGES from "@/constants/messageConstants";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+	BackHandler,
 	KeyboardAvoidingView,
-	Modal,
 	Platform,
 	Pressable,
 	StyleSheet,
@@ -14,10 +14,77 @@ import {
 } from "react-native";
 
 import styleConstants from "@/constants/styleConstants";
+import useModalSheet from "@/hooks/useModalSheet";
 import useTheme from "@/hooks/useTheme";
 import useThemedStyles from "@/hooks/useThemedStyles";
+import type ModalFieldSheetProps from "@/types/ModalFieldSheetProps";
 import type ModalTextFieldProps from "@/types/ModalTextFieldProps";
 import createThemedStyles from "@/utils/createThemedStyles";
+
+const ModalFieldSheet = ({
+	label,
+	initialValue,
+	onCommit,
+	placeholder,
+	keyboardType = "default",
+}: ModalFieldSheetProps): React.JSX.Element => {
+	const styles = useThemedStyles(themedStyles);
+	const [draft, setDraft] = useState(initialValue);
+
+	const handleCommit = (): void => {
+		onCommit(draft);
+	};
+
+	useEffect(() => {
+		const subscription = BackHandler.addEventListener(
+			"hardwareBackPress",
+			() => {
+				onCommit(draft);
+				return true;
+			},
+		);
+		return () => subscription.remove();
+	}, [draft, onCommit]);
+
+	return (
+		<KeyboardAvoidingView
+			behavior={Platform.OS === "ios" ? "padding" : undefined}
+			style={styles.keyboardView}
+		>
+			<Pressable onPress={handleCommit} style={styles.overlay}>
+				<Pressable style={styles.sheet}>
+					<View style={styles.sheetHeader}>
+						<CustomText style={styles.sheetTitle}>
+							{label}
+						</CustomText>
+						<View style={styles.sheetActions}>
+							<HeaderIconButton
+								icon="trash-outline"
+								accessibilityLabel={MESSAGES.COMMON.CLEAR}
+								onPress={() => setDraft("")}
+							/>
+							<HeaderIconButton
+								icon="checkmark"
+								accessibilityLabel={MESSAGES.COMMON.DONE}
+								onPress={handleCommit}
+							/>
+						</View>
+					</View>
+					<CustomTextInput
+						autoFocus
+						keyboardType={keyboardType}
+						onChangeText={setDraft}
+						onSubmitEditing={handleCommit}
+						placeholder={placeholder}
+						returnKeyType="done"
+						style={styles.input}
+						value={draft}
+					/>
+				</Pressable>
+			</Pressable>
+		</KeyboardAvoidingView>
+	);
+};
 
 const ModalTextField = ({
 	label,
@@ -30,12 +97,31 @@ const ModalTextField = ({
 }: ModalTextFieldProps): React.JSX.Element => {
 	const { colors: COLORS } = useTheme();
 	const styles = useThemedStyles(themedStyles);
-	const [isOpen, setIsOpen] = useState(false);
-	const [draft, setDraft] = useState(value);
+	const sheetHost = useModalSheet();
+	const sheetIdRef = useRef(0);
 
-	const handleCommit = (): void => {
-		onChange(draft);
-		setIsOpen(false);
+	useEffect(
+		() => () => {
+			sheetHost.hide(sheetIdRef.current);
+		},
+		[sheetHost],
+	);
+
+	const handleOpen = (): void => {
+		let sheetId = 0;
+		sheetId = sheetHost.show(
+			<ModalFieldSheet
+				label={label}
+				initialValue={value}
+				keyboardType={keyboardType}
+				placeholder={placeholder}
+				onCommit={(draft) => {
+					onChange(draft);
+					sheetHost.hide(sheetId);
+				}}
+			/>,
+		);
+		sheetIdRef.current = sheetId;
 	};
 
 	return (
@@ -48,10 +134,7 @@ const ModalTextField = ({
 				accessibilityLabel={`${label}: ${value || (placeholder ?? "")}`}
 				accessibilityState={{ disabled: isDisabled }}
 				disabled={isDisabled}
-				onPress={() => {
-					setDraft(value);
-					setIsOpen(true);
-				}}
+				onPress={handleOpen}
 				style={[
 					styles.trigger,
 					isCompact && styles.compactTrigger,
@@ -73,53 +156,6 @@ const ModalTextField = ({
 					size={18}
 				/>
 			</Pressable>
-			<Modal
-				animationType="fade"
-				onRequestClose={handleCommit}
-				transparent
-				visible={isOpen}
-			>
-				<KeyboardAvoidingView
-					behavior={Platform.OS === "ios" ? "padding" : undefined}
-					style={styles.keyboardView}
-				>
-					<Pressable onPress={handleCommit} style={styles.overlay}>
-						<Pressable style={styles.sheet}>
-							<View style={styles.sheetHeader}>
-								<CustomText style={styles.sheetTitle}>
-									{label}
-								</CustomText>
-								<View style={styles.sheetActions}>
-									<HeaderIconButton
-										icon="trash-outline"
-										accessibilityLabel={
-											MESSAGES.COMMON.CLEAR
-										}
-										onPress={() => setDraft("")}
-									/>
-									<HeaderIconButton
-										icon="checkmark"
-										accessibilityLabel={
-											MESSAGES.COMMON.DONE
-										}
-										onPress={handleCommit}
-									/>
-								</View>
-							</View>
-							<CustomTextInput
-								autoFocus
-								keyboardType={keyboardType}
-								onChangeText={setDraft}
-								onSubmitEditing={handleCommit}
-								placeholder={placeholder}
-								returnKeyType="done"
-								style={styles.input}
-								value={draft}
-							/>
-						</Pressable>
-					</Pressable>
-				</KeyboardAvoidingView>
-			</Modal>
 		</View>
 	);
 };

@@ -22,6 +22,15 @@ const mocks = vi.hoisted(() => ({
 	showMessage: vi.fn(),
 }));
 const database = vi.hoisted(() => ({ id: "db" }));
+const sheetHost = vi.hoisted(() => ({
+	show: vi.fn((_sheet: unknown) => 11),
+	hide: vi.fn(),
+}));
+const backHandlerMocks = vi.hoisted(() => ({
+	addEventListener: vi.fn((_event: string, _handler: () => boolean) => ({
+		remove: vi.fn(),
+	})),
+}));
 
 vi.mock("react", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("react")>();
@@ -32,7 +41,7 @@ vi.mock("react", async (importOriginal) => {
 	};
 });
 vi.mock("react-native", () => ({
-	Modal: "Modal",
+	BackHandler: backHandlerMocks,
 	Pressable: "Pressable",
 	ScrollView: "ScrollView",
 	StyleSheet: { absoluteFill: {}, create: (styles: unknown) => styles },
@@ -51,6 +60,9 @@ vi.mock("@/hooks/useDatabaseContext", () => ({
 }));
 vi.mock("@/hooks/useAppDialog", () => ({
 	default: () => ({ showMessage: mocks.showMessage }),
+}));
+vi.mock("@/hooks/useModalSheet", () => ({
+	default: () => sheetHost,
 }));
 vi.mock("@/services/categoryService", () => ({
 	default: {
@@ -144,6 +156,9 @@ describe("relation popups", () => {
 	beforeEach(() => {
 		Object.values(mocks).forEach((mock) => mock.mockReset());
 		reactMocks.useEffect.mockClear();
+		sheetHost.show.mockClear();
+		sheetHost.hide.mockClear();
+		backHandlerMocks.addEventListener.mockClear();
 		mocks.getInvestments.mockResolvedValue([{ id: "epf", name: "EPF" }]);
 		mocks.getPlatforms.mockResolvedValue([{ id: "p", name: "EPFO" }]);
 		mocks.getInvestmentTypes.mockResolvedValue([
@@ -155,7 +170,7 @@ describe("relation popups", () => {
 		]);
 	});
 
-	it("renders the shared popup with and without an error", () => {
+	it("hosts the shared popup and closes via buttons and hardware back", () => {
 		const onClose = vi.fn();
 		const onConfirm = vi.fn();
 		const popup = FormModal({
@@ -169,20 +184,28 @@ describe("relation popups", () => {
 			title: "Popup",
 			variant: "danger",
 		});
+		expect(popup).toBeNull();
+		expect(sheetHost.show).toHaveBeenCalledTimes(1);
+		const content = sheetHost.show.mock.calls[0]?.[0];
 		expect(
-			find<{ accent?: string }>(popup, (props) => "accent" in props),
+			find<{ accent?: string }>(content, (props) => "accent" in props),
 		).toMatchObject({ accent: "danger" });
 		expect(
 			findAll<{ message?: string }>(
-				popup,
+				content,
 				(props) => props.message === "Failed",
 			),
 		).toHaveLength(1);
-		button(popup, "Cancel").onPress();
-		button(popup, "Go").onPress();
+		button(content, "Cancel").onPress();
+		button(content, "Go").onPress();
 		expect(onClose).toHaveBeenCalledOnce();
 		expect(onConfirm).toHaveBeenCalledOnce();
-		const plain = FormModal({
+		const onBack = backHandlerMocks.addEventListener.mock.calls[0]?.[1];
+		expect(onBack?.()).toBe(true);
+		expect(onClose).toHaveBeenCalledTimes(2);
+
+		sheetHost.show.mockClear();
+		const hidden = FormModal({
 			confirmLabel: "Go",
 			isVisible: false,
 			message: "Details",
@@ -190,6 +213,18 @@ describe("relation popups", () => {
 			onConfirm,
 			title: "Popup",
 		});
+		expect(hidden).toBeNull();
+		expect(sheetHost.show).not.toHaveBeenCalled();
+
+		FormModal({
+			confirmLabel: "Go",
+			isVisible: true,
+			message: "Details",
+			onClose,
+			onConfirm,
+			title: "Popup",
+		});
+		const plain = sheetHost.show.mock.calls[0]?.[0];
 		expect(
 			find<{ accent?: string }>(plain, (props) => "accent" in props),
 		).toMatchObject({ accent: "warning" });
@@ -203,6 +238,12 @@ describe("relation popups", () => {
 				(props) => props.tone === "danger",
 			),
 		).toHaveLength(0);
+
+		const effect = reactMocks.useEffect.mock.calls[0]?.[0] as () =>
+			(() => void) | undefined;
+		const cleanup = effect();
+		cleanup?.();
+		expect(sheetHost.hide).toHaveBeenCalledWith(11);
 	});
 
 	describe("category to investment", () => {

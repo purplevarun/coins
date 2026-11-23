@@ -151,10 +151,32 @@ describe("financeRepository", () => {
 			"item",
 			"payment",
 			"food",
+			null,
 			"100",
 			0,
 			1,
 			2,
+		);
+		await financeRepository.createTransactionItemRow(database, {
+			id: "investment-item",
+			transactionId: "buy",
+			categoryId: null,
+			investmentId: "mf",
+			amount: "50",
+			position: 0,
+			createdAt: 3,
+			updatedAt: 4,
+		});
+		expect(runAsync).toHaveBeenLastCalledWith(
+			expect.stringContaining("INSERT INTO transaction_items"),
+			"investment-item",
+			"buy",
+			null,
+			"mf",
+			"50",
+			0,
+			3,
+			4,
 		);
 		await financeRepository.deleteTransactionItemRows(database, "payment");
 		expect(runAsync).toHaveBeenLastCalledWith(
@@ -295,16 +317,23 @@ describe("financeRepository", () => {
 		expect(await getInvestmentAnalysisRows(database, 3, 4)).toEqual(rows);
 		expect(getAllAsync).toHaveBeenCalledExactlyOnceWith(
 			expect.stringContaining(
-				"THEN t.amount ELSE '0' END AS totalInvested",
+				"THEN allocation.amount ELSE '0' END AS totalInvested",
 			),
+			3,
+			4,
 			3,
 			4,
 		);
 		const sql = getAllAsync.mock.calls[0]?.[0] as string;
+		expect(sql).toContain("UNION ALL");
 		expect(sql).toContain("t.classification = 'INVESTMENT'");
+		expect(sql).toContain("item.investment_id IS NOT NULL");
+		expect(sql).toContain("t.investment_id IS NOT NULL");
 		expect(sql).not.toMatch(/SUM\(|CAST\(/);
 		expect(sql).not.toContain("archived");
-		expect(sql).toContain("t.transaction_at BETWEEN ? AND ?");
+		expect(sql.match(/t\.transaction_at BETWEEN \? AND \?/g)).toHaveLength(
+			2,
+		);
 	});
 
 	it("returns exact trip credit and debit amount strings", async () => {
@@ -422,13 +451,13 @@ describe("financeRepository", () => {
 		const database = {
 			getAllAsync: vi
 				.fn()
-				.mockResolvedValueOnce([{ id: "tx1" }])
+				.mockResolvedValueOnce([{ id: "tx1", type: "TRANSFER" }])
 				.mockResolvedValueOnce([{ id: "b1" }])
 				.mockResolvedValueOnce([{ currencyCode: "USD" }]),
 			getFirstAsync: vi
 				.fn()
 				.mockResolvedValueOnce({ minDate: 10, maxDate: 20 })
-				.mockResolvedValueOnce({ id: "tx1" })
+				.mockResolvedValueOnce({ id: "tx1", type: "TRANSFER" })
 				.mockResolvedValueOnce({ id: "b1" }),
 		} as any;
 
@@ -437,10 +466,11 @@ describe("financeRepository", () => {
 			maxDate: 20,
 		});
 		expect(await getTransactionRows(database)).toEqual([
-			{ id: "tx1", isApplicable: true, items: [] },
+			{ id: "tx1", type: "TRANSFER", isApplicable: true, items: [] },
 		]);
 		expect(await getTransactionRow(database, "tx1")).toEqual({
 			id: "tx1",
+			type: "TRANSFER",
 			isApplicable: true,
 			items: [],
 		});

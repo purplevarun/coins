@@ -14,6 +14,7 @@ import initializeDatabase from "@/database/initializeDatabase";
 import AppNavigator from "@/navigation/AppNavigator";
 import AppDialogProvider from "@/providers/AppDialogProvider";
 import DatabaseProvider from "@/providers/DatabaseProvider";
+import ModalSheetProvider from "@/providers/ModalSheetProvider";
 import ThemeProvider from "@/providers/ThemeProvider";
 import type DatabaseState from "@/types/DatabaseState";
 const { APP_FONTS } = typographyConstants;
@@ -72,7 +73,9 @@ const App = (): React.JSX.Element => {
 			<DatabaseProvider database={databaseState.database}>
 				<ThemeProvider>
 					<AppDialogProvider>
-						<AppNavigator />
+						<ModalSheetProvider>
+							<AppNavigator />
+						</ModalSheetProvider>
 					</AppDialogProvider>
 				</ThemeProvider>
 			</DatabaseProvider>

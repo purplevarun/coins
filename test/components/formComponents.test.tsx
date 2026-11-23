@@ -6,22 +6,37 @@ import type { TextProps } from "react-native";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const reactMocks = vi.hoisted(() => ({
+	useEffect: vi.fn(),
 	useMemo: vi.fn((factory: () => unknown) => factory()),
+	useRef: vi.fn(),
 	useState: vi.fn(),
+}));
+
+const sheetHost = vi.hoisted(() => ({
+	show: vi.fn((_sheet: unknown) => 0),
+	hide: vi.fn(),
+}));
+
+const backHandlerMocks = vi.hoisted(() => ({
+	addEventListener: vi.fn((_event: string, _handler: () => boolean) => ({
+		remove: vi.fn(),
+	})),
 }));
 
 vi.mock("react", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("react")>();
 	return {
 		...actual,
+		useEffect: reactMocks.useEffect,
 		useMemo: reactMocks.useMemo,
+		useRef: reactMocks.useRef,
 		useState: reactMocks.useState,
 	};
 });
 
 vi.mock("react-native", () => ({
 	ActivityIndicator: "ActivityIndicator",
-	Modal: "Modal",
+	BackHandler: backHandlerMocks,
 	Pressable: "Pressable",
 	ScrollView: "ScrollView",
 	StyleSheet: {
@@ -41,6 +56,8 @@ vi.mock("@/components/CustomText", () => ({
 vi.mock("@/components/CustomTextInput", () => ({
 	default: "CustomTextInput",
 }));
+
+vi.mock("@/hooks/useModalSheet", () => ({ default: () => sheetHost }));
 
 import AppButton from "@/components/AppButton";
 import PlatformPicker from "@/components/PlatformPicker";
@@ -86,6 +103,19 @@ const findAllByType = (node: any, type: string, acc: any[] = []): any[] => {
 		);
 	}
 	return acc;
+};
+
+const renderSelectSheet = (search = ""): any => {
+	const calls = sheetHost.show.mock.calls;
+	const sheet = calls[calls.length - 1]?.[0] as ReactElement<any>;
+	reactMocks.useState.mockImplementationOnce(() => [search, vi.fn()]);
+	let cleanup: unknown;
+	reactMocks.useEffect.mockImplementationOnce((effect: () => unknown) => {
+		cleanup = effect();
+	});
+	const tree = (sheet.type as (props: any) => any)(sheet.props);
+	(cleanup as (() => void) | undefined)?.();
+	return tree;
 };
 
 const findPressableByText = (node: any, text: string): any => {
@@ -196,8 +226,18 @@ describe("form components", () => {
 	});
 
 	beforeEach(() => {
+		reactMocks.useEffect.mockReset();
+		reactMocks.useEffect.mockImplementation((effect: () => void) =>
+			effect(),
+		);
 		reactMocks.useState.mockReset();
 		reactMocks.useMemo.mockClear();
+		reactMocks.useRef.mockReset();
+		reactMocks.useRef.mockReturnValue({ current: null });
+		sheetHost.show.mockReset();
+		sheetHost.show.mockReturnValue(7);
+		sheetHost.hide.mockClear();
+		backHandlerMocks.addEventListener.mockClear();
 	});
 
 	it("covers AppButton variants and loading/disabled/pressed branches", () => {
@@ -249,8 +289,6 @@ describe("form components", () => {
 	});
 
 	it("renders palette swatches and disables theme selection while saving", () => {
-		reactMocks.useState.mockReturnValueOnce([true, vi.fn()]);
-		reactMocks.useState.mockReturnValueOnce(["", vi.fn()]);
 		const colors = ["#131817", "#202825", "#76E3B8"];
 		const field = SelectField({
 			label: "Theme",
@@ -269,12 +307,15 @@ describe("form components", () => {
 		const trigger = findAllByType(field, "Pressable")[0];
 		expect(trigger.props.disabled).toBe(true);
 		expect(trigger.props.accessibilityState).toEqual({ disabled: true });
-		const swatches = findAllByType(field, "View").filter(
-			(node) =>
-				Array.isArray(node.props.style) &&
-				colors.includes(node.props.style[1]?.backgroundColor),
-		);
-		expect(swatches).toHaveLength(6);
+		const findSwatches = (tree: any): any[] =>
+			findAllByType(tree, "View").filter(
+				(node) =>
+					Array.isArray(node.props.style) &&
+					colors.includes(node.props.style[1]?.backgroundColor),
+			);
+		expect(findSwatches(field)).toHaveLength(3);
+		trigger.props.onPress();
+		expect(findSwatches(renderSelectSheet())).toHaveLength(3);
 	});
 
 	it("sizes segmented options to their content and allows complete labels", () => {
@@ -393,12 +434,7 @@ describe("form components", () => {
 	});
 
 	it("renders compact choices without a search input and keeps selection behavior", () => {
-		const setIsOpen = vi.fn();
-		const setSearch = vi.fn();
 		const onChange = vi.fn();
-		reactMocks.useState
-			.mockImplementationOnce(() => [true, setIsOpen])
-			.mockImplementationOnce(() => ["", setSearch]);
 		const tree = SelectField({
 			label: "Classification",
 			value: "GENERAL",
@@ -426,110 +462,116 @@ describe("form components", () => {
 		});
 		expect(trigger.props.style[1]).not.toHaveProperty("borderWidth");
 		expect(trigger.props.style[1]).not.toHaveProperty("backgroundColor");
-		expect(findAllByType(tree, "CustomTextInput")).toHaveLength(0);
-		const modal = findAllByType(tree, "Modal")[0];
-		findPressableByText(modal, "Investment").props.onPress();
+		trigger.props.onPress();
+		const sheet = renderSelectSheet();
+		expect(findAllByType(sheet, "CustomTextInput")).toHaveLength(0);
+		findPressableByText(sheet, "Investment").props.onPress();
 		expect(onChange).toHaveBeenCalledWith("INVESTMENT");
-		expect(setIsOpen).toHaveBeenCalledWith(false);
+		expect(sheetHost.hide).toHaveBeenCalledTimes(1);
 	});
 
-	it("covers SelectField open/close/select/search/no-result branches", () => {
-		const setIsOpen = vi.fn();
-		const setSearch = vi.fn();
+	it("covers SelectSheet select/search/no-result/close branches", () => {
 		const onChange = vi.fn();
 		const options = [
 			{ label: "Cash Wallet", value: "cash", description: "Daily" },
 			{ label: "Bank", value: "bank" },
 		];
-
-		reactMocks.useState
-			.mockImplementationOnce(() => [false, setIsOpen])
-			.mockImplementationOnce(() => ["", setSearch]);
-		const closed = SelectField({
+		const field = SelectField({
 			label: "Source",
 			value: "cash",
-			options,
-			onChange,
-			isOptional: false,
-		});
-		const closedPressables = findAllByType(closed, "Pressable");
-		expect(
-			findAllByType(closedPressables[0], "CustomText")[0]?.props
-				.numberOfLines,
-		).toBeUndefined();
-		closedPressables[0]?.props.onPress();
-		expect(setSearch).toHaveBeenCalledWith("");
-		expect(setIsOpen).toHaveBeenCalledWith(true);
-
-		reactMocks.useState
-			.mockImplementationOnce(() => [true, setIsOpen])
-			.mockImplementationOnce(() => ["zz", setSearch]);
-		const openNoResults = SelectField({
-			label: "Source",
-			value: "",
 			options,
 			onChange,
 			isOptional: true,
 		});
+		findAllByType(field, "Pressable")[0].props.onPress();
+		expect(sheetHost.show).toHaveBeenCalledTimes(1);
 
-		const modal = findAllByType(openNoResults, "Modal")[0];
-		expect(modal.props.visible).toBe(true);
+		const noResults = renderSelectSheet("zz");
 		expect(
-			findAllByType(modal, "CustomText").map(
+			findAllByType(noResults, "CustomText").map(
 				(node) => node.props.children,
 			),
 		).toContain('No results for "zz"');
-		modal.props.onRequestClose();
-		expect(setIsOpen).toHaveBeenCalledWith(false);
 
-		const optionPressables = findAllByType(openNoResults, "Pressable");
-		expect(optionPressables.length).toBeGreaterThan(0);
-		const overlayPressable = optionPressables.find(
+		const overlayPressable = findAllByType(noResults, "Pressable").find(
 			(node) =>
 				node?.props?.style?.backgroundColor === COLORS.overlayStrong,
 		);
 		expect(overlayPressable).toBeTruthy();
-		overlayPressable?.props?.onPress();
-		expect(setIsOpen).toHaveBeenCalledWith(false);
+		overlayPressable.props.onPress();
+		expect(sheetHost.hide).toHaveBeenCalledTimes(1);
 
-		const noneOption = findPressableByText(modal, "None");
+		const onBack = backHandlerMocks.addEventListener.mock.calls[0]?.[1];
+		expect(onBack?.()).toBe(true);
+		expect(sheetHost.hide).toHaveBeenCalledTimes(2);
+
+		const noneOption = findPressableByText(noResults, "None");
 		expect(noneOption).toBeTruthy();
 		noneOption.props.onPress();
 		expect(onChange).toHaveBeenCalledWith("");
-		expect(setIsOpen).toHaveBeenCalledWith(false);
+		expect(sheetHost.hide).toHaveBeenCalledTimes(3);
 
-		reactMocks.useState
-			.mockImplementationOnce(() => [true, setIsOpen])
-			.mockImplementationOnce(() => ["", setSearch]);
-		const openEmpty = SelectField({
+		const emptyOptionsField = SelectField({
 			label: "Platform",
 			value: "",
 			options: [],
 			onChange,
-			isOptional: false,
 		});
+		findAllByType(emptyOptionsField, "Pressable")[0].props.onPress();
+		const openEmpty = renderSelectSheet();
 		expect(
-			findAllByType(
-				findAllByType(openEmpty, "Modal")[0],
-				"CustomText",
-			).map((node) => node.props.children),
+			findAllByType(openEmpty, "CustomText").map(
+				(node) => node.props.children,
+			),
 		).toContain("Nothing to select yet.");
 
-		reactMocks.useState
-			.mockImplementationOnce(() => [true, setIsOpen])
-			.mockImplementationOnce(() => ["cash", setSearch]);
-		const openMatch = SelectField({
-			label: "Source",
-			value: "cash",
-			options,
-			onChange,
-			isOptional: false,
-		});
-		const openMatchModal = findAllByType(openMatch, "Modal")[0];
-		const cashOption = findPressableByText(openMatchModal, "Cash Wallet");
+		findAllByType(field, "Pressable")[0].props.onPress();
+		const openMatch = renderSelectSheet("cash");
+		const cashOption = findPressableByText(openMatch, "Cash Wallet");
 		expect(cashOption).toBeTruthy();
 		cashOption.props.onPress();
 		expect(onChange).toHaveBeenCalledWith("cash");
-		expect(setSearch).toHaveBeenCalledWith("");
+	});
+
+	it("auto-focuses the search input only when searchable", () => {
+		const searchable = SelectField({
+			label: "Category",
+			value: "",
+			options: [{ label: "Food", value: "c1" }],
+			onChange: vi.fn(),
+		});
+		findAllByType(searchable, "Pressable")[0].props.onPress();
+		const searchableSheet = renderSelectSheet();
+		const searchInput = findAllByType(
+			searchableSheet,
+			"CustomTextInput",
+		)[0];
+		expect(searchInput.props.autoFocus).toBe(true);
+
+		sheetHost.show.mockClear();
+		const plain = SelectField({
+			label: "Type",
+			value: "",
+			options: [{ label: "One", value: "o1" }],
+			onChange: vi.fn(),
+			isSearchable: false,
+		});
+		findAllByType(plain, "Pressable")[0].props.onPress();
+		const plainSheet = renderSelectSheet();
+		expect(findAllByType(plainSheet, "CustomTextInput")).toHaveLength(0);
+	});
+
+	it("hides the hosted sheet when the field unmounts", () => {
+		reactMocks.useEffect.mockImplementation(() => undefined);
+		SelectField({
+			label: "Source",
+			value: "cash",
+			options: [{ label: "Cash", value: "cash" }],
+			onChange: vi.fn(),
+		});
+		const effect = reactMocks.useEffect.mock.calls[0]?.[0] as () => unknown;
+		const cleanup = effect() as () => void;
+		cleanup();
+		expect(sheetHost.hide).toHaveBeenCalledTimes(1);
 	});
 });

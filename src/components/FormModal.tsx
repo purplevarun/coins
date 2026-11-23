@@ -1,11 +1,19 @@
 import CustomText from "@/components/CustomText";
-import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useEffect } from "react";
+import {
+	BackHandler,
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	View,
+} from "react-native";
 
 import AppButton from "@/components/AppButton";
 import GlassCard from "@/components/GlassCard";
 import Notice from "@/components/Notice";
 import MESSAGES from "@/constants/messageConstants";
 import styleConstants from "@/constants/styleConstants";
+import useModalSheet from "@/hooks/useModalSheet";
 import useThemedStyles from "@/hooks/useThemedStyles";
 import type FormModalProps from "@/types/FormModalProps";
 import createThemedStyles from "@/utils/createThemedStyles";
@@ -21,15 +29,13 @@ const FormModal = ({
 	onConfirm,
 	title,
 	variant = "primary",
-}: FormModalProps): React.JSX.Element => {
+}: FormModalProps): null => {
 	const styles = useThemedStyles(themedStyles);
-	return (
-		<Modal
-			animationType="fade"
-			onRequestClose={onClose}
-			transparent
-			visible={isVisible}
-		>
+	const sheetHost = useModalSheet();
+
+	useEffect(() => {
+		if (!isVisible) return undefined;
+		const sheetId = sheetHost.show(
 			<View style={styles.overlay}>
 				<Pressable onPress={onClose} style={styles.scrim} />
 				<View style={styles.cardHost}>
@@ -70,9 +76,22 @@ const FormModal = ({
 						</ScrollView>
 					</GlassCard>
 				</View>
-			</View>
-		</Modal>
-	);
+			</View>,
+		);
+		const subscription = BackHandler.addEventListener(
+			"hardwareBackPress",
+			() => {
+				onClose();
+				return true;
+			},
+		);
+		return () => {
+			subscription.remove();
+			sheetHost.hide(sheetId);
+		};
+	});
+
+	return null;
 };
 
 const { ALIGN, FLEX, FONT_SIZE, FONT_WEIGHT, LINE_HEIGHT, SIZES, SPACING } =

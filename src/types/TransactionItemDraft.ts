@@ -4,6 +4,7 @@ type TransactionItemDraft = TransactionItemInput &
 	Readonly<{
 		key: string;
 		categoryName?: string;
+		investmentName?: string;
 	}>;
 
 export type { TransactionItemDraft as default };

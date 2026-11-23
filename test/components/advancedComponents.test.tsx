@@ -257,6 +257,42 @@ describe("advanced components", () => {
 		expect(hasTextContaining(debitWithoutCategory, "Cash · ")).toBe(true);
 	});
 
+	it("lists investment item names for an itemized investment", () => {
+		const tree = TransactionCard({
+			transaction: {
+				...baseTransaction,
+				classification: "INVESTMENT",
+				investmentName: null,
+				items: [
+					{
+						id: "one",
+						transactionId: "t1",
+						categoryId: null,
+						investmentId: "i1",
+						investmentName: "Nifty",
+						amount: "50",
+						position: 0,
+						createdAt: 1,
+						updatedAt: 1,
+					},
+					{
+						id: "two",
+						transactionId: "t1",
+						categoryId: null,
+						investmentId: "i2",
+						investmentName: "Gold",
+						amount: "50",
+						position: 1,
+						createdAt: 1,
+						updatedAt: 1,
+					},
+				],
+			},
+			onPress: vi.fn(),
+		});
+		expect(hasTextContaining(tree, "Nifty, Gold")).toBe(true);
+	});
+
 	it("shows one split payment total and the matching category allocation", () => {
 		expect(
 			hasTextContaining(

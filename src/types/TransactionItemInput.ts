@@ -1,6 +1,7 @@
 type TransactionItemInput = Readonly<{
 	id?: string;
-	categoryId: string;
+	categoryId?: string | null;
+	investmentId?: string | null;
 	amount: string;
 }>;
 

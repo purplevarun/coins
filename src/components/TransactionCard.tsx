@@ -55,9 +55,13 @@ const TransactionCard = ({
 	const color = getTransactionColor(COLORS, transaction);
 	const hasItems = transaction.items.length > 0;
 	const categories = hasItems
-		? [...new Set(transaction.items.map((item) => item.categoryName))].join(
-				", ",
-			)
+		? [
+				...new Set(
+					transaction.items.map(
+						(item) => item.categoryName ?? item.investmentName,
+					),
+				),
+			].join(", ")
 		: (transaction.categoryName ?? "");
 	const matchedItems =
 		categoryId && hasItems
@@ -103,7 +107,9 @@ const TransactionCard = ({
 						</View>
 						<CustomText style={styles.meta}>
 							{transaction.classification === "INVESTMENT"
-								? transaction.investmentName
+								? hasItems
+									? categories
+									: transaction.investmentName
 								: transaction.type === "TRANSFER"
 									? `${transaction.sourceName} -> ${transaction.destinationSourceName ?? ""}`
 									: `${transaction.sourceName} · ${categories}`}

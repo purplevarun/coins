@@ -1327,6 +1327,12 @@ describe("TransactionsScreen", () => {
 			"usd 75",
 			{ items: [{ categoryName: "Food", amount: "75" }] },
 		],
+		[
+			"item investment",
+			"nifty",
+			{ items: [{ investmentName: "Nifty", amount: "75" }] },
+		],
+		["item without entity", "75", { items: [{ amount: "75" }] }],
 		["trip", "goa", { tripName: "Goa" }],
 		["investment", "mf", { investmentName: "MF" }],
 		["date", "date:45", { transactionAt: 45 }],
