@@ -32,10 +32,13 @@ jobs:
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: Upload site artifact
-              uses: actions/upload-artifact@v4
+            - name: Setup Pages
+              uses: actions/configure-pages@v5
+
+            # Upload in the build job so the artifact is listed before deploy-pages looks for it.
+            - name: Upload Pages artifact
+              uses: actions/upload-pages-artifact@v3
               with:
-                  name: pages-site
                   path: gh-pages/dist
 
     deploy:
@@ -45,20 +48,6 @@ jobs:
             name: github-pages
             url: ${{ steps.deployment.outputs.page_url }}
         steps:
-            - name: Download site artifact
-              uses: actions/download-artifact@v5
-              with:
-                  name: pages-site
-                  path: site
-
-            - name: Setup Pages
-              uses: actions/configure-pages@v5
-
-            - name: Upload Pages artifact
-              uses: actions/upload-pages-artifact@v3
-              with:
-                  path: site
-
             - name: Deploy to GitHub Pages
               id: deployment
               uses: actions/deploy-pages@v4
