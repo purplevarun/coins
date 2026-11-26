@@ -2,11 +2,13 @@ import appConstants from "@/constants/appConstants";
 
 import { migrateDatabase } from "@/database/migrations";
 import SCHEMA_SQL from "@/database/schema";
+import sourceService from "@/services/sourceService";
 import type SqliteTableRow from "@/types/SqliteTableRow";
 import { Directory, File, Paths } from "expo-file-system";
 import { openDatabaseAsync, type SQLiteDatabase } from "expo-sqlite";
 
 const { DATABASE_NAME } = appConstants;
+const { expireStaleSourceValidations } = sourceService;
 const databasesBeingVacuumed = new WeakSet<SQLiteDatabase>();
 
 const vacuumDatabase = async (database: SQLiteDatabase): Promise<void> => {
@@ -47,6 +49,7 @@ const initializeDatabase = async (): Promise<SQLiteDatabase> => {
 		await database.execAsync(SCHEMA_SQL);
 
 		await migrateDatabase(database);
+		await expireStaleSourceValidations(database);
 		return database;
 	} catch (error) {
 		await database.closeAsync();

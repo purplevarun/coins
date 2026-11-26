@@ -9,6 +9,9 @@ const mocks = vi.hoisted(() => {
 		deleteSourceRow: vi
 			.fn<TestAsyncFunction>()
 			.mockResolvedValue(undefined),
+		expireStaleValidatedSourceRows: vi
+			.fn<TestAsyncFunction>()
+			.mockResolvedValue(undefined),
 		getArchivedSourceRows: vi.fn<TestAsyncFunction>().mockResolvedValue([]),
 		getSourceRow: vi.fn<TestAsyncFunction>().mockResolvedValue(null),
 		getSourceRows: vi.fn<TestAsyncFunction>().mockResolvedValue([]),
@@ -32,6 +35,7 @@ vi.mock("@/repositories/financeRepository", () => ({
 	default: {
 		createSourceRow: mocks.createSourceRow,
 		deleteSourceRow: mocks.deleteSourceRow,
+		expireStaleValidatedSourceRows: mocks.expireStaleValidatedSourceRows,
 		getArchivedSourceRows: mocks.getArchivedSourceRows,
 		getSourceRow: mocks.getSourceRow,
 		getSourceRows: mocks.getSourceRows,
@@ -252,6 +256,14 @@ describe("sourceService", () => {
 			"s1",
 			true,
 			new Date("2026-08-25T12:00:00.000Z").getTime(),
+		);
+	});
+
+	it("expires validations older than the stale threshold", async () => {
+		await sourceService.expireStaleSourceValidations(database);
+		expect(mocks.expireStaleValidatedSourceRows).toHaveBeenCalledWith(
+			database,
+			new Date("2026-08-25T12:00:00.000Z").getTime() - 172_800_000,
 		);
 	});
 

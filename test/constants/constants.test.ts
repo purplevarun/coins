@@ -16,6 +16,7 @@ describe("constants", () => {
 		]);
 		expect(appConstants.DATABASE_NAME).toBe("purplecoins.db");
 		expect(appConstants.DEFAULT_CURRENCY_CODE).toBe("INR");
+		expect(appConstants.MILLISECONDS_PER_HOUR).toBe(3_600_000);
 		expect(appConstants.MILLISECONDS_PER_DAY).toBe(86_400_000);
 	});
 
@@ -33,6 +34,7 @@ describe("constants", () => {
 		expect(financeConstants.ANALYSIS_PERIODS).toContain("FY");
 		expect(financeConstants.VAULT_KINDS).toEqual(["PASSWORD", "CARD"]);
 		expect(financeConstants.DEFAULT_TRANSACTION_TYPE).toBe("DEBIT");
+		expect(financeConstants.SOURCE_VALIDATION_STALE_HOURS).toBe(48);
 		expect(financeConstants.ANALYSIS_PERIOD_OPTIONS).toContainEqual({
 			label: "FY",
 			value: "FY",

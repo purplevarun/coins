@@ -13,6 +13,7 @@ const {
 	deleteSimpleEntityRow,
 	deleteSourceRow,
 	deleteTransactionRow,
+	expireStaleValidatedSourceRows,
 	getArchivedCategoryRows,
 	getArchivedInvestmentRows,
 	getArchivedSourceRows,
@@ -527,6 +528,12 @@ describe("financeRepository", () => {
 			"UPDATE sources SET validated_at = ? WHERE id = ?;",
 			4,
 			"s1",
+		);
+
+		await expireStaleValidatedSourceRows(database, 1000);
+		expect(database.runAsync).toHaveBeenCalledWith(
+			"UPDATE sources SET validated_at = NULL WHERE validated_at IS NOT NULL AND validated_at <= ?;",
+			1000,
 		);
 
 		await setSourceArchivedRow(database, "s1", true, 5);

@@ -1,3 +1,5 @@
+import appConstants from "@/constants/appConstants";
+import financeConstants from "@/constants/financeConstants";
 import AppError from "@/errors/AppError";
 import financeRepository from "@/repositories/financeRepository";
 import type Source from "@/types/Source";
@@ -9,6 +11,7 @@ import type { SQLiteDatabase } from "expo-sqlite";
 const {
 	createSourceRow,
 	deleteSourceRow,
+	expireStaleValidatedSourceRows,
 	getArchivedSourceRows,
 	getSourceRow,
 	getSourceRows,
@@ -20,6 +23,8 @@ const {
 	validateSourceRow,
 } = financeRepository;
 const { addMoney, subtractMoney, ZERO_AMOUNT } = moneyUtils;
+const { MILLISECONDS_PER_HOUR } = appConstants;
+const { SOURCE_VALIDATION_STALE_HOURS } = financeConstants;
 
 const normalizeCurrencyCode = (currencyCode: string): string => {
 	const normalizedCode = currencyCode.trim().toUpperCase();
@@ -153,6 +158,14 @@ const validateSource = async (
 	id: string,
 ): Promise<void> => validateSourceRow(database, id, Date.now());
 
+const expireStaleSourceValidations = async (
+	database: SQLiteDatabase,
+): Promise<void> =>
+	expireStaleValidatedSourceRows(
+		database,
+		Date.now() - SOURCE_VALIDATION_STALE_HOURS * MILLISECONDS_PER_HOUR,
+	);
+
 const setSourceArchived = async (
 	database: SQLiteDatabase,
 	id: string,
@@ -175,6 +188,7 @@ const deleteSource = async (
 const sourceService = {
 	createSource,
 	deleteSource,
+	expireStaleSourceValidations,
 	getArchivedSources,
 	getSource,
 	getSources,

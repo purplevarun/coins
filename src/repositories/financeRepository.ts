@@ -201,6 +201,16 @@ const validateSourceRow = async (
 	);
 };
 
+const expireStaleValidatedSourceRows = async (
+	database: SQLiteDatabase,
+	cutoffValidatedAt: number,
+): Promise<void> => {
+	await database.runAsync(
+		"UPDATE sources SET validated_at = NULL WHERE validated_at IS NOT NULL AND validated_at <= ?;",
+		cutoffValidatedAt,
+	);
+};
+
 const setSourceArchivedRow = async (
 	database: SQLiteDatabase,
 	id: string,
@@ -1517,6 +1527,7 @@ const financeRepository = {
 	deleteTransactionRow,
 	deleteTransactionItemRow,
 	deleteTransactionItemRows,
+	expireStaleValidatedSourceRows,
 	getArchivedCategoryRows,
 	getArchivedInvestmentRows,
 	getArchivedSourceRows,

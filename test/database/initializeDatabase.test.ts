@@ -9,6 +9,7 @@ const {
 	cacheList,
 	cacheDelete,
 	openDatabaseAsync,
+	expireStaleSourceValidations,
 } = vi.hoisted(() => {
 	const mockedExecAsync = vi
 		.fn<TestAsyncFunction>()
@@ -33,6 +34,9 @@ const {
 		cacheList,
 		cacheDelete,
 		openDatabaseAsync: mockedOpenDatabaseAsync,
+		expireStaleSourceValidations: vi
+			.fn<TestAsyncFunction>()
+			.mockResolvedValue(undefined),
 	};
 });
 
@@ -70,6 +74,12 @@ vi.mock("@/constants/appConstants", () => ({
 	},
 }));
 
+vi.mock("@/services/sourceService", () => ({
+	default: {
+		expireStaleSourceValidations,
+	},
+}));
+
 vi.mock("@/database/migrations", () => ({
 	migrateDatabase: (database: SQLiteDatabase): Promise<void> =>
 		database.execAsync("FUTURE_MIGRATION_SQL"),
@@ -100,6 +110,7 @@ describe("initializeDatabase", () => {
 		vi.setSystemTime(new Date(2026, 9, 19, 0, 5));
 		execAsync.mockClear();
 		closeAsync.mockClear();
+		expireStaleSourceValidations.mockClear();
 		openDatabaseAsync.mockClear();
 		getFirstAsync.mockReset().mockResolvedValue(null);
 		cacheList.mockReset().mockReturnValue([]);
@@ -151,6 +162,11 @@ describe("initializeDatabase", () => {
 		expect(cacheList).not.toHaveBeenCalled();
 		expect(closeAsync).not.toHaveBeenCalled();
 		expect(database).toMatchObject({ execAsync });
+	});
+
+	it("expires stale source validations after migrations", async () => {
+		const database = await initializeDatabase();
+		expect(expireStaleSourceValidations).toHaveBeenCalledWith(database);
 	});
 
 	it("closes the database and propagates migration failures", async () => {
