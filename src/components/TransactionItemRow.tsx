@@ -37,19 +37,19 @@ const TransactionItemRow = ({
 		onSourceChange !== undefined || onToAmountChange !== undefined;
 	return (
 		<View style={styles.item}>
-			{count > 1 ? (
-				<View style={styles.itemHeading}>
-					<CustomText
-						style={styles.itemTitle}
-					>{`Item ${position + 1} of ${count}`}</CustomText>
+			<View style={styles.itemHeading}>
+				<CustomText
+					style={styles.itemTitle}
+				>{`Item ${position + 1} of ${count}`}</CustomText>
+				{count > 1 ? (
 					<HeaderIconButton
 						icon="close-outline"
 						isDisabled={isDisabled}
 						accessibilityLabel={`Remove item ${position + 1}`}
 						onPress={onRemove}
 					/>
-				</View>
-			) : null}
+				) : null}
+			</View>
 			<View style={styles.itemFields}>
 				<View style={styles.fieldColumn}>
 					<ModalTextField

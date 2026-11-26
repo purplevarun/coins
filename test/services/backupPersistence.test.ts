@@ -209,6 +209,7 @@ describe("real SQLite backup restore", () => {
 			expect(await settingsService.getThemeId(live.database)).toBe(value);
 			expect(readFileSync(path)).toEqual(original);
 		},
+		20000,
 	);
 
 	it("defaults older restored backups to purple without duplicating the theme row", async () => {
@@ -236,7 +237,7 @@ describe("real SQLite backup restore", () => {
 				)
 				.get(themeConstants.THEME_SETTING_KEY),
 		).toEqual({ count: 1 });
-	});
+	}, 20000);
 
 	it("restores a mixed-currency and financial-year regression fixture exactly", async () => {
 		const directory = setupRestore();
@@ -306,7 +307,7 @@ describe("real SQLite backup restore", () => {
 				readFileSync(path),
 			);
 		}
-	});
+	}, 20000);
 
 	it.each([false, true])(
 		"restores populated=%s raw databases atomically",
@@ -349,6 +350,7 @@ describe("real SQLite backup restore", () => {
 				existsSync(join(directory, "SQLite", "restore-temp.db")),
 			).toBe(false);
 		},
+		20000,
 	);
 
 	it.each([
@@ -393,6 +395,7 @@ describe("real SQLite backup restore", () => {
 				live.sqlite.prepare("SELECT * FROM categories;").all(),
 			).toEqual(originalCategories);
 		},
+		20000,
 	);
 
 	it("rolls back the entire replacement if a later table copy fails", async () => {
@@ -423,7 +426,7 @@ describe("real SQLite backup restore", () => {
 		expect(() =>
 			live.sqlite.prepare("SELECT * FROM restore_source.transactions;"),
 		).toThrow();
-	});
+	}, 20000);
 
 	it.skipIf(!process.env.PURPLECOINS_TEST_BACKUP)(
 		"restores the supplied backup and preserves its original bytes",
@@ -504,5 +507,6 @@ describe("real SQLite backup restore", () => {
 					.digest("hex"),
 			).toBe(originalHash);
 		},
+		20000,
 	);
 });

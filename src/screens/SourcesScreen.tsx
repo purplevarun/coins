@@ -101,23 +101,33 @@ const SourcesScreen = ({
 	useLayoutEffect(() => {
 		navigation.setOptions({
 			headerRight: () => (
-				<HeaderIconButton
-					accessibilityLabel={
-						searchVisible
-							? MESSAGES.COMMON.CLOSE_SEARCH
-							: MESSAGES.COMMON.SEARCH
-					}
-					icon={searchVisible ? "close-outline" : "search-outline"}
-					isActive={searchVisible}
-					onPress={() => {
-						setSearchVisible((visible) => !visible);
-						setSearchQuery("");
-						setSearchDebounced("");
-					}}
-				/>
+				<View style={styles.headerActions}>
+					<HeaderIconButton
+						accessibilityLabel={MESSAGES.COMMON.VALIDATE}
+						icon="checkmark-done"
+						isActive={sourceFilter === "PENDING_VALIDATION"}
+						onPress={() => setSourceFilter("PENDING_VALIDATION")}
+					/>
+					<HeaderIconButton
+						accessibilityLabel={
+							searchVisible
+								? MESSAGES.COMMON.CLOSE_SEARCH
+								: MESSAGES.COMMON.SEARCH
+						}
+						icon={
+							searchVisible ? "close-outline" : "search-outline"
+						}
+						isActive={searchVisible}
+						onPress={() => {
+							setSearchVisible((visible) => !visible);
+							setSearchQuery("");
+							setSearchDebounced("");
+						}}
+					/>
+				</View>
 			),
 		});
-	}, [navigation, searchVisible]);
+	}, [navigation, searchVisible, sourceFilter, styles]);
 
 	const handleValidate = useCallback(
 		async (id: string): Promise<void> => {
@@ -411,6 +421,11 @@ const themedStyles = createThemedStyles((COLORS) =>
 		screen: {
 			flex: FLEX.FILL,
 			backgroundColor: COLORS.background,
+		},
+		headerActions: {
+			flexDirection: FLEX.ROW,
+			alignItems: ALIGN.CENTER,
+			gap: SPACING.S8,
 		},
 		row: {
 			flexDirection: FLEX.ROW,

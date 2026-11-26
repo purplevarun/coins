@@ -2179,6 +2179,48 @@ describe("list screens", () => {
 		},
 	);
 
+	it.each(["ALL", "PENDING_VALIDATION"])(
+		"jumps Sources to the pending list from the header validate button (filter=%s)",
+		async (filter) => {
+			const setSourceFilter = vi.fn();
+			let stateCall = 0;
+			reactMocks.useState.mockImplementation((initial: unknown) => {
+				stateCall += 1;
+				if (stateCall === 8) return [filter, setSourceFilter];
+				return [
+					typeof initial === "function"
+						? (initial as () => unknown)()
+						: initial,
+					vi.fn(),
+				];
+			});
+			const navigation = {
+				navigate: vi.fn(),
+				setOptions: vi.fn<(options: HeaderOptions) => void>(),
+			};
+			const renderScreen = SourcesScreen as (
+				props: unknown,
+			) => ReactElement;
+			renderScreen({ navigation });
+			await flush();
+			reactMocks.useLayoutEffect.mock.calls.forEach(([effect]) =>
+				effect(),
+			);
+			const header =
+				navigation.setOptions.mock.calls[0]?.[0].headerRight();
+			const validateButton = findElement<HeaderIconButtonProps>(
+				header,
+				(props) => props.accessibilityLabel === "Validate",
+			);
+			expect(validateButton.props.icon).toBe("checkmark-done");
+			expect(validateButton.props.isActive).toBe(
+				filter === "PENDING_VALIDATION",
+			);
+			validateButton.props.onPress();
+			expect(setSourceFilter).toHaveBeenCalledWith("PENDING_VALIDATION");
+		},
+	);
+
 	it("executes ExchangeRatesScreen fetch and manual save flows", async () => {
 		let call = 0;
 		reactMocks.useState.mockImplementation((initial: any) => {

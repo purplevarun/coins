@@ -768,7 +768,7 @@ describe("TransactionFormScreen", () => {
 					node?.props?.style?.borderWidth === undefined,
 			);
 			expect(modes).toHaveLength(2);
-			expect(defaults).toHaveLength(5);
+			expect(defaults).toHaveLength(4);
 			expect(
 				defaults.every(
 					(field) =>
@@ -787,7 +787,7 @@ describe("TransactionFormScreen", () => {
 		},
 	);
 
-	it("hides the single-item heading and focuses newly added amounts", () => {
+	it("renders the item carousel and focuses newly added amounts", () => {
 		const harness = createFormHarness();
 		const initial = harness.render();
 		expect(

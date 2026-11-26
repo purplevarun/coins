@@ -62,13 +62,13 @@ describe("TransactionItemRow", () => {
 		).toBe("Remove item 1");
 	});
 
-	it("hides the heading and remove button for a single item", () => {
+	it("shows the heading but hides the remove button for a single item", () => {
 		const tree = render({ count: 1 });
 		expect(
-			findAllByType(tree, "CustomText").filter(
+			findAllByType(tree, "CustomText").some(
 				(node) => node.props.children === "Item 1 of 1",
 			),
-		).toHaveLength(0);
+		).toBe(true);
 		expect(findAllByType(tree, "HeaderIconButton")).toHaveLength(0);
 	});
 

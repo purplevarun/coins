@@ -208,11 +208,13 @@ const TransactionFormScreen = ({
 		initialCategoryId,
 	]);
 
-	const selectedSource = sources.find((source) => source.id === sourceId);
+	const selectedSource = sources.find(
+		(source) => source.id === (items[0]?.sourceId ?? sourceId),
+	);
 	const isTransfer = type === "TRANSFER";
 	const isInvestment = classification === "INVESTMENT";
-	const itemCardWidth = Math.max(itemsWidth * 0.8, 1);
-	const itemArrowWidth = itemsWidth * 0.1;
+	const itemArrowWidth = itemsWidth * 0.15;
+	const itemCardWidth = Math.max(itemsWidth - itemArrowWidth * 2, 1);
 	const shownItemIndex = Math.min(
 		activeItemIndex,
 		Math.max(items.length - 1, 0),
@@ -474,23 +476,6 @@ const TransactionFormScreen = ({
 					</View>
 					<View style={styles.pinnedRow}>
 						<View style={styles.pinnedCell}>
-							<SelectField
-								isCompact
-								label={
-									type === "CREDIT"
-										? MESSAGES.TRANSACTION_FORM
-												.DESTINATION_SOURCE
-										: "Source"
-								}
-								onChange={setSourceId}
-								options={sourceOptions}
-								placeholder={
-									MESSAGES.TRANSACTION_FORM.SELECT_SOURCE
-								}
-								value={sourceId}
-							/>
-						</View>
-						<View style={styles.pinnedCell}>
 							<DateField
 								isCompact
 								label={MESSAGES.TRANSACTION_FORM.DATE_LABEL}
@@ -498,8 +483,6 @@ const TransactionFormScreen = ({
 								value={transactionAt}
 							/>
 						</View>
-					</View>
-					<View style={styles.pinnedRow}>
 						<View style={styles.pinnedCell}>
 							{isInvestment || isTransfer ? null : (
 								<SelectField
@@ -513,6 +496,8 @@ const TransactionFormScreen = ({
 								/>
 							)}
 						</View>
+					</View>
+					<View style={styles.pinnedRow}>
 						<View style={styles.pinnedCell}>
 							<ModalTextField
 								isCompact
@@ -538,6 +523,7 @@ const TransactionFormScreen = ({
 								value={reason}
 							/>
 						</View>
+						<View style={styles.pinnedCell} />
 					</View>
 				</View>
 			}
@@ -795,26 +781,16 @@ const TransactionFormScreen = ({
 															);
 														}
 													}}
-													onSourceChange={
-														items.length > 1
-															? (value) =>
-																	updateItem(
-																		item.key,
-																		{
-																			sourceId:
-																				value,
-																			sourceName:
-																				sources.find(
-																					(
-																						source,
-																					) =>
-																						source.id ===
-																						value,
-																				)
-																					?.name,
-																		},
-																	)
-															: undefined
+													onSourceChange={(value) =>
+														updateItem(item.key, {
+															sourceId: value,
+															sourceName:
+																sources.find(
+																	(source) =>
+																		source.id ===
+																		value,
+																)?.name,
+														})
 													}
 													onToAmountChange={
 														isTransfer
@@ -920,12 +896,8 @@ const themedStyles = createThemedStyles((COLORS) =>
 		footerAction: { flex: 1, minWidth: 160 },
 		itemArrow: { alignItems: ALIGN.CENTER },
 		itemCard: {
-			backgroundColor: COLORS.surfaceFaint,
-			borderColor: COLORS.borderStrong,
-			borderRadius: RADIUS.S16,
-			borderWidth: BORDER.THIN,
 			marginHorizontal: SPACING.S4,
-			padding: SPACING.S12,
+			padding: SPACING.S4,
 		},
 		itemCarousel: { flexDirection: FLEX.ROW, alignItems: ALIGN.CENTER },
 		itemDot: {
