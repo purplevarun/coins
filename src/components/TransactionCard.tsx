@@ -58,7 +58,10 @@ const TransactionCard = ({
 		? [
 				...new Set(
 					transaction.items.map(
-						(item) => item.categoryName ?? item.investmentName,
+						(item) =>
+							item.categoryName ??
+							item.investmentName ??
+							item.destinationSourceName,
 					),
 				),
 			].join(", ")

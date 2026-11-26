@@ -13,36 +13,40 @@
 
 # Transaction Data Rules
 
-1. NEVER create a transaction without `category_id` when `classification = 'GENERAL'` (DEBIT/CREDIT)
-   — the category lives on the `transaction_items` rows (parent `category_id` stays NULL).
-2. NEVER create an INVESTMENT transaction without `investment_id` — it lives on the
-   `transaction_items` rows (parent `investment_id` stays NULL when itemized; legacy
-   single-investment rows may still carry it on the parent).
-3. INVESTMENT rows must NOT carry a `category_id` — categories belong to GENERAL rows only.
-   Likewise, GENERAL rows' items must NOT carry `investment_id`.
-4. Buys/sells/dividends/investment returns/related wallet movements = `INVESTMENT` + one or more
+1. EVERY transaction is itemized — it must have at least one `transaction_items` row.
+   All entity attribution lives ONLY on the items: `source_id`, `destination_source_id`,
+   `category_id`, `investment_id`, `to_amount`. The `transactions` row keeps txn-level
+   fields only (classification, type, reason, `amount`/`to_amount` = item sums, `trip_id`,
+   `is_applicable`, `transaction_at`) — it is a linking/context row, never an entity carrier.
+2. Every item carries `source_id` (the wallet it debits from / credits into). Items may
+   share or differ in `source_id` — that is how one payment splits across wallets.
+3. GENERAL DEBIT/CREDIT items carry `category_id`; INVESTMENT DEBIT/CREDIT items carry
+   `investment_id`; TRANSFER items carry `destination_source_id` + `to_amount` (and
+   `investment_id` when the transfer funds an investment). Never mix entity kinds on one item.
+4. NEVER create an INVESTMENT transaction without `investment_id` on its items; NEVER create
+   a GENERAL DEBIT/CREDIT transaction without `category_id` on its items.
+5. Buys/sells/dividends/investment returns/related wallet movements = `INVESTMENT` + one or more
    `transaction_items` rows each linked to an `investment_id` (splits one payment across investments).
-5. Fees, commissions and charges = `GENERAL` DEBIT + an expense category (e.g. `Investment Charges`, `Bank Charges`).
-6. Transfers between own sources = `TRANSFER` (no category, no items); an `INVESTMENT` DEBIT funds
-   an investment instead — do not use TRANSFER for that.
-7. Every non-TRANSFER transaction stores its split in `transaction_items` rows (position-ordered;
-   GENERAL items carry `category_id`, INVESTMENT items carry `investment_id`, never both) — the form,
-   splits and analysis read the items. When recategorizing a DEBIT/CREDIT, keep the item rows in sync.
+6. Fees, commissions and charges = `GENERAL` DEBIT + an expense category (e.g. `Investment Charges`, `Bank Charges`).
+7. Transfers between own sources = `TRANSFER`; an `INVESTMENT` DEBIT funds an investment
+   instead — do not use TRANSFER for that.
 8. After inserting/editing transactions, ALWAYS run a sweep for violations:
-   GENERAL DEBIT/CREDIT rows with no categorized `transaction_items`,
-   INVESTMENT rows with NULL parent `investment_id` AND no `transaction_items` carrying
-   `investment_id`, items carrying both `category_id` and `investment_id`, and TRANSFER rows
-   with items. Fix before delivering.
+   `transactions` rows with no `transaction_items`, items with NULL `source_id`,
+   GENERAL DEBIT/CREDIT items without `category_id`, INVESTMENT DEBIT/CREDIT items
+   without `investment_id`, TRANSFER items without `destination_source_id`, and items
+   carrying both `category_id` and `investment_id`. Fix before delivering.
 
 # Backup (.pc) Data Editing — hard-won rules
 
 Applies when hand-editing `.pc` backup files (SQLite). Every rule below exists because
 a mistake was made without it:
 
-1. NEVER recategorize a DEBIT by only updating `transactions.category_id` — the
-   `transaction_items` row keeps the old category and the app shows the OLD one. Update both.
-2. Every DEBIT created must get a `transaction_items` row (position 0, same category + amount)
-   or the form shows empty category/items.
+1. NEVER recategorize by updating a row on the wrong table — entity fields live on
+   `transaction_items` (`category_id`, `investment_id`, `source_id`, `destination_source_id`,
+   `to_amount`). Update the item rows; keep `transactions.amount`/`to_amount` as item sums.
+2. Every transaction created must get at least one `transaction_items` row (position 0,
+   same amount + the appropriate entity fields) or it is invisible — the select joins the
+   position-0 item and the form shows an empty item list.
 3. NEVER hand-compute epoch timestamps blind — a date constant was off by a full day once.
    Verify `transaction_at` against existing rows on the same calendar date after insert.
 4. Schema conventions: `id` = uuid string, `amount` = TEXT, `created_at`/`updated_at`/

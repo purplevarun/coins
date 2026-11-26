@@ -15,7 +15,6 @@ const {
 	deleteCategoryRow,
 	deleteSimpleEntityRow,
 	deleteTransactionItemRow,
-	deleteTransactionItemRows,
 	getCategoryRow,
 	getInvestmentRow,
 	getLinkedTransactionIdRows,
@@ -117,22 +116,81 @@ const convertCategoryToInvestment = async (
 				(item) => item.categoryId !== categoryId,
 			);
 			if (remainingItems.length === 0) {
-				await deleteTransactionItemRows(database, transaction.id);
+				for (const [position, item] of convertedItems.entries()) {
+					await deleteTransactionItemRow(database, item.id);
+					await createTransactionItemRow(database, {
+						id: item.id,
+						transactionId: item.transactionId,
+						categoryId: null,
+						investmentId,
+						sourceId: item.sourceId ?? null,
+						destinationSourceId: item.destinationSourceId ?? null,
+						amount: item.amount,
+						toAmount: item.toAmount ?? null,
+						position,
+						createdAt: item.createdAt,
+						updatedAt: now,
+					});
+				}
 				await updateTransactionRelationRow(
 					database,
 					transaction.id,
 					{
 						classification: "INVESTMENT",
 						amount: transaction.amount,
-						investmentId,
 						reason,
 					},
 					now,
 				);
 				continue;
 			}
-			for (const item of convertedItems) {
+			const newTransactionId = createId();
+			await insertTransactionRow(
+				database,
+				{
+					classification: "INVESTMENT",
+					type: transaction.type,
+					isApplicable: transaction.isApplicable,
+					sourceId: transaction.sourceId,
+					amount: sumMoney(convertedItems.map((item) => item.amount)),
+					reason,
+					transactionAt: transaction.transactionAt,
+				},
+				newTransactionId,
+				now,
+			);
+			for (const [position, item] of convertedItems.entries()) {
 				await deleteTransactionItemRow(database, item.id);
+				await createTransactionItemRow(database, {
+					id: createId(),
+					transactionId: newTransactionId,
+					categoryId: null,
+					investmentId,
+					sourceId: item.sourceId ?? null,
+					destinationSourceId: item.destinationSourceId ?? null,
+					amount: item.amount,
+					toAmount: item.toAmount ?? null,
+					position,
+					createdAt: item.createdAt,
+					updatedAt: now,
+				});
+			}
+			for (const [position, item] of remainingItems.entries()) {
+				if (item.position === position) continue;
+				await deleteTransactionItemRow(database, item.id);
+				await createTransactionItemRow(database, {
+					id: item.id,
+					transactionId: item.transactionId,
+					categoryId: item.categoryId ?? null,
+					investmentId: item.investmentId ?? null,
+					sourceId: item.sourceId ?? null,
+					destinationSourceId: item.destinationSourceId ?? null,
+					amount: item.amount,
+					toAmount: item.toAmount ?? null,
+					position,
+					createdAt: item.createdAt,
+					updatedAt: now,
+				});
 			}
 			await updateTransactionRelationRow(
 				database,
@@ -143,21 +201,6 @@ const convertCategoryToInvestment = async (
 					tripId: transaction.tripId ?? undefined,
 					reason: transaction.reason,
 				},
-				now,
-			);
-			await insertTransactionRow(
-				database,
-				{
-					classification: "INVESTMENT",
-					type: transaction.type,
-					isApplicable: transaction.isApplicable,
-					sourceId: transaction.sourceId,
-					amount: sumMoney(convertedItems.map((item) => item.amount)),
-					investmentId,
-					reason,
-					transactionAt: transaction.transactionAt,
-				},
-				createId(),
 				now,
 			);
 		}
@@ -187,29 +230,36 @@ const convertInvestmentToCategory = async (
 			"INVESTMENT",
 			investmentId,
 		)) {
-			const isDebit = transaction.type === "DEBIT";
+			const linkedItems = transaction.items.filter(
+				(item) => item.investmentId === investmentId,
+			);
+			for (const item of linkedItems) {
+				await deleteTransactionItemRow(database, item.id);
+				await createTransactionItemRow(database, {
+					id: item.id,
+					transactionId: item.transactionId,
+					categoryId:
+						transaction.type === "TRANSFER" ? null : categoryId,
+					investmentId: null,
+					sourceId: item.sourceId ?? null,
+					destinationSourceId: item.destinationSourceId ?? null,
+					amount: item.amount,
+					toAmount: item.toAmount ?? null,
+					position: item.position,
+					createdAt: item.createdAt,
+					updatedAt: now,
+				});
+			}
 			await updateTransactionRelationRow(
 				database,
 				transaction.id,
 				{
 					classification: "GENERAL",
 					amount: transaction.amount,
-					categoryId: isDebit ? undefined : categoryId,
 					reason: transaction.reason,
 				},
 				now,
 			);
-			if (isDebit) {
-				await createTransactionItemRow(database, {
-					id: createId(),
-					transactionId: transaction.id,
-					categoryId,
-					amount: transaction.amount,
-					position: 0,
-					createdAt: now,
-					updatedAt: now,
-				});
-			}
 		}
 		await deleteSimpleEntityRow(database, "investments", investmentId);
 	});

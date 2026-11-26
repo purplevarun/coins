@@ -363,4 +363,29 @@ describe("advanced components", () => {
 			),
 		).toBe(false);
 	});
+
+	it("lists destination source names for transfer items", () => {
+		const tree = TransactionCard({
+			transaction: {
+				...baseTransaction,
+				type: "TRANSFER",
+				destinationSourceName: "Bank",
+				items: [
+					{
+						id: "one",
+						transactionId: "t1",
+						categoryId: null,
+						destinationSourceId: "s2",
+						destinationSourceName: "Bank",
+						amount: "50",
+						position: 0,
+						createdAt: 1,
+						updatedAt: 1,
+					},
+				],
+			},
+			onPress: vi.fn(),
+		});
+		expect(hasTextContaining(tree, "Bank")).toBe(true);
+	});
 });

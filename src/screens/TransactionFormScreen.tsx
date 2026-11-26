@@ -32,7 +32,6 @@ import type Source from "@/types/Source";
 import type TransactionClassification from "@/types/TransactionClassification";
 import type TransactionFormScreenProps from "@/types/TransactionFormScreenProps";
 import type TransactionItemDraft from "@/types/TransactionItemDraft";
-import type TransactionItemInput from "@/types/TransactionItemInput";
 import type TransactionType from "@/types/TransactionType";
 import type Trip from "@/types/Trip";
 import createThemedStyles from "@/utils/createThemedStyles";
@@ -86,10 +85,6 @@ const TransactionFormScreen = ({
 		route.params?.initialType ?? DEFAULT_TRANSACTION_TYPE,
 	);
 	const [sourceId, setSourceId] = useState("");
-	const [destinationSourceId, setDestinationSourceId] = useState("");
-	const [amount, setAmount] = useState(route.params?.initialAmount ?? "");
-	const [toAmount, setToAmount] = useState("");
-	const [categoryId, setCategoryId] = useState("");
 	const [tripId, setTripId] = useState("");
 	const [reason, setReason] = useState(route.params?.initialReason ?? "");
 	const [transactionAt, setTransactionAt] = useState(
@@ -155,7 +150,6 @@ const TransactionFormScreen = ({
 								)?.id ??
 								"",
 						);
-						setCategoryId(initialCategoryId ?? "");
 					}
 					// Prefill default trip for new transactions
 					if (defaultTrip) {
@@ -166,38 +160,37 @@ const TransactionFormScreen = ({
 				setClassification(existingTransaction.classification);
 				setType(existingTransaction.type);
 				setSourceId(existingTransaction.sourceId);
-				setDestinationSourceId(
-					existingTransaction.destinationSourceId ?? "",
-				);
-				setAmount(existingTransaction.amount);
-				setToAmount(existingTransaction.toAmount ?? "");
-				setCategoryId(existingTransaction.categoryId ?? "");
 				setTripId(existingTransaction.tripId ?? "");
 				setReason(existingTransaction.reason);
 				setIsApplicable(existingTransaction.isApplicable ?? true);
-				if (existingTransaction.type !== "TRANSFER") {
-					setItems(
-						existingTransaction.items.length > 0
-							? existingTransaction.items.map((item) => ({
-									key: createId(),
-									id: cloneFromTransactionId
-										? undefined
-										: item.id,
-									amount: item.amount,
-									categoryId: item.categoryId ?? "",
-									categoryName: item.categoryName,
-									investmentId: item.investmentId ?? "",
-									investmentName: item.investmentName,
-								}))
-							: [
-									createItemDraft(
-										existingTransaction.amount,
-										existingTransaction.categoryId ?? "",
-										existingTransaction.investmentId ?? "",
-									),
-								],
-					);
-				}
+				setItems(
+					existingTransaction.items.length > 0
+						? existingTransaction.items.map((item) => ({
+								key: createId(),
+								id: cloneFromTransactionId
+									? undefined
+									: item.id,
+								amount: item.amount,
+								categoryId: item.categoryId ?? "",
+								categoryName: item.categoryName,
+								investmentId: item.investmentId ?? "",
+								investmentName: item.investmentName,
+								sourceId: item.sourceId ?? "",
+								sourceName: item.sourceName,
+								destinationSourceId:
+									item.destinationSourceId ?? "",
+								destinationSourceName:
+									item.destinationSourceName,
+								toAmount: item.toAmount ?? "",
+							}))
+						: [
+								createItemDraft(
+									existingTransaction.amount,
+									existingTransaction.categoryId ?? "",
+									existingTransaction.investmentId ?? "",
+								),
+							],
+				);
 				// For clone mode: use today's date, not the original date
 				if (!cloneFromTransactionId) {
 					setTransactionAt(existingTransaction.transactionAt);
@@ -216,11 +209,7 @@ const TransactionFormScreen = ({
 	]);
 
 	const selectedSource = sources.find((source) => source.id === sourceId);
-	const selectedDestination = sources.find(
-		(source) => source.id === destinationSourceId,
-	);
-	const isTransfer = classification === "GENERAL" && type === "TRANSFER";
-	const isItemized = !isTransfer;
+	const isTransfer = type === "TRANSFER";
 	const isInvestment = classification === "INVESTMENT";
 	const itemCardWidth = Math.max(itemsWidth * 0.8, 1);
 	const itemArrowWidth = itemsWidth * 0.1;
@@ -236,10 +225,6 @@ const TransactionFormScreen = ({
 		});
 		setActiveItemIndex(target);
 	};
-	const isSameCurrencyTransfer =
-		isTransfer &&
-		selectedSource?.currencyCode === selectedDestination?.currencyCode;
-	const effectiveToAmount = isSameCurrencyTransfer ? amount : toAmount;
 	useLayoutEffect(() => {
 		navigation.setOptions({
 			headerRight: () => (
@@ -259,52 +244,40 @@ const TransactionFormScreen = ({
 							isApplicable ? COLORS.primary : COLORS.textMuted
 						}
 					/>
-					{isItemized ? (
-						<HeaderIconButton
-							icon="add"
-							isDisabled={isSaving}
-							accessibilityLabel={
-								MESSAGES.TRANSACTION_FORM.ADD_ITEM
-							}
-							onPress={() => {
-								const item = createItemDraft();
-								setItems((current) => [...current, item]);
-								setTimeout(() => {
-									const scroller = itemsScroller.current;
-									if (
-										typeof scroller?.scrollToEnd ===
-										"function"
-									) {
-										scroller.scrollToEnd({
-											animated: true,
-										});
-									}
-								}, 0);
-							}}
-						/>
-					) : null}
+					<HeaderIconButton
+						icon="add"
+						isDisabled={isSaving}
+						accessibilityLabel={MESSAGES.TRANSACTION_FORM.ADD_ITEM}
+						onPress={() => {
+							const item = createItemDraft();
+							setItems((current) => [...current, item]);
+							setTimeout(() => {
+								const scroller = itemsScroller.current;
+								if (
+									typeof scroller?.scrollToEnd === "function"
+								) {
+									scroller.scrollToEnd({
+										animated: true,
+									});
+								}
+							}, 0);
+						}}
+					/>
 				</View>
 			),
 		});
-	}, [isItemized, isApplicable, isSaving, navigation, styles, COLORS]);
+	}, [isApplicable, isSaving, navigation, styles, COLORS]);
 	let itemTotal: string | null;
 	try {
 		itemTotal = sumMoney(items.map((item) => normalizeMoney(item.amount)));
 	} catch {
 		itemTotal = null;
 	}
-	let total = itemTotal;
-	if (!isItemized) {
-		try {
-			total = normalizeMoney(amount);
-		} catch {
-			total = null;
-		}
-	}
+	const total = itemTotal;
 
 	const updateItem = (
 		key: string,
-		changes: Partial<TransactionItemInput>,
+		changes: Partial<TransactionItemDraft>,
 	): void => {
 		setItems((current) =>
 			current.map((item) =>
@@ -347,40 +320,27 @@ const TransactionFormScreen = ({
 		nextClassification: TransactionClassification,
 		nextType: TransactionType,
 	): void => {
-		const nextIsItemized = !(
-			nextClassification === "GENERAL" && nextType === "TRANSFER"
-		);
-		const applyChange = (): void => {
-			if (isItemized && !nextIsItemized) {
-				setAmount(itemTotal ?? "");
-				setCategoryId(items[0]?.categoryId ?? "");
-				setItems([createItemDraft()]);
-			} else if (!isItemized && nextIsItemized) {
-				setItems([createItemDraft(amount, categoryId)]);
-			} else if (classification !== nextClassification) {
-				setItems((current) =>
-					current.map((item) => ({
-						key: item.key,
-						id: item.id,
-						amount: item.amount,
-						categoryId: "",
-						investmentId: "",
-					})),
-				);
-			}
-			setClassification(nextClassification);
-			setType(nextType);
-		};
-		if (isItemized && !nextIsItemized && items.length > 1) {
-			dialog.confirm({
-				title: MESSAGES.TRANSACTION_FORM.REMOVE_ITEMS_TITLE,
-				message: MESSAGES.TRANSACTION_FORM.REMOVE_ITEMS_MESSAGE,
-				confirmLabel: MESSAGES.COMMON.CONTINUE,
-				onConfirm: applyChange,
-			});
-		} else {
-			applyChange();
+		const nextIsTransfer = nextType === "TRANSFER";
+		const entityReset =
+			classification !== nextClassification ||
+			isTransfer !== nextIsTransfer;
+		if (entityReset) {
+			setItems((current) =>
+				current.map((item) => ({
+					key: item.key,
+					id: item.id,
+					amount: item.amount,
+					sourceId: item.sourceId,
+					sourceName: item.sourceName,
+					categoryId: "",
+					investmentId: "",
+					destinationSourceId: "",
+					toAmount: "",
+				})),
+			);
 		}
+		setClassification(nextClassification);
+		setType(nextType);
 	};
 
 	const handleClassificationChange = (value: string): void => {
@@ -414,21 +374,22 @@ const TransactionFormScreen = ({
 				isApplicable,
 				sourceId,
 				destinationSourceId:
-					isTransfer && destinationSourceId
-						? destinationSourceId
+					isTransfer && items[0]?.destinationSourceId
+						? items[0].destinationSourceId
 						: undefined,
-				amount: isItemized ? (itemTotal ?? "0") : amount,
-				items: isItemized
-					? items.map((item) => ({
-							id: item.id,
-							amount: item.amount,
-							categoryId: item.categoryId,
-							investmentId: item.investmentId,
-						}))
-					: undefined,
+				amount: itemTotal ?? "0",
+				items: items.map((item) => ({
+					id: item.id,
+					amount: item.amount,
+					categoryId: item.categoryId,
+					investmentId: item.investmentId,
+					sourceId: item.sourceId ?? undefined,
+					destinationSourceId: item.destinationSourceId ?? undefined,
+					toAmount: item.toAmount ?? undefined,
+				})),
 				toAmount:
-					isTransfer && effectiveToAmount
-						? effectiveToAmount
+					isTransfer && items[0]?.toAmount
+						? items[0].toAmount
 						: undefined,
 				categoryId: undefined,
 				tripId:
@@ -530,43 +491,17 @@ const TransactionFormScreen = ({
 							/>
 						</View>
 						<View style={styles.pinnedCell}>
-							{isTransfer ? (
-								<SelectField
-									isCompact
-									label={
-										MESSAGES.TRANSACTION_FORM
-											.DESTINATION_SOURCE
-									}
-									onChange={setDestinationSourceId}
-									options={sourceOptions.filter(
-										(option) => option.value !== sourceId,
-									)}
-									placeholder={
-										MESSAGES.TRANSACTION_FORM
-											.SELECT_DESTINATION
-									}
-									value={destinationSourceId}
-								/>
-							) : (
-								<DateField
-									isCompact
-									label={MESSAGES.TRANSACTION_FORM.DATE_LABEL}
-									onChange={setTransactionAt}
-									value={transactionAt}
-								/>
-							)}
+							<DateField
+								isCompact
+								label={MESSAGES.TRANSACTION_FORM.DATE_LABEL}
+								onChange={setTransactionAt}
+								value={transactionAt}
+							/>
 						</View>
 					</View>
 					<View style={styles.pinnedRow}>
 						<View style={styles.pinnedCell}>
-							{isTransfer ? (
-								<DateField
-									isCompact
-									label={MESSAGES.TRANSACTION_FORM.DATE_LABEL}
-									onChange={setTransactionAt}
-									value={transactionAt}
-								/>
-							) : isInvestment ? null : (
+							{isInvestment || isTransfer ? null : (
 								<SelectField
 									isCompact
 									isOptional
@@ -594,7 +529,7 @@ const TransactionFormScreen = ({
 														.DEFAULTS_TO_INVESTMENT_ITEMS
 												: MESSAGES.TRANSACTION_FORM
 														.DEFAULTS_TO_INVESTMENT
-											: isItemized && items.length > 1
+											: items.length > 1
 												? MESSAGES.TRANSACTION_FORM
 														.DEFAULTS_TO_ITEMS
 												: MESSAGES.TRANSACTION_FORM
@@ -648,21 +583,7 @@ const TransactionFormScreen = ({
 					style={styles.form}
 					pointerEvents={isSaving ? "none" : "auto"}
 				>
-					{!isItemized ? (
-						<ModalTextField
-							isDisabled={isSaving}
-							keyboardType="decimal-pad"
-							label={
-								selectedSource
-									? `From (${selectedSource.currencyCode})`
-									: "Amount"
-							}
-							onChange={setAmount}
-							placeholder="0.00"
-							value={amount}
-						/>
-					) : null}
-					{isItemized ? (
+					{
 						<View
 							onLayout={(event) =>
 								setItemsWidth(event.nativeEvent.layout.width)
@@ -724,51 +645,136 @@ const TransactionFormScreen = ({
 												<TransactionItemRow
 													count={items.length}
 													currencyCode={
-														selectedSource?.currencyCode
+														sources.find(
+															(source) =>
+																source.id ===
+																(item.sourceId ??
+																	sourceId),
+														)?.currencyCode
 													}
 													entityLabel={
-														isInvestment
+														isTransfer
 															? MESSAGES
 																	.TRANSACTION_FORM
-																	.INVESTMENT
-															: MESSAGES
-																	.TRANSACTION_FORM
-																	.CATEGORY_LABEL
+																	.DESTINATION_SOURCE
+															: isInvestment
+																? MESSAGES
+																		.TRANSACTION_FORM
+																		.INVESTMENT
+																: MESSAGES
+																		.TRANSACTION_FORM
+																		.CATEGORY_LABEL
 													}
 													entityName={
-														isInvestment
-															? item.investmentName
-															: item.categoryName
+														isTransfer
+															? item.destinationSourceName
+															: isInvestment
+																? item.investmentName
+																: item.categoryName
 													}
 													entityOptions={
-														isInvestment
-															? investmentOptions
-															: categoryOptions
+														isTransfer
+															? sourceOptions.filter(
+																	(option) =>
+																		option.value !==
+																		(item.sourceId ??
+																			sourceId),
+																)
+															: isInvestment
+																? investmentOptions
+																: categoryOptions
 													}
 													entityPlaceholder={
-														isInvestment
+														isTransfer
 															? MESSAGES
 																	.TRANSACTION_FORM
-																	.SELECT_INVESTMENT
-															: MESSAGES
-																	.TRANSACTION_FORM
-																	.SELECT_CATEGORY
+																	.SELECT_DESTINATION
+															: isInvestment
+																? MESSAGES
+																		.TRANSACTION_FORM
+																		.SELECT_INVESTMENT
+																: MESSAGES
+																		.TRANSACTION_FORM
+																		.SELECT_CATEGORY
 													}
 													entityValue={
-														isInvestment
-															? item.investmentId
-															: item.categoryId
+														isTransfer
+															? item.destinationSourceId
+															: isInvestment
+																? item.investmentId
+																: item.categoryId
 													}
 													isDisabled={isSaving}
+													isToAmountDisabled={
+														sources.find(
+															(source) =>
+																source.id ===
+																(item.sourceId ??
+																	sourceId),
+														)?.currencyCode ===
+														sources.find(
+															(source) =>
+																source.id ===
+																item.destinationSourceId,
+														)?.currencyCode
+													}
 													item={item}
 													position={position}
+													sourceLabel={
+														type === "CREDIT"
+															? MESSAGES
+																	.TRANSACTION_FORM
+																	.DESTINATION_SOURCE
+															: "Source"
+													}
+													sourceName={item.sourceName}
+													sourceOptions={sourceOptions.filter(
+														(option) =>
+															!isTransfer ||
+															option.value !==
+																item.destinationSourceId,
+													)}
+													sourcePlaceholder={
+														MESSAGES
+															.TRANSACTION_FORM
+															.SELECT_SOURCE
+													}
+													sourceValue={
+														item.sourceId ??
+														sourceId
+													}
+													toCurrencyCode={
+														sources.find(
+															(source) =>
+																source.id ===
+																item.destinationSourceId,
+														)?.currencyCode
+													}
 													onAmountChange={(value) =>
 														updateItem(item.key, {
 															amount: value,
 														})
 													}
 													onEntityChange={(value) => {
-														if (isInvestment) {
+														if (isTransfer) {
+															updateItem(
+																item.key,
+																{
+																	destinationSourceId:
+																		value,
+																	destinationSourceName:
+																		sources.find(
+																			(
+																				source,
+																			) =>
+																				source.id ===
+																				value,
+																		)?.name,
+																},
+															);
+														} else if (
+															isInvestment
+														) {
 															updateItem(
 																item.key,
 																{
@@ -789,6 +795,39 @@ const TransactionFormScreen = ({
 															);
 														}
 													}}
+													onSourceChange={
+														items.length > 1
+															? (value) =>
+																	updateItem(
+																		item.key,
+																		{
+																			sourceId:
+																				value,
+																			sourceName:
+																				sources.find(
+																					(
+																						source,
+																					) =>
+																						source.id ===
+																						value,
+																				)
+																					?.name,
+																		},
+																	)
+															: undefined
+													}
+													onToAmountChange={
+														isTransfer
+															? (value) =>
+																	updateItem(
+																		item.key,
+																		{
+																			toAmount:
+																				value,
+																		},
+																	)
+															: undefined
+													}
 													onRemove={() =>
 														setItems((current) =>
 															current.filter(
@@ -840,17 +879,7 @@ const TransactionFormScreen = ({
 								</View>
 							) : null}
 						</View>
-					) : null}
-					{isTransfer ? (
-						<ModalTextField
-							isDisabled={isSameCurrencyTransfer}
-							keyboardType="decimal-pad"
-							label={`To amount${selectedDestination ? ` (${selectedDestination.currencyCode})` : ""}`}
-							onChange={setToAmount}
-							placeholder="0.00"
-							value={effectiveToAmount}
-						/>
-					) : null}
+					}
 					{transactionId ? (
 						<AppButton
 							label={MESSAGES.TRANSACTION_FORM.DELETE_ACTION}

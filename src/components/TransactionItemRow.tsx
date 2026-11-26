@@ -19,11 +19,22 @@ const TransactionItemRow = ({
 	entityPlaceholder,
 	entityValue,
 	entityName,
+	isToAmountDisabled = false,
+	sourceLabel,
+	sourceName,
+	sourceOptions,
+	sourcePlaceholder,
+	sourceValue,
+	toCurrencyCode,
 	onAmountChange,
 	onEntityChange,
+	onSourceChange,
+	onToAmountChange,
 	onRemove,
 }: TransactionItemRowProps): React.JSX.Element => {
 	const styles = useThemedStyles(themedStyles);
+	const hasSecondaryRow =
+		onSourceChange !== undefined || onToAmountChange !== undefined;
 	return (
 		<View style={styles.item}>
 			{count > 1 ? (
@@ -72,6 +83,46 @@ const TransactionItemRow = ({
 						}
 					/>
 				</View>
+				{hasSecondaryRow && onToAmountChange ? (
+					<View style={styles.fieldColumn}>
+						<ModalTextField
+							isDisabled={isDisabled || isToAmountDisabled}
+							keyboardType="decimal-pad"
+							label={`To amount${toCurrencyCode ? ` (${toCurrencyCode})` : ""}`}
+							placeholder="0.00"
+							value={item.toAmount ?? ""}
+							onChange={onToAmountChange}
+						/>
+					</View>
+				) : null}
+				{onSourceChange ? (
+					<View style={styles.fieldColumn}>
+						<SelectField
+							label={sourceLabel ?? "Source"}
+							placeholder={sourcePlaceholder ?? "Select source"}
+							value={sourceValue ?? ""}
+							onChange={onSourceChange}
+							options={
+								sourceValue &&
+								sourceOptions &&
+								!sourceOptions.some(
+									(option) => option.value === sourceValue,
+								)
+									? [
+											{
+												value: sourceValue,
+												label:
+													sourceName ??
+													sourceLabel ??
+													"Source",
+											},
+											...sourceOptions,
+										]
+									: (sourceOptions ?? [])
+							}
+						/>
+					</View>
+				) : null}
 			</View>
 		</View>
 	);

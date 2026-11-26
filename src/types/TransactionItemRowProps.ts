@@ -12,8 +12,17 @@ type TransactionItemRowProps = {
 	entityPlaceholder: string;
 	entityValue?: string | null;
 	entityName?: string;
+	isToAmountDisabled?: boolean;
+	sourceLabel?: string;
+	sourceName?: string;
+	sourceOptions?: readonly SelectOption[];
+	sourcePlaceholder?: string;
+	sourceValue?: string | null;
+	toCurrencyCode?: string;
 	onAmountChange: (value: string) => void;
 	onEntityChange: (value: string) => void;
+	onSourceChange?: (value: string) => void;
+	onToAmountChange?: (value: string) => void;
 	onRemove: () => void;
 };
 

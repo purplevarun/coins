@@ -30,17 +30,9 @@ const CATEGORY_ALLOCATION_FROM = `
 			t.type AS type, source.currency_code AS currencyCode
 		FROM transaction_items item
 		INNER JOIN transactions t ON t.id = item.transaction_id
-		INNER JOIN sources source ON source.id = t.source_id
+		INNER JOIN sources source ON source.id = item.source_id
 		WHERE t.classification = 'GENERAL' AND t.type IN ('DEBIT', 'CREDIT')
 			AND COALESCE(t.is_applicable, 1) = 1
-			AND t.transaction_at BETWEEN ? AND ?
-		UNION ALL
-		SELECT t.category_id, t.amount, t.type, source.currency_code
-		FROM transactions t
-		INNER JOIN sources source ON source.id = t.source_id
-		WHERE t.classification = 'GENERAL' AND t.type = 'CREDIT'
-			AND COALESCE(t.is_applicable, 1) = 1
-			AND t.category_id IS NOT NULL
 			AND t.transaction_at BETWEEN ? AND ?
 	) allocation
 `;
@@ -51,13 +43,13 @@ const TRANSACTION_SELECT = `
 		t.classification,
 		t.type,
 		COALESCE(t.is_applicable, 1) AS isApplicable,
-		t.source_id AS sourceId,
-		t.destination_source_id AS destinationSourceId,
+		primary_item.source_id AS sourceId,
+		primary_item.destination_source_id AS destinationSourceId,
 		t.amount,
 		t.to_amount AS toAmount,
-		t.category_id AS categoryId,
+		primary_item.category_id AS categoryId,
 		t.trip_id AS tripId,
-		t.investment_id AS investmentId,
+		primary_item.investment_id AS investmentId,
 		t.reason,
 		t.transaction_at AS transactionAt,
 		t.created_at AS createdAt,
@@ -72,11 +64,13 @@ const TRANSACTION_SELECT = `
 		platform.name AS platformName,
 		trip_type.name AS tripTypeName
 	FROM transactions t
-	INNER JOIN sources source ON source.id = t.source_id
-	LEFT JOIN sources destination ON destination.id = t.destination_source_id
-	LEFT JOIN categories category ON category.id = t.category_id
+	INNER JOIN transaction_items primary_item
+		ON primary_item.transaction_id = t.id AND primary_item.position = 0
+	INNER JOIN sources source ON source.id = primary_item.source_id
+	LEFT JOIN sources destination ON destination.id = primary_item.destination_source_id
+	LEFT JOIN categories category ON category.id = primary_item.category_id
 	LEFT JOIN trips trip ON trip.id = t.trip_id
-	LEFT JOIN investments investment ON investment.id = t.investment_id
+	LEFT JOIN investments investment ON investment.id = primary_item.investment_id
 	LEFT JOIN investment_platforms platform ON platform.id = investment.platform_id
 	LEFT JOIN trip_types trip_type ON trip_type.id = trip.trip_type_id
 	`;
@@ -96,13 +90,15 @@ const getSourceRows = async (
 			COALESCE(source.archived, 0) AS archived,
 			'0' AS balance
 		FROM sources source
-		LEFT JOIN transactions txn
-			ON (txn.source_id = source.id OR txn.destination_source_id = source.id)
+		LEFT JOIN transaction_items txn_item
+			ON txn_item.source_id = source.id
+				OR txn_item.destination_source_id = source.id
+		LEFT JOIN transactions txn ON txn.id = txn_item.transaction_id
 			AND COALESCE(txn.is_applicable, 1) = 1
 		WHERE COALESCE(source.archived, 0) = 0
 		GROUP BY source.id
 		ORDER BY
-			COUNT(txn.id) DESC,
+			COUNT(DISTINCT txn.id) DESC,
 			COALESCE(MAX(txn.created_at), 0) DESC,
 			lower(source.name) ASC;
 	`);
@@ -122,8 +118,10 @@ const getArchivedSourceRows = async (
 			COALESCE(source.archived, 0) AS archived,
 			'0' AS balance
 		FROM sources source
-		LEFT JOIN transactions txn
-			ON (txn.source_id = source.id OR txn.destination_source_id = source.id)
+		LEFT JOIN transaction_items txn_item
+			ON txn_item.source_id = source.id
+				OR txn_item.destination_source_id = source.id
+		LEFT JOIN transactions txn ON txn.id = txn_item.transaction_id
 			AND COALESCE(txn.is_applicable, 1) = 1
 		WHERE COALESCE(source.archived, 0) = 1
 		GROUP BY source.id
@@ -147,8 +145,10 @@ const getSourceRow = async (
 				COALESCE(source.archived, 0) AS archived,
 				'0' AS balance
 			FROM sources source
-			LEFT JOIN transactions txn
-				ON (txn.source_id = source.id OR txn.destination_source_id = source.id)
+			LEFT JOIN transaction_items txn_item
+				ON txn_item.source_id = source.id
+					OR txn_item.destination_source_id = source.id
+			LEFT JOIN transactions txn ON txn.id = txn_item.transaction_id
 				AND COALESCE(txn.is_applicable, 1) = 1
 			WHERE source.id = ?
 			GROUP BY source.id;
@@ -256,7 +256,7 @@ const sourceInUseRow = async (
 	id: string,
 ): Promise<boolean> => {
 	const row = await database.getFirstAsync<Pick<SimpleEntity, "id">>(
-		`SELECT id FROM transactions WHERE source_id = ? OR destination_source_id = ? LIMIT 1;`,
+		`SELECT id FROM transaction_items WHERE source_id = ? OR destination_source_id = ? LIMIT 1;`,
 		id,
 		id,
 	);
@@ -279,18 +279,15 @@ const getCategoryRows = async (
 			COALESCE(category.archived, 0) AS archived
 		FROM categories category
 		LEFT JOIN (
-			SELECT id, category_id, created_at FROM transactions
-			WHERE category_id IS NOT NULL AND COALESCE(is_applicable, 1) = 1
-			UNION
 			SELECT txn.id, item.category_id, txn.created_at
 			FROM transaction_items item JOIN transactions txn ON txn.id = item.transaction_id
-			WHERE COALESCE(txn.is_applicable, 1) = 1
+			WHERE item.category_id IS NOT NULL AND COALESCE(txn.is_applicable, 1) = 1
 		) txn ON txn.category_id = category.id
 		WHERE COALESCE(category.archived, 0) = 0
 			${kind === undefined ? "" : "AND category.kind = ?"}
 		GROUP BY category.id
 		ORDER BY
-			COUNT(txn.id) DESC,
+			COUNT(DISTINCT txn.id) DESC,
 			COALESCE(MAX(txn.created_at), 0) DESC,
 			lower(category.name) ASC;
 		`,
@@ -390,12 +387,6 @@ const mergeCategoryRows = async (
 	updatedAt: number,
 ): Promise<void> => {
 	await database.runAsync(
-		"UPDATE transactions SET category_id = ?, updated_at = ? WHERE category_id = ?;",
-		targetId,
-		updatedAt,
-		sourceId,
-	);
-	await database.runAsync(
 		"UPDATE transaction_items SET category_id = ?, updated_at = ? WHERE category_id = ?;",
 		targetId,
 		updatedAt,
@@ -434,14 +425,11 @@ const categoryInUseRow = async (
 ): Promise<boolean> => {
 	const row = await database.getFirstAsync<Pick<SimpleEntity, "id">>(
 		`
-			SELECT id FROM transactions WHERE category_id = ?
-			UNION
 			SELECT id FROM transaction_items WHERE category_id = ?
 			UNION
 			SELECT id FROM budgets WHERE category_id = ?
 			LIMIT 1;
 		`,
-		id,
 		id,
 		id,
 	);
@@ -651,7 +639,7 @@ const getTripRows = async (
 		WHERE COALESCE(trip.archived, 0) = 0
 		GROUP BY trip.id
 		ORDER BY
-			COUNT(txn.id) DESC,
+			COUNT(DISTINCT txn.id) DESC,
 			COALESCE(MAX(txn.created_at), 0) DESC,
 			lower(trip.name) ASC;
 	`);
@@ -707,14 +695,15 @@ const getInvestmentRows = async (
 			investment.updated_at AS updatedAt,
 			COALESCE(investment.archived, 0) AS archived
 		FROM investments investment
-		LEFT JOIN transactions txn ON txn.investment_id = investment.id AND COALESCE(txn.is_applicable, 1) = 1
+		LEFT JOIN transaction_items txn_item ON txn_item.investment_id = investment.id
+		LEFT JOIN transactions txn ON txn.id = txn_item.transaction_id AND COALESCE(txn.is_applicable, 1) = 1
 		LEFT JOIN investment_types investment_type
 			ON investment_type.id = investment.investment_type_id
 		LEFT JOIN investment_platforms platform ON platform.id = investment.platform_id
 		WHERE COALESCE(investment.archived, 0) = 0
 		GROUP BY investment.id
 		ORDER BY
-			COUNT(txn.id) DESC,
+			COUNT(DISTINCT txn.id) DESC,
 			COALESCE(MAX(txn.created_at), 0) DESC,
 			lower(investment.name) ASC;
 	`);
@@ -807,10 +796,7 @@ const investmentInUseRow = async (
 	id: string,
 ): Promise<boolean> => {
 	const row = await database.getFirstAsync<Pick<SimpleEntity, "id">>(
-		`SELECT id FROM transactions WHERE investment_id = ?
-			UNION SELECT transaction_id AS id FROM transaction_items WHERE investment_id = ?
-			LIMIT 1;`,
-		id,
+		"SELECT transaction_id AS id FROM transaction_items WHERE investment_id = ? LIMIT 1;",
 		id,
 	);
 	return row !== null;
@@ -1043,8 +1029,6 @@ const getCategoryAnalysisRows = async (
 	`,
 		start,
 		end,
-		start,
-		end,
 	);
 
 const getSectorAnalysisRows = async (
@@ -1068,8 +1052,6 @@ const getSectorAnalysisRows = async (
 	`,
 		start,
 		end,
-		start,
-		end,
 	);
 
 const getInvestmentAnalysisRows = async (
@@ -1090,25 +1072,15 @@ const getInvestmentAnalysisRows = async (
 				t.type AS type, source.currency_code AS currencyCode
 			FROM transaction_items item
 			INNER JOIN transactions t ON t.id = item.transaction_id
-			INNER JOIN sources source ON source.id = t.source_id
+			INNER JOIN sources source ON source.id = item.source_id
 			WHERE t.classification = 'INVESTMENT'
 				AND item.investment_id IS NOT NULL
-				AND COALESCE(t.is_applicable, 1) = 1
-				AND t.transaction_at BETWEEN ? AND ?
-			UNION ALL
-			SELECT t.investment_id, t.amount, t.type, source.currency_code
-			FROM transactions t
-			INNER JOIN sources source ON source.id = t.source_id
-			WHERE t.classification = 'INVESTMENT'
-				AND t.investment_id IS NOT NULL
 				AND COALESCE(t.is_applicable, 1) = 1
 				AND t.transaction_at BETWEEN ? AND ?
 		) allocation
 		INNER JOIN investments investment ON investment.id = allocation.investmentId
 		ORDER BY investment.id, allocation.currencyCode;
 	`,
-		start,
-		end,
 		start,
 		end,
 	);
@@ -1120,10 +1092,11 @@ const getTripTotalRows = async (
 		SELECT
 			t.trip_id AS tripId,
 			source.currency_code AS currencyCode,
-			CASE WHEN t.type = 'CREDIT' THEN t.amount ELSE '0' END AS credits,
-			CASE WHEN t.type = 'DEBIT' THEN t.amount ELSE '0' END AS debits
-		FROM transactions t
-		INNER JOIN sources source ON source.id = t.source_id
+			CASE WHEN t.type = 'CREDIT' THEN item.amount ELSE '0' END AS credits,
+			CASE WHEN t.type = 'DEBIT' THEN item.amount ELSE '0' END AS debits
+		FROM transaction_items item
+		INNER JOIN transactions t ON t.id = item.transaction_id
+		INNER JOIN sources source ON source.id = item.source_id
 		WHERE t.classification = 'GENERAL'
 			AND COALESCE(t.is_applicable, 1) = 1
 			AND t.type != 'TRANSFER'
@@ -1139,8 +1112,9 @@ const getTransactionCurrencyRows = async (
 	database.getAllAsync<Pick<Source, "currencyCode">>(
 		`
 		SELECT DISTINCT source.currency_code AS currencyCode
-		FROM transactions t
-		INNER JOIN sources source ON source.id = t.source_id
+		FROM transaction_items item
+		INNER JOIN transactions t ON t.id = item.transaction_id
+		INNER JOIN sources source ON source.id = item.source_id
 		WHERE t.type != 'TRANSFER'
 			AND COALESCE(t.is_applicable, 1) = 1
 			AND t.transaction_at BETWEEN ? AND ?
@@ -1177,11 +1151,17 @@ const getTransactionItemRows = async (
 				`SELECT item.id, item.transaction_id AS transactionId, item.category_id AS categoryId,
 			 category.name AS categoryName, category.kind AS categoryKind,
 			 item.investment_id AS investmentId, investment.name AS investmentName,
+			 item.source_id AS sourceId, item_source.name AS sourceName,
+			 item.destination_source_id AS destinationSourceId,
+			 item_destination.name AS destinationSourceName,
+			 item.to_amount AS toAmount,
 			 item.amount, item.position,
 			 item.created_at AS createdAt, item.updated_at AS updatedAt
 			 FROM transaction_items item
 			 LEFT JOIN categories category ON category.id = item.category_id
 			 LEFT JOIN investments investment ON investment.id = item.investment_id
+			 LEFT JOIN sources item_source ON item_source.id = item.source_id
+			 LEFT JOIN sources item_destination ON item_destination.id = item.destination_source_id
 			 WHERE item.transaction_id IN (${ids.map(() => "?").join(", ")})
 			 ORDER BY item.transaction_id, item.position;`,
 				...ids,
@@ -1195,10 +1175,10 @@ const hydrateTransactionItems = async (
 	database: SQLiteDatabase,
 	transactions: readonly Omit<Transaction, "items">[],
 ): Promise<readonly Transaction[]> => {
-	const expenseIds = transactions
-		.filter((transaction) => transaction.type !== "TRANSFER")
-		.map((transaction) => transaction.id);
-	const items = await getTransactionItemRows(database, expenseIds);
+	const items = await getTransactionItemRows(
+		database,
+		transactions.map((transaction) => transaction.id),
+	);
 	const itemsByTransaction = new Map<string, TransactionItem[]>();
 	for (const item of items) {
 		const siblings = itemsByTransaction.get(item.transactionId) ?? [];
@@ -1217,13 +1197,16 @@ const createTransactionItemRow = async (
 	item: Omit<TransactionItem, "categoryName">,
 ): Promise<void> => {
 	await database.runAsync(
-		`INSERT INTO transaction_items (id, transaction_id, category_id, investment_id, amount, position, created_at, updated_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
+		`INSERT INTO transaction_items (id, transaction_id, category_id, investment_id, source_id, destination_source_id, amount, to_amount, position, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
 		item.id,
 		item.transactionId,
 		item.categoryId ?? null,
 		item.investmentId ?? null,
+		item.sourceId ?? null,
+		item.destinationSourceId ?? null,
 		item.amount,
+		item.toAmount ?? null,
 		item.position,
 		item.createdAt,
 		item.updatedAt,
@@ -1244,11 +1227,9 @@ const getLinkedTransactionIdRows = async (
 ): Promise<readonly string[]> => {
 	const rows = await database.getAllAsync<Pick<SimpleEntity, "id">>(
 		kind === "CATEGORY"
-			? `SELECT id FROM transactions WHERE category_id = ?
-				UNION SELECT transaction_id AS id FROM transaction_items WHERE category_id = ?;`
-			: `SELECT id FROM transactions WHERE investment_id = ?
-				UNION SELECT transaction_id AS id FROM transaction_items WHERE investment_id = ?;`,
-		...[id, id],
+			? "SELECT DISTINCT transaction_id AS id FROM transaction_items WHERE category_id = ?;"
+			: "SELECT DISTINCT transaction_id AS id FROM transaction_items WHERE investment_id = ?;",
+		id,
 	);
 	return rows.map((row) => row.id);
 };
@@ -1258,23 +1239,17 @@ const updateTransactionRelationRow = async (
 	id: string,
 	transaction: Pick<
 		TransactionInput,
-		| "classification"
-		| "amount"
-		| "categoryId"
-		| "tripId"
-		| "investmentId"
-		| "reason"
+		"classification" | "amount" | "toAmount" | "tripId" | "reason"
 	>,
 	updatedAt: number,
 ): Promise<void> => {
 	await database.runAsync(
-		`UPDATE transactions SET classification = ?, amount = ?, category_id = ?,
-			trip_id = ?, investment_id = ?, reason = ?, updated_at = ? WHERE id = ?;`,
+		`UPDATE transactions SET classification = ?, amount = ?, to_amount = ?,
+			trip_id = ?, reason = ?, updated_at = ? WHERE id = ?;`,
 		transaction.classification,
 		transaction.amount,
-		transaction.categoryId ?? null,
+		transaction.toAmount ?? null,
 		transaction.tripId ?? null,
-		transaction.investmentId ?? null,
 		transaction.reason,
 		updatedAt,
 		id,
@@ -1297,8 +1272,12 @@ const invalidateTransactionSources = async (
 ): Promise<void> => {
 	await database.runAsync(
 		`UPDATE sources SET validated_at = NULL WHERE id IN (
-			SELECT source_id FROM transactions WHERE id = ? AND COALESCE(is_applicable, 1) = 1
-			UNION SELECT destination_source_id FROM transactions WHERE id = ? AND COALESCE(is_applicable, 1) = 1
+			SELECT item.source_id FROM transaction_items item
+				INNER JOIN transactions t ON t.id = item.transaction_id
+				WHERE item.transaction_id = ? AND COALESCE(t.is_applicable, 1) = 1
+			UNION SELECT item.destination_source_id FROM transaction_items item
+				INNER JOIN transactions t ON t.id = item.transaction_id
+				WHERE item.transaction_id = ? AND COALESCE(t.is_applicable, 1) = 1
 		);`,
 		id,
 		id,
@@ -1314,21 +1293,16 @@ const insertTransactionRow = async (
 	await database.runAsync(
 		`
 			INSERT INTO transactions (
-				id, classification, type, source_id, destination_source_id,
-				amount, to_amount, category_id, trip_id, investment_id,
+				id, classification, type, amount, to_amount, trip_id,
 				reason, transaction_at, created_at, updated_at, is_applicable
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 		`,
 		id,
 		transaction.classification,
 		transaction.type,
-		transaction.sourceId,
-		transaction.destinationSourceId ?? null,
 		transaction.amount,
 		transaction.toAmount ?? null,
-		transaction.categoryId ?? null,
 		transaction.tripId ?? null,
-		transaction.investmentId ?? null,
 		transaction.reason,
 		transaction.transactionAt,
 		now,
@@ -1344,7 +1318,6 @@ const createTransactionRow = async (
 	now: number,
 ): Promise<void> => {
 	await insertTransactionRow(database, transaction, id, now);
-	await invalidateTransactionSources(database, id);
 };
 
 const updateTransactionRow = async (
@@ -1353,19 +1326,14 @@ const updateTransactionRow = async (
 	id: string,
 	now: number,
 ): Promise<void> => {
-	await invalidateTransactionSources(database, id);
 	await database.runAsync(
 		`
 			UPDATE transactions SET
 				classification = ?,
 				type = ?,
-				source_id = ?,
-				destination_source_id = ?,
 				amount = ?,
 				to_amount = ?,
-				category_id = ?,
 				trip_id = ?,
-				investment_id = ?,
 				reason = ?,
 				transaction_at = ?,
 				updated_at = ?,
@@ -1374,20 +1342,15 @@ const updateTransactionRow = async (
 		`,
 		transaction.classification,
 		transaction.type,
-		transaction.sourceId,
-		transaction.destinationSourceId ?? null,
 		transaction.amount,
 		transaction.toAmount ?? null,
-		transaction.categoryId ?? null,
 		transaction.tripId ?? null,
-		transaction.investmentId ?? null,
 		transaction.reason,
 		transaction.transactionAt,
 		now,
 		Number(transaction.isApplicable ?? true),
 		id,
 	);
-	await invalidateTransactionSources(database, id);
 };
 
 const deleteTransactionRow = async (
@@ -1592,6 +1555,7 @@ const financeRepository = {
 	investmentInUseRow,
 	investmentTypeNameExistsRow,
 	insertTransactionRow,
+	invalidateTransactionSources,
 	mergeCategoryRows,
 	replaceSectorCategoryRows,
 	sectorNameExistsRow,

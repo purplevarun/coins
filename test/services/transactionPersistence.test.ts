@@ -546,7 +546,11 @@ describe("split expense persistence", () => {
 		const id = await transactionService.saveTransaction(database, income);
 		expect(
 			await transactionService.getTransaction(database, id),
-		).toMatchObject({ reason: "Salary", items: [], amount: "1" });
+		).toMatchObject({
+			reason: "Salary",
+			items: [expect.objectContaining({ categoryId: "salary" })],
+			amount: "1",
+		});
 		await expect(
 			transactionService.saveTransaction(database, {
 				...income,
@@ -586,7 +590,7 @@ describe("split expense persistence", () => {
 			id,
 			amount: "200",
 			reason: "Supermart shopping",
-			categoryId: null,
+			categoryId: "food",
 		});
 		expect(
 			saved?.items.map((item) => [
@@ -724,7 +728,7 @@ describe("split expense persistence", () => {
 				...expense,
 				items: undefined,
 			}),
-		).rejects.toMatchObject({ code: "TRANSACTION_ITEMS_REQUIRED" });
+		).rejects.toMatchObject({ code: "INVALID_AMOUNT" });
 		await expect(
 			transactionService.saveTransaction(database, {
 				...expense,
@@ -762,7 +766,7 @@ describe("split expense persistence", () => {
 				...expense,
 				type: "TRANSFER",
 			}),
-		).rejects.toMatchObject({ code: "TRANSACTION_ITEMS_UNSUPPORTED" });
+		).rejects.toMatchObject({ code: "DESTINATION_REQUIRED" });
 	});
 
 	it("saves a multi-item credit with a null parent category", async () => {
@@ -773,7 +777,7 @@ describe("split expense persistence", () => {
 		});
 		const saved = await transactionService.getTransaction(database, id);
 		expect(saved?.type).toBe("CREDIT");
-		expect(saved?.categoryId ?? null).toBeNull();
+		expect(saved?.categoryId).toBe("food");
 		expect(saved?.amount).toBe("200");
 		expect(saved?.items.map((item) => item.categoryId)).toEqual([
 			"food",
@@ -810,7 +814,11 @@ describe("split expense persistence", () => {
 		});
 		expect(
 			await transactionService.getTransaction(database, id),
-		).toMatchObject({ amount: "10", categoryId: "salary", items: [] });
+		).toMatchObject({
+			amount: "10",
+			categoryId: "salary",
+			items: [expect.objectContaining({ categoryId: "salary" })],
+		});
 		expect(await sourceService.getSources(database)).toMatchObject([
 			{ balance: "10" },
 		]);

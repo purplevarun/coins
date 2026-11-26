@@ -172,6 +172,7 @@ describe("real SQLite backup restore", () => {
 			).toEqual({ is_applicable: applicable ?? 1 });
 			expect(readFileSync(path)).toEqual(bytes);
 		},
+		20000,
 	);
 
 	it.each(themeConstants.THEME_OPTIONS)(

@@ -69,14 +69,43 @@ describe("sourceService", () => {
 			{ id: "s2", name: "B", currencyCode: "USD", archived: 1 },
 		]);
 		mocks.getTransactionRows.mockResolvedValueOnce([
-			{ type: "CREDIT", sourceId: "s1", amount: "100" },
-			{ type: "DEBIT", sourceId: "s1", amount: "40" },
+			{
+				type: "CREDIT",
+				sourceId: "s1",
+				amount: "100",
+				items: [{ sourceId: "s1", amount: "100" }],
+			},
+			{
+				type: "DEBIT",
+				sourceId: "s1",
+				amount: "40",
+				items: [{ sourceId: "s1", amount: "40" }],
+			},
 			{
 				type: "TRANSFER",
 				sourceId: "s1",
 				amount: "10",
 				destinationSourceId: "s2",
 				toAmount: "8",
+				items: [
+					{
+						sourceId: "s1",
+						destinationSourceId: "s2",
+						amount: "10",
+						toAmount: "8",
+					},
+					{
+						sourceId: "s1",
+						destinationSourceId: "s2",
+						amount: "4",
+					},
+				],
+			},
+			{
+				type: "DEBIT",
+				sourceId: "s1",
+				amount: "5",
+				items: [{ amount: "5" }],
 			},
 		]);
 
@@ -85,9 +114,13 @@ describe("sourceService", () => {
 			expect.objectContaining({
 				id: "s1",
 				archived: false,
-				balance: "50",
+				balance: "46",
 			}),
-			expect.objectContaining({ id: "s2", archived: true, balance: "8" }),
+			expect.objectContaining({
+				id: "s2",
+				archived: true,
+				balance: "12",
+			}),
 		]);
 	});
 
@@ -109,7 +142,12 @@ describe("sourceService", () => {
 			{ id: "s2", name: "B", currencyCode: "USD", archived: 0 },
 		]);
 		mocks.getTransactionRows.mockResolvedValueOnce([
-			{ type: "CREDIT", sourceId: "s1", amount: "25" },
+			{
+				type: "CREDIT",
+				sourceId: "s1",
+				amount: "25",
+				items: [{ sourceId: "s1", amount: "25" }],
+			},
 		]);
 
 		const sources = await sourceService.getSources(database);

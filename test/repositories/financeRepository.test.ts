@@ -152,7 +152,10 @@ describe("financeRepository", () => {
 			"payment",
 			"food",
 			null,
+			null,
+			null,
 			"100",
+			null,
 			0,
 			1,
 			2,
@@ -173,7 +176,10 @@ describe("financeRepository", () => {
 			"buy",
 			null,
 			"mf",
+			null,
+			null,
 			"50",
+			null,
 			0,
 			3,
 			4,
@@ -279,25 +285,18 @@ describe("financeRepository", () => {
 			),
 			1,
 			2,
-			1,
-			2,
 		);
 		const sql = getAllAsync.mock.calls[0]?.[0] as string;
-		expect(sql).toContain("UNION ALL");
 		expect(sql).not.toMatch(/SUM\(|CAST\(/);
 		expect(sql).toContain(
 			"t.classification = 'GENERAL' AND t.type IN ('DEBIT', 'CREDIT')",
 		);
 		expect(sql).toContain(
-			"t.classification = 'GENERAL' AND t.type = 'CREDIT'",
-		);
-		expect(sql).toContain("t.category_id IS NOT NULL");
-		expect(sql).toContain(
 			"INNER JOIN transactions t ON t.id = item.transaction_id",
 		);
 		expect(sql).not.toContain("archived");
 		expect(sql.match(/t\.transaction_at BETWEEN \? AND \?/g)).toHaveLength(
-			2,
+			1,
 		);
 	});
 
@@ -321,18 +320,14 @@ describe("financeRepository", () => {
 			),
 			3,
 			4,
-			3,
-			4,
 		);
 		const sql = getAllAsync.mock.calls[0]?.[0] as string;
-		expect(sql).toContain("UNION ALL");
 		expect(sql).toContain("t.classification = 'INVESTMENT'");
 		expect(sql).toContain("item.investment_id IS NOT NULL");
-		expect(sql).toContain("t.investment_id IS NOT NULL");
 		expect(sql).not.toMatch(/SUM\(|CAST\(/);
 		expect(sql).not.toContain("archived");
 		expect(sql.match(/t\.transaction_at BETWEEN \? AND \?/g)).toHaveLength(
-			2,
+			1,
 		);
 	});
 
@@ -350,7 +345,7 @@ describe("financeRepository", () => {
 
 		expect(await getTripTotalRows(database)).toEqual(rows);
 		expect(getAllAsync).toHaveBeenCalledExactlyOnceWith(
-			expect.stringContaining("THEN t.amount ELSE '0' END AS credits"),
+			expect.stringContaining("THEN item.amount ELSE '0' END AS credits"),
 		);
 		const sql = getAllAsync.mock.calls[0]?.[0] as string;
 		expect(sql).toContain("t.classification = 'GENERAL'");
@@ -452,6 +447,8 @@ describe("financeRepository", () => {
 			getAllAsync: vi
 				.fn()
 				.mockResolvedValueOnce([{ id: "tx1", type: "TRANSFER" }])
+				.mockResolvedValueOnce([])
+				.mockResolvedValueOnce([])
 				.mockResolvedValueOnce([{ id: "b1" }])
 				.mockResolvedValueOnce([{ currencyCode: "USD" }]),
 			getFirstAsync: vi
@@ -666,11 +663,7 @@ describe("financeRepository", () => {
 			"tx1",
 			"GENERAL",
 			"TRANSFER",
-			"s1",
-			null,
 			"10",
-			null,
-			null,
 			null,
 			null,
 			"r",
@@ -702,13 +695,9 @@ describe("financeRepository", () => {
 			expect.stringContaining("UPDATE transactions SET"),
 			"GENERAL",
 			"CREDIT",
-			"s2",
-			"s3",
 			"20",
 			"30",
-			"c1",
 			"t1",
-			"i1",
 			"salary",
 			200,
 			222,
@@ -738,11 +727,7 @@ describe("financeRepository", () => {
 			expect.stringContaining("UPDATE transactions SET"),
 			"GENERAL",
 			"DEBIT",
-			"s4",
-			null,
 			"5",
-			null,
-			null,
 			null,
 			null,
 			"snack",

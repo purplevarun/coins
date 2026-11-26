@@ -228,7 +228,12 @@ const TransactionsScreen = ({
 						.includes(q) ||
 					t.items.some(
 						(item) =>
-							(item.categoryName ?? item.investmentName ?? "")
+							(
+								item.categoryName ??
+								item.investmentName ??
+								item.destinationSourceName ??
+								""
+							)
 								.toLowerCase()
 								.includes(q) ||
 							item.amount.includes(q) ||

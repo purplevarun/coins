@@ -5,6 +5,8 @@ type TransactionItemDraft = TransactionItemInput &
 		key: string;
 		categoryName?: string;
 		investmentName?: string;
+		sourceName?: string;
+		destinationSourceName?: string;
 	}>;
 
 export type { TransactionItemDraft as default };

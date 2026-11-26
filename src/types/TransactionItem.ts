@@ -8,6 +8,11 @@ type TransactionItem = Readonly<{
 	categoryName?: string;
 	investmentId?: string | null;
 	investmentName?: string;
+	sourceId?: string | null;
+	sourceName?: string;
+	destinationSourceId?: string | null;
+	destinationSourceName?: string;
+	toAmount?: string | null;
 	amount: string;
 	position: number;
 	createdAt: number;

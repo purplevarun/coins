@@ -32,6 +32,9 @@ const mocks = vi.hoisted(() => {
 			.mockResolvedValue([]),
 		getTransactionRow: vi.fn<TestAsyncFunction>().mockResolvedValue(null),
 		getTransactionRows: vi.fn<TestAsyncFunction>().mockResolvedValue([]),
+		invalidateTransactionSources: vi
+			.fn<TestAsyncFunction>()
+			.mockResolvedValue(undefined),
 		updateTransactionRow: vi
 			.fn<TestAsyncFunction>()
 			.mockResolvedValue(undefined),
@@ -51,6 +54,7 @@ vi.mock("@/repositories/financeRepository", () => ({
 		getTransactionPageRows: mocks.getTransactionPageRows,
 		getTransactionRow: mocks.getTransactionRow,
 		getTransactionRows: mocks.getTransactionRows,
+		invalidateTransactionSources: mocks.invalidateTransactionSources,
 		updateTransactionRow: mocks.updateTransactionRow,
 	},
 }));
@@ -263,6 +267,7 @@ describe("transactionService", () => {
 				categoryId: "c2",
 				tripId: "tr2",
 				investmentId: "i2",
+				items: [],
 			},
 		]);
 
@@ -334,6 +339,51 @@ describe("transactionService", () => {
 		).toEqual([]);
 	});
 
+	it("links transactions through item sources and destinations", async () => {
+		mocks.getTransactionRows.mockResolvedValue([
+			{
+				id: "a",
+				sourceId: "s1",
+				destinationSourceId: null,
+				categoryId: null,
+				tripId: null,
+				investmentId: null,
+				items: [{ sourceId: "s9", amount: "10" }],
+			},
+			{
+				id: "b",
+				sourceId: "s1",
+				destinationSourceId: null,
+				categoryId: null,
+				tripId: null,
+				investmentId: null,
+				items: [
+					{
+						sourceId: "s5",
+						destinationSourceId: "s9",
+						amount: "10",
+					},
+				],
+			},
+		]);
+		expect(
+			(
+				await transactionService.getLinkedTransactions(database, {
+					kind: "SOURCE",
+					entityId: "s9",
+				})
+			).map((transaction) => transaction.id),
+		).toEqual(["a", "b"]);
+		expect(
+			(
+				await transactionService.getLinkedTransactions(database, {
+					kind: "SOURCE",
+					entityId: "s2",
+				})
+			).map((transaction) => transaction.id),
+		).toEqual([]);
+	});
+
 	it("requires sourceId in saveTransaction", async () => {
 		await expect(
 			transactionService.saveTransaction(database, {
@@ -345,6 +395,67 @@ describe("transactionService", () => {
 				reason: "ok",
 			}),
 		).rejects.toMatchObject({ code: "SOURCE_REQUIRED" });
+	});
+
+	it("requires a source on each item", async () => {
+		await expect(
+			transactionService.saveTransaction(database, {
+				transactionAt: 1,
+				classification: "GENERAL",
+				type: "DEBIT",
+				sourceId: "s1",
+				amount: "10",
+				reason: "ok",
+				items: [{ categoryId: "c1", amount: "10", sourceId: "" }],
+			}),
+		).rejects.toMatchObject({ code: "SOURCE_REQUIRED" });
+	});
+
+	it("rejects investment items with a missing source", async () => {
+		mocks.getInvestmentRow.mockResolvedValueOnce({ id: "i1" });
+		mocks.getSourceRow.mockResolvedValueOnce(null);
+		await expect(
+			transactionService.saveTransaction(database, {
+				transactionAt: 1,
+				classification: "INVESTMENT",
+				type: "DEBIT",
+				sourceId: "gone",
+				investmentId: "i1",
+				amount: "10",
+				reason: "ok",
+			}),
+		).rejects.toMatchObject({ code: "SOURCE_NOT_FOUND" });
+	});
+
+	it("validates the investment marker on transfer items", async () => {
+		mocks.getInvestmentRow.mockResolvedValueOnce(null);
+		await expect(
+			transactionService.saveTransaction(database, {
+				transactionAt: 1,
+				classification: "GENERAL",
+				type: "TRANSFER",
+				sourceId: "s1",
+				destinationSourceId: "s2",
+				investmentId: "gone",
+				amount: "10",
+				reason: "ok",
+			}),
+		).rejects.toMatchObject({ code: "INVESTMENT_NOT_FOUND" });
+
+		await transactionService.saveTransaction(database, {
+			transactionAt: 1,
+			classification: "GENERAL",
+			type: "TRANSFER",
+			sourceId: "s1",
+			destinationSourceId: "s2",
+			investmentId: "i1",
+			amount: "10",
+			reason: "ok",
+		});
+		expect(mocks.createTransactionItemRow).toHaveBeenCalledWith(
+			database,
+			expect.objectContaining({ investmentId: "i1" }),
+		);
 	});
 
 	it("validates non-transfer categories", async () => {
@@ -506,9 +617,7 @@ describe("transactionService", () => {
 	});
 
 	it("fails when a blank general credit references a missing category", async () => {
-		mocks.getCategoryRow
-			.mockResolvedValueOnce({ id: "missing-category", name: "Missing" })
-			.mockResolvedValueOnce(null);
+		mocks.getCategoryRow.mockResolvedValueOnce(null);
 
 		await expect(
 			transactionService.saveTransaction(database, {
@@ -848,6 +957,28 @@ describe("transactionService", () => {
 			new Date("2026-08-25T12:00:00.000Z").getTime(),
 		);
 		expect(mocks.createTransactionRow).not.toHaveBeenCalled();
+	});
+
+	it("retains existing item ids on update", async () => {
+		mocks.getTransactionRow.mockResolvedValueOnce({
+			id: "existing",
+			items: [{ id: "item-1" }],
+		});
+		mocks.getCategoryRow.mockResolvedValueOnce({ id: "c1", name: "Food" });
+		await transactionService.saveTransaction(database, {
+			transactionAt: 1,
+			id: "existing",
+			classification: "GENERAL",
+			type: "DEBIT",
+			sourceId: "s1",
+			amount: "10",
+			reason: "ok",
+			items: [{ id: "item-1", categoryId: "c1", amount: "10" }],
+		});
+		expect(mocks.createTransactionItemRow).toHaveBeenCalledWith(
+			database,
+			expect.objectContaining({ id: "item-1" }),
+		);
 	});
 
 	it("deletes transaction via repository wrapper", async () => {

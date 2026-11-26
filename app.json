@@ -1,7 +1,7 @@
 {
 	"expo": {
 		"name": "Purplecoins",
-		"version": "2026.11.24.00",
+		"version": "2026.11.26.01",
 		"orientation": "portrait",
 		"icon": "./assets/icon.png",
 		"userInterfaceStyle": "dark",
@@ -14,7 +14,7 @@
 			"predictiveBackGestureEnabled": false,
 			"softwareKeyboardLayoutMode": "pan",
 			"package": "com.purple.coins",
-			"versionCode": 2026112400
+			"versionCode": 2026112601
 		},
 		"plugins": [
 			"expo-sqlite",

@@ -42,20 +42,20 @@ const getBalanceBySourceId = (
 	};
 
 	transactions.forEach((transaction) => {
-		if (transaction.type === "CREDIT") {
-			applyDelta(transaction.sourceId, transaction.amount);
-			return;
-		}
-		applyDelta(
-			transaction.sourceId,
-			subtractMoney(ZERO_AMOUNT, transaction.amount),
-		);
-		if (
-			transaction.type === "TRANSFER" &&
-			transaction.destinationSourceId &&
-			transaction.toAmount
-		) {
-			applyDelta(transaction.destinationSourceId, transaction.toAmount);
+		for (const item of transaction.items) {
+			if (!item.sourceId) continue;
+			applyDelta(
+				item.sourceId,
+				transaction.type === "CREDIT"
+					? item.amount
+					: subtractMoney(ZERO_AMOUNT, item.amount),
+			);
+			if (transaction.type === "TRANSFER" && item.destinationSourceId) {
+				applyDelta(
+					item.destinationSourceId,
+					item.toAmount ?? item.amount,
+				);
+			}
 		}
 	});
 	return balances;

@@ -3,6 +3,8 @@ import AppError from "@/errors/AppError";
 import financeRepository from "@/repositories/financeRepository";
 import type DateRange from "@/types/DateRange";
 import type LinkedTransactionFilter from "@/types/LinkedTransactionFilter";
+import type PreparedTransactionInput from "@/types/PreparedTransactionInput";
+import type PreparedTransactionItemInput from "@/types/PreparedTransactionItemInput";
 import type Transaction from "@/types/Transaction";
 import type TransactionClassification from "@/types/TransactionClassification";
 import type TransactionCursor from "@/types/TransactionCursor";
@@ -15,6 +17,7 @@ import type { SQLiteDatabase } from "expo-sqlite";
 
 const {
 	createTransactionRow,
+	invalidateTransactionSources,
 	createTransactionItemRow,
 	deleteTransactionRow,
 	deleteTransactionItemRows,
@@ -61,7 +64,12 @@ const isLinkedTransaction = (
 	if (filter.kind === "SOURCE") {
 		return (
 			transaction.sourceId === filter.entityId ||
-			transaction.destinationSourceId === filter.entityId
+			transaction.destinationSourceId === filter.entityId ||
+			transaction.items.some(
+				(item) =>
+					item.sourceId === filter.entityId ||
+					item.destinationSourceId === filter.entityId,
+			)
 		);
 	}
 	if (filter.kind === "CATEGORY") {
@@ -107,71 +115,139 @@ const normalizeTransferToAmount = (value: string | undefined): string => {
 	}
 };
 
-const resolveGeneralTransactionReason = async (
-	database: SQLiteDatabase,
-	categoryId: string,
-	reason: string,
-): Promise<string> => {
-	const normalizedReason = reason.trim();
-	if (normalizedReason) {
-		return normalizedReason;
-	}
-	const category = await getCategoryRow(database, categoryId);
-	if (!category) {
-		throw new AppError(
-			"CATEGORY_NOT_FOUND",
-			"The selected category no longer exists.",
-		);
-	}
-	return category.name.trim();
-};
-
-const prepareItemizedInput = async (
+const prepareTransferItem = async (
 	database: SQLiteDatabase,
 	input: TransactionInput,
-): Promise<TransactionInput> => {
-	if (!input.items?.length) {
+	item: TransactionItemInput,
+	amount: string,
+	sourceId: string,
+): Promise<PreparedTransactionItemInput> => {
+	const destinationSourceId =
+		item.destinationSourceId ?? input.destinationSourceId;
+	if (!destinationSourceId) {
+		throw new AppError(
+			"DESTINATION_REQUIRED",
+			"Select a destination source.",
+		);
+	}
+	if (sourceId === destinationSourceId) {
+		throw new AppError(
+			"SAME_TRANSFER_SOURCE",
+			"Transfer sources must be different.",
+		);
+	}
+	const destination = await getSourceRow(database, destinationSourceId);
+	const source = await getSourceRow(database, sourceId);
+	if (!source || !destination) {
+		throw new AppError(
+			"SOURCE_NOT_FOUND",
+			"One of the selected sources no longer exists.",
+		);
+	}
+	const investmentId = item.investmentId ?? input.investmentId;
+	if (investmentId && !(await getInvestmentRow(database, investmentId))) {
+		throw new AppError(
+			"INVESTMENT_NOT_FOUND",
+			"The selected investment no longer exists.",
+		);
+	}
+	const toAmount =
+		source.currencyCode === destination.currencyCode
+			? amount
+			: normalizeTransferToAmount(item.toAmount ?? input.toAmount);
+	return {
+		id: item.id,
+		sourceId,
+		destinationSourceId,
+		investmentId,
+		amount,
+		toAmount,
+	};
+};
+
+const prepareTransactionInput = async (
+	database: SQLiteDatabase,
+	input: TransactionInput,
+): Promise<PreparedTransactionInput> => {
+	const isInvestment = input.classification === "INVESTMENT";
+	const normalizedType =
+		isInvestment && input.type === "TRANSFER" ? "DEBIT" : input.type;
+	const isTransfer = normalizedType === "TRANSFER";
+	if (input.items?.length === 0)
 		throw new AppError(
 			"TRANSACTION_ITEMS_REQUIRED",
 			"Add at least one item.",
 		);
-	}
-	const isInvestmentItems = input.classification === "INVESTMENT";
-	const items: TransactionItemInput[] = [];
+	const rawItems =
+		input.items && input.items.length > 0
+			? input.items
+			: [
+					{
+						categoryId: input.categoryId,
+						investmentId: input.investmentId,
+						sourceId: input.sourceId,
+						destinationSourceId: input.destinationSourceId,
+						toAmount: input.toAmount,
+						amount: input.amount,
+					},
+				];
+	const items: PreparedTransactionItemInput[] = [];
 	const entityNames = new Set<string>();
-	for (const [position, item] of input.items.entries()) {
+	for (const [position, rawItem] of rawItems.entries()) {
 		try {
-			const amount = normalizeMoney(item.amount);
-			if (isInvestmentItems) {
-				if (!item.investmentId)
+			const amount = normalizeMoney(rawItem.amount);
+			const sourceId = rawItem.sourceId ?? input.sourceId;
+			if (!sourceId) {
+				throw new AppError("SOURCE_REQUIRED", "Select a source.");
+			}
+			if (isTransfer) {
+				items.push(
+					await prepareTransferItem(
+						database,
+						input,
+						rawItem,
+						amount,
+						sourceId,
+					),
+				);
+				continue;
+			}
+			if (isInvestment) {
+				if (!rawItem.investmentId)
 					throw new AppError(
 						"INVESTMENT_REQUIRED",
 						"Select an investment.",
 					);
 				const investment = await getInvestmentRow(
 					database,
-					item.investmentId,
+					rawItem.investmentId,
 				);
 				if (!investment)
 					throw new AppError(
 						"INVESTMENT_NOT_FOUND",
 						"The selected investment no longer exists.",
 					);
+				if (!(await getSourceRow(database, sourceId)))
+					throw new AppError(
+						"SOURCE_NOT_FOUND",
+						"The selected source no longer exists.",
+					);
 				items.push({
-					id: item.id,
-					investmentId: item.investmentId,
+					id: rawItem.id,
+					investmentId: rawItem.investmentId,
+					sourceId,
 					amount,
 				});
 				entityNames.add(investment.name.trim());
 			} else {
-				if (!item.categoryId)
+				if (!rawItem.categoryId)
 					throw new AppError(
 						"CATEGORY_REQUIRED",
 						"Select a category.",
 					);
 				const category = await getCategoryRow(
 					database,
-					item.categoryId,
+					rawItem.categoryId,
 				);
 				if (!category)
 					throw new AppError(
@@ -183,11 +259,21 @@ const prepareItemizedInput = async (
 						"TRIP_AGNOSTIC_CATEGORY",
 						`"${category.name.trim()}" is trip agnostic. Remove the trip or pick another category.`,
 					);
-				items.push({ ...item, amount });
+				if (!(await getSourceRow(database, sourceId)))
+					throw new AppError(
+						"SOURCE_NOT_FOUND",
+						"The selected source no longer exists.",
+					);
+				items.push({
+					id: rawItem.id,
+					categoryId: rawItem.categoryId,
+					sourceId,
+					amount,
+				});
 				entityNames.add(category.name.trim());
 			}
 		} catch (error) {
-			if (error instanceof AppError)
+			if (error instanceof AppError && input.items !== undefined)
 				throw new AppError(
 					error.code,
 					`Item ${position + 1}: ${error.message}`,
@@ -195,126 +281,22 @@ const prepareItemizedInput = async (
 			throw error;
 		}
 	}
+	const toAmounts = items
+		.map((item) => item.toAmount)
+		.filter(
+			(value): value is string => value !== undefined && value !== null,
+		);
 	return {
 		...input,
+		type: normalizedType,
 		items,
 		amount: sumMoney(items.map((item) => item.amount)),
+		toAmount: toAmounts.length > 0 ? sumMoney(toAmounts) : undefined,
 		reason: input.reason.trim() || [...entityNames].join(", "),
 		categoryId: undefined,
 		investmentId: undefined,
-		tripId: isInvestmentItems ? undefined : input.tripId,
 		destinationSourceId: undefined,
-		toAmount: undefined,
-	};
-};
-
-const prepareTransactionInput = async (
-	database: SQLiteDatabase,
-	input: TransactionInput,
-): Promise<TransactionInput> => {
-	if (
-		(input.classification === "GENERAL" && input.type === "DEBIT") ||
-		(input.items !== undefined &&
-			(input.type === "CREDIT" || input.classification === "INVESTMENT"))
-	) {
-		return prepareItemizedInput(database, input);
-	}
-	if (input.items !== undefined) {
-		throw new AppError(
-			"TRANSACTION_ITEMS_UNSUPPORTED",
-			"Only debits and credits can contain items.",
-		);
-	}
-	const amount = normalizeMoney(input.amount);
-	if (input.classification === "INVESTMENT") {
-		if (!input.investmentId) {
-			throw new AppError("INVESTMENT_REQUIRED", "Select an investment.");
-		}
-		const investment = await getInvestmentRow(database, input.investmentId);
-		if (!investment) {
-			throw new AppError(
-				"INVESTMENT_NOT_FOUND",
-				"The selected investment no longer exists.",
-			);
-		}
-		return {
-			...input,
-			type: input.type === "TRANSFER" ? "DEBIT" : input.type,
-			amount,
-			reason: input.reason.trim() || investment.name.trim(),
-			categoryId: undefined,
-			tripId: undefined,
-			destinationSourceId: undefined,
-			toAmount: undefined,
-		};
-	}
-
-	if (input.type !== "TRANSFER") {
-		if (!input.categoryId) {
-			throw new AppError("CATEGORY_REQUIRED", "Select a category.");
-		}
-		const category = await getCategoryRow(database, input.categoryId);
-		if (!category) {
-			throw new AppError(
-				"CATEGORY_NOT_FOUND",
-				"The selected category no longer exists.",
-			);
-		}
-		if (input.tripId && category.tripAgnostic) {
-			throw new AppError(
-				"TRIP_AGNOSTIC_CATEGORY",
-				`"${category.name.trim()}" is trip agnostic. Remove the trip or pick another category.`,
-			);
-		}
-		return {
-			...input,
-			amount,
-			reason: await resolveGeneralTransactionReason(
-				database,
-				input.categoryId,
-				input.reason,
-			),
-			investmentId: undefined,
-			destinationSourceId: undefined,
-			toAmount: undefined,
-		};
-	}
-
-	if (!input.destinationSourceId) {
-		throw new AppError(
-			"DESTINATION_REQUIRED",
-			"Select a destination source.",
-		);
-	}
-	if (input.sourceId === input.destinationSourceId) {
-		throw new AppError(
-			"SAME_TRANSFER_SOURCE",
-			"Transfer sources must be different.",
-		);
-	}
-	const [source, destination] = await Promise.all([
-		getSourceRow(database, input.sourceId),
-		getSourceRow(database, input.destinationSourceId),
-	]);
-	if (!source || !destination) {
-		throw new AppError(
-			"SOURCE_NOT_FOUND",
-			"One of the selected sources no longer exists.",
-		);
-	}
-	const toAmount =
-		source.currencyCode === destination.currencyCode
-			? amount
-			: normalizeTransferToAmount(input.toAmount);
-	return {
-		...input,
-		classification: "GENERAL",
-		amount,
-		toAmount,
-		reason: input.reason.trim(),
-		categoryId: undefined,
-		tripId: undefined,
-		investmentId: undefined,
+		tripId: isInvestment || isTransfer ? undefined : input.tripId,
 	};
 };
 
@@ -329,15 +311,6 @@ const saveTransaction = async (
 	await database.withTransactionAsync(async () => {
 		const transaction = database;
 		const preparedInput = await prepareTransactionInput(transaction, input);
-		if (
-			preparedInput.type !== "TRANSFER" &&
-			!(await getSourceRow(transaction, preparedInput.sourceId))
-		) {
-			throw new AppError(
-				"SOURCE_NOT_FOUND",
-				"The selected source no longer exists.",
-			);
-		}
 		const existing = input.id
 			? await getTransactionRow(transaction, id)
 			: null;
@@ -347,10 +320,10 @@ const saveTransaction = async (
 				"This transaction no longer exists.",
 			);
 		const previousItems = new Map(
-			existing?.items.map((item) => [item.id, item]),
+			(existing?.items ?? []).map((item) => [item.id, item]),
 		);
 		const retainedIds = new Set<string>();
-		for (const item of preparedInput.items ?? []) {
+		for (const item of preparedInput.items) {
 			if (
 				item.id !== undefined &&
 				(!previousItems.has(item.id) || retainedIds.has(item.id))
@@ -369,6 +342,7 @@ const saveTransaction = async (
 				preparedInput.isApplicable ?? existing?.isApplicable ?? true,
 		};
 		if (existing) {
+			await invalidateTransactionSources(transaction, id);
 			await deleteTransactionItemRows(transaction, id);
 		}
 		if (existing) {
@@ -376,18 +350,22 @@ const saveTransaction = async (
 		} else {
 			await createTransactionRow(transaction, applicableInput, id, now);
 		}
-		for (const [position, item] of (preparedInput.items ?? []).entries()) {
+		for (const [position, item] of preparedInput.items.entries()) {
 			await createTransactionItemRow(transaction, {
 				id: item.id ?? createId(),
 				transactionId: id,
 				categoryId: item.categoryId ?? null,
 				investmentId: item.investmentId ?? null,
+				sourceId: item.sourceId,
+				destinationSourceId: item.destinationSourceId ?? null,
 				amount: item.amount,
+				toAmount: item.toAmount ?? null,
 				position,
 				createdAt: previousItems.get(item.id ?? "")?.createdAt ?? now,
 				updatedAt: now,
 			});
 		}
+		await invalidateTransactionSources(transaction, id);
 	});
 	return id;
 };

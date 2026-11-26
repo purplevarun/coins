@@ -84,6 +84,136 @@ describe("migration baseline", () => {
 		).toEqual({ name: "idx_transaction_items_investment" });
 	});
 
+	it("moves legacy transaction entity columns onto items and drops them", async () => {
+		const { database, sqlite } = createTestDatabase();
+		await database.execAsync(SCHEMA_SQL);
+		sqlite.exec(`
+			ALTER TABLE transactions ADD COLUMN source_id TEXT;
+			ALTER TABLE transactions ADD COLUMN destination_source_id TEXT;
+			ALTER TABLE transactions ADD COLUMN category_id TEXT;
+			ALTER TABLE transactions ADD COLUMN investment_id TEXT;
+			CREATE INDEX idx_transactions_source ON transactions(source_id);
+			CREATE INDEX idx_transactions_destination ON transactions(destination_source_id);
+			CREATE INDEX idx_transactions_category ON transactions(category_id);
+			CREATE INDEX idx_transactions_investment ON transactions(investment_id);
+		`);
+		const legacyDebit = randomUUID();
+		const legacyTransfer = randomUUID();
+		const itemized = randomUUID();
+		const existingItem = randomUUID();
+		sqlite.exec(`
+			INSERT INTO transactions (id, classification, type, source_id, category_id, amount, reason)
+				VALUES ('${legacyDebit}', 'GENERAL', 'DEBIT', 'bank', 'food', '40', 'Lunch');
+			INSERT INTO transactions (id, classification, type, source_id, destination_source_id, amount, to_amount, reason)
+				VALUES ('${legacyTransfer}', 'GENERAL', 'TRANSFER', 'bank', 'wallet', '10', '8', 'Move');
+			INSERT INTO transactions (id, classification, type, source_id, investment_id, amount, reason)
+				VALUES ('${itemized}', 'INVESTMENT', 'DEBIT', 'bank', 'mf', '99', 'Buy');
+			INSERT INTO transaction_items (id, transaction_id, investment_id, amount, position)
+				VALUES ('${existingItem}', '${itemized}', 'mf', '99', 0);
+		`);
+		await migrateDatabase(database);
+
+		const items = sqlite
+			.prepare(
+				`SELECT transaction_id, category_id, investment_id, source_id,
+					destination_source_id, amount, to_amount, position
+					FROM transaction_items ORDER BY transaction_id;`,
+			)
+			.all() as Record<string, unknown>[];
+		expect(items).toHaveLength(3);
+		expect(
+			items.find((item) => item.transaction_id === legacyDebit),
+		).toMatchObject({
+			category_id: "food",
+			source_id: "bank",
+			amount: "40",
+			position: 0,
+		});
+		expect(
+			items.find((item) => item.transaction_id === legacyTransfer),
+		).toMatchObject({
+			source_id: "bank",
+			destination_source_id: "wallet",
+			amount: "10",
+			to_amount: "8",
+			position: 0,
+		});
+		expect(
+			items.find((item) => item.transaction_id === itemized),
+		).toMatchObject({
+			investment_id: "mf",
+			source_id: "bank",
+			amount: "99",
+			position: 0,
+		});
+
+		const transactionColumns = sqlite
+			.prepare("SELECT * FROM transactions LIMIT 0")
+			.columns()
+			.map((column) => column.name);
+		expect(transactionColumns).not.toContain("source_id");
+		expect(transactionColumns).not.toContain("destination_source_id");
+		expect(transactionColumns).not.toContain("category_id");
+		expect(transactionColumns).not.toContain("investment_id");
+		expect(
+			sqlite
+				.prepare(
+					`SELECT name FROM sqlite_master WHERE type = 'index'
+						AND name IN ('idx_transactions_source', 'idx_transactions_destination',
+							'idx_transactions_category', 'idx_transactions_investment');`,
+				)
+				.all(),
+		).toEqual([]);
+		expect(
+			sqlite
+				.prepare(
+					`SELECT name FROM sqlite_master WHERE type = 'index'
+						AND name IN ('idx_transaction_items_source', 'idx_transaction_items_destination');`,
+				)
+				.all(),
+		).toHaveLength(2);
+		await migrateDatabase(database);
+		expect(
+			sqlite
+				.prepare("SELECT COUNT(*) AS count FROM transaction_items;")
+				.get(),
+		).toEqual({ count: 3 });
+	});
+
+	it("backfills items from a legacy schema missing optional entity columns", async () => {
+		const { database, sqlite } = createTestDatabase();
+		await database.execAsync(SCHEMA_SQL);
+		sqlite.exec("ALTER TABLE transactions ADD COLUMN source_id TEXT;");
+		sqlite.exec(`
+			INSERT INTO transactions (id, classification, type, source_id, amount, reason)
+				VALUES ('t1', 'GENERAL', 'DEBIT', 'bank', '12', 'Old row');
+		`);
+		await migrateDatabase(database);
+		expect(
+			sqlite
+				.prepare(
+					`SELECT transaction_id, category_id, investment_id, source_id,
+						destination_source_id, amount, to_amount FROM transaction_items;`,
+				)
+				.all(),
+		).toEqual([
+			{
+				transaction_id: "t1",
+				category_id: null,
+				investment_id: null,
+				source_id: "bank",
+				destination_source_id: null,
+				amount: "12",
+				to_amount: null,
+			},
+		]);
+		const transactionColumns = sqlite
+			.prepare("SELECT * FROM transactions LIMIT 0")
+			.columns()
+			.map((column) => column.name);
+		expect(transactionColumns).not.toContain("source_id");
+	});
+
 	it("removes the obsolete daily vacuum marker", async () => {
 		const { database, sqlite } = createTestDatabase();
 		await database.execAsync(SCHEMA_SQL);

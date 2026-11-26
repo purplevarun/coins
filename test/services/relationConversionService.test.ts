@@ -33,19 +33,30 @@ const createFixture = async (): Promise<
 		INSERT INTO investments (id, name, created_at, updated_at) VALUES
 			('existing', 'Existing EPF', 1, 2),
 			('nps', 'NPS', 1, 2);
-		INSERT INTO transactions (id, classification, type, source_id, amount, category_id, trip_id, investment_id, reason, transaction_at, created_at, updated_at) VALUES
-			('pf-credit', 'GENERAL', 'CREDIT', 'bank', '100', 'pf', 'trip', NULL, '', 10, 1, 1),
-			('pf-debit', 'GENERAL', 'DEBIT', 'bank', '200', NULL, 'trip', NULL, 'PF deduction', 20, 1, 1),
-			('mixed', 'GENERAL', 'DEBIT', 'bank', '300', NULL, 'trip', NULL, 'Payroll', 30, 1, 1),
-			('grocery-refund', 'GENERAL', 'CREDIT', 'bank', '15', 'grocery', NULL, NULL, 'Refund', 40, 1, 1),
-			('grocery-item', 'GENERAL', 'DEBIT', 'bank', '25', NULL, NULL, NULL, 'Mart', 50, 1, 1),
-			('nps-buy', 'INVESTMENT', 'DEBIT', 'bank', '500', NULL, NULL, 'nps', 'NPS buy', 60, 1, 1),
-			('nps-sell', 'INVESTMENT', 'CREDIT', 'bank', '200', NULL, NULL, 'nps', 'NPS sell', 70, 1, 1);
-		INSERT INTO transaction_items (id, transaction_id, category_id, amount, position, created_at, updated_at) VALUES
-			('pf-debit-item', 'pf-debit', 'pf', '200', 0, 1, 1),
-			('mixed-pf', 'mixed', 'pf', '120.50', 0, 1, 1),
-			('mixed-food', 'mixed', 'food', '179.50', 1, 1, 1),
-			('grocery-line', 'grocery-item', 'grocery', '25', 0, 1, 1);
+		INSERT INTO transactions (id, classification, type, amount, trip_id, reason, transaction_at, created_at, updated_at) VALUES
+			('pf-credit', 'GENERAL', 'CREDIT', '100', 'trip', '', 10, 1, 1),
+			('pf-debit', 'GENERAL', 'DEBIT', '200', 'trip', 'PF deduction', 20, 1, 1),
+			('mixed', 'GENERAL', 'DEBIT', '300', 'trip', 'Payroll', 30, 1, 1),
+			('grocery-refund', 'GENERAL', 'CREDIT', '15', NULL, 'Refund', 40, 1, 1),
+			('grocery-item', 'GENERAL', 'DEBIT', '25', NULL, 'Mart', 50, 1, 1),
+			('nps-buy', 'INVESTMENT', 'DEBIT', '500', NULL, 'NPS buy', 60, 1, 1),
+			('nps-sell', 'INVESTMENT', 'CREDIT', '200', NULL, 'NPS sell', 70, 1, 1),
+			('nps-fund', 'GENERAL', 'TRANSFER', '50', NULL, 'Fund NPS', 80, 1, 1);
+		INSERT INTO transaction_items (id, transaction_id, category_id, investment_id, source_id, destination_source_id, to_amount, amount, position, created_at, updated_at) VALUES
+			('pf-credit-item', 'pf-credit', 'pf', NULL, 'bank', NULL, NULL, '100', 0, 1, 1),
+			('pf-debit-item', 'pf-debit', 'pf', NULL, 'bank', NULL, NULL, '200', 0, 1, 1),
+			('pf-debit-orphan', 'pf-debit', 'pf', NULL, NULL, NULL, NULL, '0', 1, 1, 1),
+			('mixed-stay', 'mixed', 'food', NULL, 'bank', NULL, NULL, '40', 0, 1, 1),
+			('mixed-pf', 'mixed', 'pf', NULL, 'bank', NULL, NULL, '120.50', 1, 1, 1),
+			('mixed-food', 'mixed', 'food', NULL, 'bank', NULL, NULL, '179.50', 2, 1, 1),
+			('mixed-uncat', 'mixed', NULL, 'legacy-inv', NULL, 'wallet', '9', '60', 3, 1, 1),
+			('mixed-pf-orphan', 'mixed', 'pf', NULL, NULL, NULL, NULL, '0', 4, 1, 1),
+			('grocery-refund-item', 'grocery-refund', 'grocery', NULL, 'bank', NULL, NULL, '15', 0, 1, 1),
+			('grocery-line', 'grocery-item', 'grocery', NULL, 'bank', NULL, NULL, '25', 0, 1, 1),
+			('nps-buy-item', 'nps-buy', NULL, 'nps', 'bank', NULL, NULL, '500', 0, 1, 1),
+			('nps-sell-item', 'nps-sell', NULL, 'nps', 'bank', NULL, NULL, '200', 0, 1, 1),
+			('nps-sell-orphan', 'nps-sell', NULL, 'nps', NULL, NULL, NULL, '0', 1, 1, 1),
+			('nps-fund-item', 'nps-fund', NULL, 'nps', 'bank', 'wallet', '40', '50', 0, 1, 1);
 		INSERT INTO budgets (id, category_id, amount, period, created_at, updated_at) VALUES
 			('pf-budget', 'pf', '1000', 'MONTHLY', 1, 1),
 			('food-monthly', 'food', '500', 'MONTHLY', 1, 1),
@@ -61,7 +72,7 @@ const transactionRow = (
 ): Record<string, unknown> | undefined =>
 	sqlite
 		.prepare(
-			"SELECT classification, type, amount, category_id, trip_id, investment_id, reason FROM transactions WHERE id = ?",
+			"SELECT classification, type, amount, trip_id, reason FROM transactions WHERE id = ?",
 		)
 		.get(id);
 
@@ -71,7 +82,7 @@ const itemCategories = (
 ): unknown[] =>
 	sqlite
 		.prepare(
-			"SELECT category_id, amount FROM transaction_items WHERE transaction_id = ? ORDER BY position",
+			"SELECT category_id, investment_id, amount FROM transaction_items WHERE transaction_id = ? ORDER BY position",
 		)
 		.all(transactionId);
 
@@ -98,10 +109,10 @@ describe("relation conversion persistence", () => {
 		});
 		const converted = sqlite
 			.prepare(
-				"SELECT is_applicable FROM transactions WHERE investment_id = ?;",
+				"SELECT t.is_applicable FROM transactions t JOIN transaction_items ti ON ti.transaction_id = t.id WHERE ti.investment_id = ?;",
 			)
 			.all(investmentId);
-		expect(converted).toHaveLength(3);
+		expect(converted).toHaveLength(5);
 		expect(converted.every((row) => row.is_applicable === 0)).toBe(true);
 		expect(
 			sqlite
@@ -146,35 +157,45 @@ describe("relation conversion persistence", () => {
 			classification: "INVESTMENT",
 			type: "CREDIT",
 			amount: "100",
-			category_id: null,
 			trip_id: null,
-			investment_id: investmentId,
 			reason: "Employee PF",
 		});
+		expect(itemCategories(sqlite, "pf-credit")).toEqual([
+			{ category_id: null, investment_id: investmentId, amount: "100" },
+		]);
 		expect(transactionRow(sqlite, "pf-debit")).toMatchObject({
 			classification: "INVESTMENT",
 			type: "DEBIT",
 			amount: "200",
-			investment_id: investmentId,
 			reason: "PF deduction",
 		});
-		expect(itemCategories(sqlite, "pf-debit")).toEqual([]);
+		expect(itemCategories(sqlite, "pf-debit")).toEqual([
+			{ category_id: null, investment_id: investmentId, amount: "200" },
+			{ category_id: null, investment_id: investmentId, amount: "0" },
+		]);
 		expect(transactionRow(sqlite, "mixed")).toMatchObject({
 			classification: "GENERAL",
-			amount: "179.5",
+			amount: "279.5",
 			trip_id: "trip",
-			investment_id: null,
 		});
 		expect(itemCategories(sqlite, "mixed")).toEqual([
-			{ category_id: "food", amount: "179.50" },
+			{ category_id: "food", investment_id: null, amount: "40" },
+			{ category_id: "food", investment_id: null, amount: "179.50" },
+			{ category_id: null, investment_id: "legacy-inv", amount: "60" },
 		]);
 		expect(
 			sqlite
 				.prepare(
-					"SELECT type, amount, reason, transaction_at FROM transactions WHERE investment_id = ? AND id NOT IN ('pf-credit', 'pf-debit')",
+					"SELECT t.type, t.amount, t.reason, t.transaction_at FROM transactions t JOIN transaction_items i ON i.transaction_id = t.id WHERE i.investment_id = ? AND t.id NOT IN ('pf-credit', 'pf-debit')",
 				)
 				.all(investmentId),
 		).toEqual([
+			{
+				type: "DEBIT",
+				amount: "120.5",
+				reason: "Payroll",
+				transaction_at: 30,
+			},
 			{
 				type: "DEBIT",
 				amount: "120.5",
@@ -209,11 +230,11 @@ describe("relation conversion persistence", () => {
 	it("splits a mixed expense without a trip", async () => {
 		const { database, sqlite } = await createFixture();
 		sqlite.exec(`
-			INSERT INTO transactions (id, classification, type, source_id, amount, reason, transaction_at, created_at, updated_at)
-				VALUES ('untagged', 'GENERAL', 'DEBIT', 'bank', '50', 'Untagged', 80, 1, 1);
-			INSERT INTO transaction_items (id, transaction_id, category_id, amount, position, created_at, updated_at) VALUES
-				('untagged-pf', 'untagged', 'pf', '10', 0, 1, 1),
-				('untagged-food', 'untagged', 'food', '40', 1, 1, 1);
+			INSERT INTO transactions (id, classification, type, amount, reason, transaction_at, created_at, updated_at)
+				VALUES ('untagged', 'GENERAL', 'DEBIT', '50', 'Untagged', 80, 1, 1);
+			INSERT INTO transaction_items (id, transaction_id, category_id, source_id, amount, position, created_at, updated_at) VALUES
+				('untagged-pf', 'untagged', 'pf', 'bank', '10', 0, 1, 1),
+				('untagged-food', 'untagged', 'food', 'bank', '40', 1, 1, 1);
 		`);
 		await convertCategoryToInvestment(database, "pf", {
 			id: "existing",
@@ -246,7 +267,7 @@ describe("relation conversion persistence", () => {
 		expect(
 			sqlite
 				.prepare(
-					"SELECT COUNT(*) AS count FROM transactions WHERE investment_id = 'existing'",
+					"SELECT COUNT(*) AS count FROM transaction_items WHERE investment_id = 'existing'",
 				)
 				.get(),
 		).toEqual({ count: 0 });
@@ -257,8 +278,10 @@ describe("relation conversion persistence", () => {
 		).toEqual({ kind: "EXPENSE" });
 		expect(transactionRow(sqlite, "pf-credit")).toMatchObject({
 			classification: "GENERAL",
-			category_id: categoryId,
 		});
+		expect(itemCategories(sqlite, "pf-credit")).toEqual([
+			{ category_id: categoryId, investment_id: null, amount: "100" },
+		]);
 		expect(await balanceAndValidation(database)).toEqual(before);
 	});
 
@@ -276,20 +299,23 @@ describe("relation conversion persistence", () => {
 			classification: "GENERAL",
 			type: "DEBIT",
 			amount: "500",
-			category_id: null,
 			trip_id: null,
-			investment_id: null,
 			reason: "NPS buy",
 		});
 		expect(itemCategories(sqlite, "nps-buy")).toEqual([
-			{ category_id: "food", amount: "500" },
+			{ category_id: "food", investment_id: null, amount: "500" },
 		]);
 		expect(transactionRow(sqlite, "nps-sell")).toMatchObject({
 			classification: "GENERAL",
 			type: "CREDIT",
-			category_id: "food",
-			investment_id: null,
 		});
+		expect(itemCategories(sqlite, "nps-sell")).toEqual([
+			{ category_id: "food", investment_id: null, amount: "200" },
+			{ category_id: "food", investment_id: null, amount: "0" },
+		]);
+		expect(itemCategories(sqlite, "nps-fund")).toEqual([
+			{ category_id: null, investment_id: null, amount: "50" },
+		]);
 		expect(
 			sqlite.prepare("SELECT id FROM investments WHERE id = 'nps'").get(),
 		).toBeUndefined();
@@ -351,18 +377,21 @@ describe("relation conversion persistence", () => {
 			await expect(
 				convertCategoryToInvestment(database, categoryId, target),
 			).rejects.toMatchObject({ code });
-			expect(transactionRow(sqlite, "pf-credit")).toMatchObject({
-				category_id: "pf",
-			});
+			expect(itemCategories(sqlite, "pf-credit")).toEqual([
+				{ category_id: "pf", investment_id: null, amount: "100" },
+			]);
 		},
 	);
 
 	it("rolls back a created target when a linked transaction is orphaned", async () => {
 		const { database, sqlite } = await createFixture();
 		sqlite.exec(`
-			INSERT INTO transactions (id, classification, type, source_id, amount, category_id, investment_id, reason, transaction_at, created_at, updated_at) VALUES
-				('orphan-category', 'GENERAL', 'CREDIT', 'deleted-source', '1', 'pf', NULL, 'Orphan', 1, 1, 1),
-				('orphan-investment', 'INVESTMENT', 'CREDIT', 'deleted-source', '1', NULL, 'nps', 'Orphan', 1, 1, 1);
+			INSERT INTO transactions (id, classification, type, amount, reason, transaction_at, created_at, updated_at) VALUES
+				('orphan-category', 'GENERAL', 'CREDIT', '1', 'Orphan', 1, 1, 1),
+				('orphan-investment', 'INVESTMENT', 'CREDIT', '1', 'Orphan', 1, 1, 1);
+			INSERT INTO transaction_items (id, transaction_id, category_id, investment_id, source_id, amount, position, created_at, updated_at) VALUES
+				('orphan-category-item', 'orphan-category', 'pf', NULL, 'deleted-source', '1', 0, 1, 1),
+				('orphan-investment-item', 'orphan-investment', NULL, 'nps', 'deleted-source', '1', 0, 1, 1);
 		`);
 		await expect(
 			convertCategoryToInvestment(database, "pf", {
@@ -393,9 +422,9 @@ describe("relation conversion persistence", () => {
 				)
 				.get(),
 		).toEqual({ count: 0 });
-		expect(transactionRow(sqlite, "pf-credit")).toMatchObject({
-			category_id: "pf",
-		});
+		expect(itemCategories(sqlite, "pf-credit")).toEqual([
+			{ category_id: "pf", investment_id: null, amount: "100" },
+		]);
 	});
 
 	it.each([
@@ -418,9 +447,9 @@ describe("relation conversion persistence", () => {
 					...target,
 				}),
 			).rejects.toMatchObject({ code });
-			expect(transactionRow(sqlite, "nps-buy")).toMatchObject({
-				investment_id: "nps",
-			});
+			expect(itemCategories(sqlite, "nps-buy")).toEqual([
+				{ category_id: null, investment_id: "nps", amount: "500" },
+			]);
 		},
 	);
 });
@@ -441,7 +470,7 @@ describe("category merge persistence", () => {
 				.get(),
 		).toEqual({ count: 2 });
 		expect(itemCategories(sqlite, "grocery-item")).toEqual([
-			{ category_id: "food", amount: "25" },
+			{ category_id: "food", investment_id: null, amount: "25" },
 		]);
 		expect(await balanceAndValidation(database)).toEqual(before);
 	});
@@ -450,11 +479,11 @@ describe("category merge persistence", () => {
 		const { database, sqlite } = await createFixture();
 		const before = await balanceAndValidation(database);
 		await categoryService.mergeCategories(database, "grocery", "food");
-		expect(transactionRow(sqlite, "grocery-refund")).toMatchObject({
-			category_id: "food",
-		});
+		expect(itemCategories(sqlite, "grocery-refund")).toEqual([
+			{ category_id: "food", investment_id: null, amount: "15" },
+		]);
 		expect(itemCategories(sqlite, "grocery-item")).toEqual([
-			{ category_id: "food", amount: "25" },
+			{ category_id: "food", investment_id: null, amount: "25" },
 		]);
 		expect(
 			sqlite
@@ -484,9 +513,9 @@ describe("category merge persistence", () => {
 		await expect(
 			categoryService.mergeCategories(database, "grocery", targetId),
 		).rejects.toMatchObject({ code });
-		expect(transactionRow(sqlite, "grocery-refund")).toMatchObject({
-			category_id: "grocery",
-		});
+		expect(itemCategories(sqlite, "grocery-refund")).toEqual([
+			{ category_id: "grocery", investment_id: null, amount: "15" },
+		]);
 	});
 
 	it("requires the category being merged", async () => {
